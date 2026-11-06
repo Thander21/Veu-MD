@@ -1,0 +1,110 @@
+import type { ThemeConfig } from '../types';
+
+export const defaultThemes: Record<string, ThemeConfig> = {
+  dark: {
+    id: 'dark',
+    name: 'Dark Conforto',
+    isDark: true,
+    editorMaxWidth: '860px',
+    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+    fontSize: '16px',
+    lineHeight: '1.75',
+
+    bgApp: '#131417',
+    bgSidebar: '#181a1f',
+    bgEditor: '#1e2026',
+    textColor: '#e2e8f0',
+    borderColor: '#2d333b',
+    activeItemBg: '#2d3748',
+
+    h1: { color: '#60a5fa', fontSize: '2.1rem', fontWeight: '700', borderBottom: '1px solid #334155' },
+    h2: { color: '#38bdf8', fontSize: '1.7rem', fontWeight: '600', borderBottom: '1px solid #1e293b' },
+    h3: { color: '#818cf8', fontSize: '1.4rem', fontWeight: '600' },
+    h4: { color: '#a78bfa', fontSize: '1.2rem', fontWeight: '600' },
+    h5: { color: '#c084fc', fontSize: '1.05rem', fontWeight: '600' },
+    h6: { color: '#94a3b8', fontSize: '0.95rem', fontWeight: '600' },
+
+    bold: { color: '#f8fafc', fontWeight: '700' },
+    italic: { color: '#cbd5e1' },
+    strikethrough: { color: '#64748b' },
+    highlight: { color: '#0f172a', backgroundColor: '#fde047' },
+    inlineCode: { color: '#f43f5e', backgroundColor: '#292524' },
+    blockquote: { color: '#94a3b8', backgroundColor: '#1e293b40', borderLeft: '4px solid #38bdf8' },
+    codeBlock: { color: '#e2e8f0', backgroundColor: '#0f172a' },
+    link: { color: '#38bdf8' },
+    listBullet: { color: '#38bdf8' },
+    tableBorder: '#334155',
+    tableHeaderBg: '#1e293b'
+  },
+  light: {
+    id: 'light',
+    name: 'Claro Clássico',
+    isDark: false,
+    editorMaxWidth: '860px',
+    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+    fontSize: '16px',
+    lineHeight: '1.75',
+
+    bgApp: '#f1f5f9',
+    bgSidebar: '#f8fafc',
+    bgEditor: '#ffffff',
+    textColor: '#1e293b',
+    borderColor: '#e2e8f0',
+    activeItemBg: '#e2e8f0',
+
+    h1: { color: '#1e40af', fontSize: '2.1rem', fontWeight: '700', borderBottom: '1px solid #e2e8f0' },
+    h2: { color: '#0369a1', fontSize: '1.7rem', fontWeight: '600', borderBottom: '1px solid #f1f5f9' },
+    h3: { color: '#4338ca', fontSize: '1.4rem', fontWeight: '600' },
+    h4: { color: '#6d28d9', fontSize: '1.2rem', fontWeight: '600' },
+    h5: { color: '#7e22ce', fontSize: '1.05rem', fontWeight: '600' },
+    h6: { color: '#475569', fontSize: '0.95rem', fontWeight: '600' },
+
+    bold: { color: '#0f172a', fontWeight: '700' },
+    italic: { color: '#334155' },
+    strikethrough: { color: '#94a3b8' },
+    highlight: { color: '#000000', backgroundColor: '#fef08a' },
+    inlineCode: { color: '#e11d48', backgroundColor: '#f1f5f9' },
+    blockquote: { color: '#475569', backgroundColor: '#f8fafc', borderLeft: '4px solid #0284c7' },
+    codeBlock: { color: '#1e293b', backgroundColor: '#f8fafc' },
+    link: { color: '#0284c7' },
+    listBullet: { color: '#0284c7' },
+    tableBorder: '#cbd5e1',
+    tableHeaderBg: '#f1f5f9'
+  },
+  sepia: {
+    id: 'sepia',
+    name: 'Sépia Leitura',
+    isDark: false,
+    editorMaxWidth: '800px',
+    fontFamily: '"Merriweather", "Georgia", serif',
+    fontSize: '17px',
+    lineHeight: '1.85',
+
+    bgApp: '#efe7d8',
+    bgSidebar: '#f6f0e4',
+    bgEditor: '#faf6ee',
+    textColor: '#382e21',
+    borderColor: '#decbb6',
+    activeItemBg: '#e6dac8',
+
+    h1: { color: '#7c3f1d', fontSize: '2.1rem', fontWeight: '700', borderBottom: '1px solid #e0d0bc' },
+    h2: { color: '#8c4e23', fontSize: '1.7rem', fontWeight: '600', borderBottom: '1px solid #ebe0d2' },
+    h3: { color: '#9b5d2b', fontSize: '1.4rem', fontWeight: '600' },
+    h4: { color: '#604128', fontSize: '1.2rem', fontWeight: '600' },
+    h5: { color: '#69472e', fontSize: '1.05rem', fontWeight: '600' },
+    h6: { color: '#7c583d', fontSize: '0.95rem', fontWeight: '600' },
+
+    bold: { color: '#271e14', fontWeight: '700' },
+    italic: { color: '#4a3b2b' },
+    strikethrough: { color: '#a08d77' },
+    highlight: { color: '#1a140d', backgroundColor: '#f6d58d' },
+    inlineCode: { color: '#a23925', backgroundColor: '#f0e5d1' },
+    blockquote: { color: '#68543f', backgroundColor: '#f2e8d7', borderLeft: '4px solid #b46b38' },
+    codeBlock: { color: '#382e21', backgroundColor: '#efe6d4' },
+    link: { color: '#b45309' },
+    listBullet: { color: '#b46b38' },
+    tableBorder: '#decbb6',
+    tableHeaderBg: '#efe4d3'
+  }
+};
+

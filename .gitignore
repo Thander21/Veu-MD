@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+dist-ssr/
+*.local
+
+# Tauri / Rust
+src-tauri/target/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+

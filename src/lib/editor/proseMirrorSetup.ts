@@ -1,0 +1,211 @@
+import { Schema } from 'prosemirror-model';
+import { defaultMarkdownParser, defaultMarkdownSerializer, MarkdownParser, MarkdownSerializer } from 'prosemirror-markdown';
+import { schema as baseSchema } from 'prosemirror-schema-basic';
+import { addListNodes, splitListItem, liftListItem, sinkListItem } from 'prosemirror-schema-list';
+import { tableNodes, tableEditing, columnResizing, goToNextCell } from 'prosemirror-tables';
+import { EditorState, Plugin, PluginKey } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
+import { history, undo, redo } from 'prosemirror-history';
+import { keymap } from 'prosemirror-keymap';
+import { baseKeymap, toggleMark } from 'prosemirror-commands';
+import { inputRules, wrappingInputRule, textblockTypeInputRule } from 'prosemirror-inputrules';
+
+// 1. Estendendo o Schema com Tabelas, Listas e Marcas (Highlight, Strikethrough, Underline)
+const baseNodes = addListNodes(baseSchema.spec.nodes, 'paragraph block*', 'block');
+const allNodes = baseNodes.append(
+  tableNodes({
+    tableGroup: 'block',
+    cellContent: 'inline*',
+    cellAttributes: {}
+  })
+);
+
+export const veuSchema = new Schema({
+  nodes: allNodes,
+  marks: baseSchema.spec.marks.append({
+    strikethrough: {
+      parseDOM: [{ tag: 's' }, { tag: 'del' }, { style: 'text-decoration=line-through' }],
+      toDOM: () => ['s', 0]
+    },
+    underline: {
+      parseDOM: [{ tag: 'u' }, { style: 'text-decoration=underline' }],
+      toDOM: () => ['u', 0]
+    },
+    highlight: {
+      parseDOM: [{ tag: 'mark' }],
+      toDOM: () => ['mark', 0]
+    }
+  })
+});
+
+// 2. Parser Markdown GFM completo (reconhece tabelas e strikethrough)
+const tokenizer = defaultMarkdownParser.tokenizer;
+tokenizer.enable(['table', 'strikethrough']);
+
+export const veuMarkdownParser = new MarkdownParser(veuSchema, tokenizer, {
+  ...defaultMarkdownParser.tokens,
+  s: { mark: 'strikethrough' },
+  table: { block: 'table' },
+  thead: { ignore: true },
+  tbody: { ignore: true },
+  tr: { block: 'table_row' },
+  th: { block: 'table_header' },
+  td: { block: 'table_cell' }
+});
+
+// 3. Serializador Markdown customizado (Gera Markdown puro .md no disco com tabelas GFM)
+export const veuMarkdownSerializer = new MarkdownSerializer(
+  {
+    ...defaultMarkdownSerializer.nodes,
+    table(state, node) {
+      state.renderContent(node);
+      state.closeBlock(node);
+    },
+    table_row(state, node) {
+      state.write('|');
+      let isHeader = false;
+      node.forEach((cell, _, i) => {
+        if (cell.type.name === 'table_header') {
+          isHeader = true;
+        }
+        state.render(cell, node, i);
+        state.write('|');
+      });
+      state.write('\n');
+      if (isHeader) {
+        state.write('|');
+        node.forEach(() => {
+          state.write(' --- |');
+        });
+        state.write('\n');
+      }
+    },
+    table_cell(state, node) {
+      state.write(' ');
+      state.renderInline(node);
+      state.write(' ');
+    },
+    table_header(state, node) {
+      state.write(' ');
+      state.renderInline(node);
+      state.write(' ');
+    }
+  },
+  {
+    ...defaultMarkdownSerializer.marks,
+    strikethrough: { open: '~~', close: '~~', mixable: true, expelEnclosingWhitespace: true },
+    underline: { open: '<u>', close: '</u>', mixable: true, expelEnclosingWhitespace: true },
+    highlight: { open: '==', close: '==', mixable: true, expelEnclosingWhitespace: true }
+  }
+);
+
+// 4. Regras de Entrada Inteligentes (Digitar # cria H1 na hora sem mostrar a tag)
+export function buildInputRules(schema: Schema) {
+  const rules = [];
+
+  // Títulos H1-H6 ao digitar "# " até "###### "
+  for (let level = 1; level <= 6; level++) {
+    rules.push(
+      textblockTypeInputRule(
+        new RegExp(`^(#{${level}})\\s$`),
+        schema.nodes.heading,
+        () => ({ level })
+      )
+    );
+  }
+
+  // Citação ao digitar "> "
+  if (schema.nodes.blockquote) {
+    rules.push(wrappingInputRule(/^\s*>\s$/, schema.nodes.blockquote));
+  }
+
+  // Lista com marcadores ao digitar "- " ou "* "
+  if (schema.nodes.bullet_list) {
+    rules.push(wrappingInputRule(/^\s*([-*])\s$/, schema.nodes.bullet_list));
+  }
+
+  // Lista ordenada ao digitar "1. "
+  if (schema.nodes.ordered_list) {
+    rules.push(
+      wrappingInputRule(
+        /^(\d+)\.\s$/,
+        schema.nodes.ordered_list,
+        (match) => ({ order: +match[1] }),
+        (match, node) => node.childCount + node.attrs.order === +match[1]
+      )
+    );
+  }
+
+  // Bloco de código ao digitar "``` "
+  if (schema.nodes.code_block) {
+    rules.push(textblockTypeInputRule(/^```$/, schema.nodes.code_block));
+  }
+
+  return inputRules({ rules });
+}
+
+// 5. Plugin de Notificação de Seleção (Para Barra Flutuante e Barra de Status)
+export const selectionPluginKey = new PluginKey('veuSelectionPlugin');
+
+export function createSelectionPlugin(onSelectionChange: (view: EditorView) => void) {
+  return new Plugin({
+    key: selectionPluginKey,
+    view() {
+      return {
+        update(view, prevState) {
+          if (!prevState || !prevState.selection.eq(view.state.selection) || !prevState.doc.eq(view.state.doc)) {
+            onSelectionChange(view);
+          }
+        }
+      };
+    }
+  });
+}
+
+// 6. Inicializador do Editor
+export function createEditorState(
+  initialMarkdown: string,
+  onSelectionChange: (view: EditorView) => void
+): EditorState {
+  let doc;
+  try {
+    doc = veuMarkdownParser.parse(initialMarkdown) || veuSchema.node('doc', null, [veuSchema.node('paragraph')]);
+  } catch (e) {
+    console.error('Erro ao converter markdown:', e);
+    doc = veuSchema.node('doc', null, [veuSchema.node('paragraph')]);
+  }
+
+  const customKeymap = {
+    'Mod-z': undo,
+    'Mod-y': redo,
+    'Shift-Mod-z': redo,
+    'Mod-b': toggleMark(veuSchema.marks.strong),
+    'Mod-i': toggleMark(veuSchema.marks.em),
+    'Mod-`': toggleMark(veuSchema.marks.code),
+    'Enter': splitListItem(veuSchema.nodes.list_item),
+    'Tab': (state: EditorState, dispatch?: any) => {
+      if (goToNextCell(1)(state, dispatch)) return true;
+      if (sinkListItem(veuSchema.nodes.list_item)(state, dispatch)) return true;
+      return false;
+    },
+    'Shift-Tab': (state: EditorState, dispatch?: any) => {
+      if (goToNextCell(-1)(state, dispatch)) return true;
+      if (liftListItem(veuSchema.nodes.list_item)(state, dispatch)) return true;
+      return false;
+    }
+  };
+
+  return EditorState.create({
+    schema: veuSchema,
+    doc,
+    plugins: [
+      history(),
+      tableEditing(),
+      columnResizing(),
+      keymap(customKeymap),
+      keymap(baseKeymap),
+      buildInputRules(veuSchema),
+      createSelectionPlugin(onSelectionChange)
+    ]
+  });
+}

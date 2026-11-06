@@ -1,0 +1,244 @@
+/* Base Reset & Fonts */
+:root {
+  --veu-max-width: 860px;
+  --veu-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --veu-font-size: 16px;
+  --veu-line-height: 1.75;
+  --veu-bg-app: #131417;
+  --veu-bg-sidebar: #181a1f;
+  --veu-bg-editor: #1e2026;
+  --veu-text-color: #e2e8f0;
+  --veu-border-color: #2d333b;
+  --veu-active-item-bg: #2d3748;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: var(--veu-font-family);
+  background-color: var(--veu-bg-app);
+  color: var(--veu-text-color);
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 150, 170, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 150, 170, 0.45);
+}
+
+/* ProseMirror WYSIWYG Estilo Word */
+.ProseMirror {
+  outline: none;
+  min-height: 100%;
+  color: var(--veu-text-color);
+  font-family: var(--veu-font-family);
+  font-size: var(--veu-font-size);
+  line-height: var(--veu-line-height);
+  user-select: text;
+  word-break: break-word;
+}
+
+.ProseMirror p {
+  margin-bottom: 1.15em;
+}
+
+/* Títulos H1-H6 com cores configuráveis */
+.ProseMirror h1 {
+  color: var(--veu-h1-color);
+  font-size: var(--veu-h1-size);
+  font-weight: var(--veu-h1-weight);
+  border-bottom: var(--veu-h1-border);
+  margin-top: 1.4em;
+  margin-bottom: 0.6em;
+  padding-bottom: 0.2em;
+}
+.ProseMirror h2 {
+  color: var(--veu-h2-color);
+  font-size: var(--veu-h2-size);
+  font-weight: var(--veu-h2-weight);
+  border-bottom: var(--veu-h2-border);
+  margin-top: 1.3em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.15em;
+}
+.ProseMirror h3 {
+  color: var(--veu-h3-color);
+  font-size: var(--veu-h3-size);
+  font-weight: var(--veu-h3-weight);
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+.ProseMirror h4 {
+  color: var(--veu-h4-color);
+  font-size: var(--veu-h4-size);
+  font-weight: var(--veu-h4-weight);
+  margin-top: 1.1em;
+  margin-bottom: 0.35em;
+}
+.ProseMirror h5 {
+  color: var(--veu-h5-color);
+  font-size: var(--veu-h5-size);
+  font-weight: var(--veu-h5-weight);
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+}
+.ProseMirror h6 {
+  color: var(--veu-h6-color);
+  font-size: var(--veu-h6-size);
+  font-weight: var(--veu-h6-weight);
+  margin-top: 0.9em;
+  margin-bottom: 0.25em;
+}
+
+/* Negrito e Itálico */
+.ProseMirror strong, .ProseMirror b {
+  color: var(--veu-bold-color);
+  font-weight: var(--veu-bold-weight);
+}
+.ProseMirror em, .ProseMirror i {
+  color: var(--veu-italic-color);
+  font-style: italic;
+}
+.ProseMirror s, .ProseMirror del {
+  color: var(--veu-strikethrough-color);
+  text-decoration: line-through;
+}
+
+/* Marca-texto (Highlight) */
+.ProseMirror mark {
+  color: var(--veu-highlight-color);
+  background-color: var(--veu-highlight-bg);
+  padding: 0.15em 0.3em;
+  border-radius: 3px;
+}
+
+/* Código Inline */
+.ProseMirror code:not(pre code) {
+  color: var(--veu-code-color);
+  background-color: var(--veu-code-bg);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.88em;
+}
+
+/* Bloco de Citação (Blockquote) */
+.ProseMirror blockquote {
+  color: var(--veu-quote-color);
+  background-color: var(--veu-quote-bg);
+  border-left: var(--veu-quote-border);
+  padding: 0.7em 1.2em;
+  margin: 1.2em 0;
+  border-radius: 0 6px 6px 0;
+}
+.ProseMirror blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Bloco de Código */
+.ProseMirror pre {
+  color: var(--veu-codeblock-color);
+  background-color: var(--veu-codeblock-bg);
+  padding: 1.1em 1.3em;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.9em;
+  line-height: 1.6;
+  margin: 1.3em 0;
+  border: 1px solid var(--veu-border-color);
+}
+.ProseMirror pre code {
+  color: inherit;
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* Links */
+.ProseMirror a {
+  color: var(--veu-link-color);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Listas */
+.ProseMirror ul, .ProseMirror ol {
+  padding-left: 1.8em;
+  margin-bottom: 1.15em;
+}
+.ProseMirror li {
+  margin-bottom: 0.4em;
+}
+.ProseMirror ul li::marker {
+  color: var(--veu-bullet-color);
+}
+
+/* Checklists (Task Lists) */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.5em;
+}
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+.ProseMirror input[type="checkbox"] {
+  margin-top: 0.35em;
+  cursor: pointer;
+  accent-color: var(--veu-h1-color);
+}
+
+/* Tabelas */
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  border: 1px solid var(--veu-table-border);
+  table-layout: fixed;
+}
+.ProseMirror th, .ProseMirror td {
+  border: 1px solid var(--veu-table-border);
+  padding: 0.6em 0.8em;
+  text-align: left;
+}
+.ProseMirror th {
+  background-color: var(--veu-table-header-bg);
+  font-weight: 600;
+}
+
+/* Linha Divisória */
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--veu-border-color);
+  margin: 2em 0;
+}
+
+/* Placeholder quando vazio */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: "Comece a escrever ou digite # para títulos ou / para blocos...";
+  color: rgba(140, 150, 170, 0.4);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}
+

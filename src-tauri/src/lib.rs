@@ -1,0 +1,329 @@
+use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Emitter, State};
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FileNode {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub extension: Option<String>,
+    pub children: Option<Vec<FileNode>>,
+}
+
+pub struct TerminalSession {
+    writer: Box<dyn Write + Send>,
+    master: Box<dyn portable_pty::MasterPty + Send>,
+}
+
+#[derive(Default)]
+pub struct AppState {
+    terminals: Arc<Mutex<HashMap<String, TerminalSession>>>,
+}
+
+#[tauri::command]
+fn read_dir_tree(path: String) -> Result<Vec<FileNode>, String> {
+    let root = Path::new(&path);
+    if !root.exists() {
+        return Err(format!("Caminho não existe: {}", path));
+    }
+    scan_directory(root)
+}
+
+fn scan_directory(dir: &Path) -> Result<Vec<FileNode>, String> {
+    let mut entries = Vec::new();
+    let read_dir = fs::read_dir(dir).map_err(|e| e.to_string())?;
+
+    let mut dirs_list = Vec::new();
+    let mut files_list = Vec::new();
+
+    for entry in read_dir.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        // Ignora pastas ocultas / pesadas (ex: .git, node_modules)
+        if name.starts_with('.') || name == "node_modules" || name == "target" {
+            continue;
+        }
+
+        let is_dir = path.is_dir();
+        let extension = if is_dir {
+            None
+        } else {
+            path.extension().map(|e| e.to_string_lossy().to_lowercase())
+        };
+
+        let node = FileNode {
+            name,
+            path: path.to_string_lossy().to_string(),
+            is_dir,
+            extension,
+            children: if is_dir {
+                // Lê um nível adiante (lazy ou raso)
+                scan_directory(&path).ok()
+            } else {
+                None
+            },
+        };
+
+        if is_dir {
+            dirs_list.push(node);
+        } else {
+            files_list.push(node);
+        }
+    }
+
+    // Ordena: pastas primeiro, depois arquivos por ordem alfabética
+    dirs_list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    files_list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
+    entries.extend(dirs_list);
+    entries.extend(files_list);
+
+    Ok(entries)
+}
+
+#[tauri::command]
+fn read_text_file(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| format!("Erro ao ler arquivo: {}", e))
+}
+
+#[tauri::command]
+fn write_text_file(path: String, content: String) -> Result<(), String> {
+    if let Some(parent) = Path::new(&path).parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+    }
+    fs::write(&path, content).map_err(|e| format!("Erro ao salvar arquivo: {}", e))
+}
+
+#[tauri::command]
+fn create_entry(path: String, is_dir: bool) -> Result<(), String> {
+    let p = Path::new(&path);
+    if is_dir {
+        fs::create_dir_all(p).map_err(|e| e.to_string())
+    } else {
+        if let Some(parent) = p.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+        }
+        fs::write(p, "").map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+fn rename_entry(old_path: String, new_path: String) -> Result<(), String> {
+    fs::rename(old_path, new_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_entry(path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    if p.is_dir() {
+        fs::remove_dir_all(p).map_err(|e| e.to_string())
+    } else {
+        fs::remove_file(p).map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+fn save_image_asset(base_dir: String, filename: String, base64_data: String) -> Result<String, String> {
+    let assets_dir = Path::new(&base_dir).join("assets");
+    if !assets_dir.exists() {
+        fs::create_dir_all(&assets_dir).map_err(|e| e.to_string())?;
+    }
+
+    let target_path = assets_dir.join(&filename);
+    let raw_bytes = base64_data.trim_start_matches("data:image/png;base64,")
+        .trim_start_matches("data:image/jpeg;base64,")
+        .trim_start_matches("data:image/webp;base64,");
+
+    // Para simplificar, gravamos direto
+    fs::write(&target_path, raw_bytes).map_err(|e| e.to_string())?;
+
+    Ok(format!("./assets/{}", filename))
+}
+
+// ==================== TERMINAL PTY ====================
+
+#[tauri::command]
+fn spawn_terminal(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    term_id: String,
+    cwd: Option<String>,
+    shell: Option<String>,
+) -> Result<(), String> {
+    let pty_system = native_pty_system();
+    let size = PtySize {
+        rows: 24,
+        cols: 80,
+        pixel_width: 0,
+        pixel_height: 0,
+    };
+
+    let pair = pty_system.openpty(size).map_err(|e| e.to_string())?;
+
+    let default_shell = if cfg!(windows) {
+        "powershell.exe".to_string()
+    } else {
+        std::env::var("SHELL").unwrap_or_else(|_| "bash".to_string())
+    };
+
+    let chosen_shell = shell.unwrap_or(default_shell);
+    let mut cmd = CommandBuilder::new(chosen_shell);
+
+    if let Some(dir) = cwd {
+        if Path::new(&dir).exists() {
+            cmd.cwd(PathBuf::from(dir));
+        }
+    }
+
+    let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
+    drop(pair.slave);
+
+    let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+    let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
+
+    let event_id = format!("term-output-{}", term_id);
+    let app_handle = app.clone();
+
+    // Thread para leitura do terminal e emissão para o frontend xterm.js
+    std::thread::spawn(move || {
+        let mut buffer = [0u8; 4096];
+        loop {
+            match reader.read(&mut buffer) {
+                Ok(0) => break, // EOF
+                Ok(n) => {
+                    let data = String::from_utf8_lossy(&buffer[..n]).to_string();
+                    let _ = app_handle.emit(&event_id, data);
+                }
+                Err(_) => break,
+            }
+        }
+        let _ = child.wait();
+    });
+
+    let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
+    map.insert(
+        term_id,
+        TerminalSession {
+            writer,
+            master: pair.master,
+        },
+    );
+
+    Ok(())
+}
+
+#[tauri::command]
+fn write_terminal(
+    state: State<'_, AppState>,
+    term_id: String,
+    data: String,
+) -> Result<(), String> {
+    let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
+    if let Some(session) = map.get_mut(&term_id) {
+        session.writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+        session.writer.flush().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn resize_terminal(
+    state: State<'_, AppState>,
+    term_id: String,
+    cols: u16,
+    rows: u16,
+) -> Result<(), String> {
+    let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
+    if let Some(session) = map.get_mut(&term_id) {
+        let _ = session.master.resize(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        });
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn kill_terminal(state: State<'_, AppState>, term_id: String) -> Result<(), String> {
+    let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
+    map.remove(&term_id);
+    Ok(())
+}
+
+// ==================== THEMES ====================
+
+fn get_themes_dir() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("VeuMD")
+        .join("themes")
+}
+
+#[tauri::command]
+fn save_custom_theme(theme_name: String, theme_json: String) -> Result<(), String> {
+    let dir = get_themes_dir();
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(format!("{}.json", theme_name));
+    fs::write(path, theme_json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_custom_themes() -> Result<HashMap<String, String>, String> {
+    let dir = get_themes_dir();
+    if !dir.exists() {
+        return Ok(HashMap::new());
+    }
+    let mut themes = HashMap::new();
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) == Some("json") {
+                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                    if let Ok(content) = fs::read_to_string(&path) {
+                        themes.insert(stem.to_string(), content);
+                    }
+                }
+            }
+        }
+    }
+    Ok(themes)
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .manage(AppState::default())
+        .invoke_handler(tauri::generate_handler![
+            read_dir_tree,
+            read_text_file,
+            write_text_file,
+            create_entry,
+            rename_entry,
+            delete_entry,
+            save_image_asset,
+            spawn_terminal,
+            write_terminal,
+            resize_terminal,
+            kill_terminal,
+            save_custom_theme,
+            load_custom_themes
+        ])
+        .run(tauri::generate_context!())
+        .expect("Erro ao iniciar aplicativo Veu MD");
+}
+

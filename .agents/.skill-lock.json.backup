@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "skills": {
+    "tlc-spec-driven": {
+      "name": "tlc-spec-driven",
+      "source": "local",
+      "contentHash": "e8c2380a57817ef2406da1977668a39ba7721bdcb5c430fb87f2f82d6b34ae18",
+      "installedAt": "2026-11-06T13:14:14.123Z",
+      "updatedAt": "2026-11-06T13:14:14.123Z",
+      "agents": [
+        "antigravity"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "tlc-plan": {
+      "name": "tlc-plan",
+      "source": "local",
+      "contentHash": "7b3deced549d6cd3b812ed675760c69027166b6ce5e9b293b073f1570b747152",
+      "installedAt": "2026-11-06T13:15:16.546Z",
+      "updatedAt": "2026-11-06T13:15:16.546Z",
+      "agents": [
+        "antigravity"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "tlc-implement": {
+      "name": "tlc-implement",
+      "source": "local",
+      "contentHash": "28efe469462e37cbf1ff3c64a08068e507f16ab07251529fc2dc134a53b7d5f0",
+      "installedAt": "2026-11-06T13:15:16.634Z",
+      "updatedAt": "2026-11-06T13:15:16.634Z",
+      "agents": [
+        "antigravity"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "best-practices": {
+      "name": "best-practices",
+      "source": "local",
+      "contentHash": "e22b6d3e9c7d29cc5f92a89a1a393aa2686aa5c0cd70b7159a7fc9a2bc779461",
+      "installedAt": "2026-11-06T13:15:16.656Z",
+      "updatedAt": "2026-11-06T13:15:16.656Z",
+      "agents": [
+        "antigravity"
+      ],
+      "method": "copy",
+      "global": false
+    },
+    "web-design-guidelines": {
+      "name": "web-design-guidelines",
+      "source": "local",
+      "contentHash": "213a23fff251b12ddfec648bda148bf10704ef6617e162eb9329cc83963dd138",
+      "installedAt": "2026-11-06T13:15:16.676Z",
+      "updatedAt": "2026-11-06T13:15:16.676Z",
+      "agents": [
+        "antigravity"
+      ],
+      "method": "copy",
+      "global": false
+    }
+  }
+}

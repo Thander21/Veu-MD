@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 2,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "gate_fail::in windows tauri winres panics if rc exe is absent in path auto detecting windows kits rc exe in build rs avoids build failure",
+      "text": "In Windows, tauri-winres panics if rc.exe is absent in PATH; auto-detecting Windows Kits rc.exe in build.rs avoids build failure",
+      "signal": "gate_fail",
+      "scope": "src-tauri",
+      "status": "candidate",
+      "features": [
+        "veu-md-core"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src-tauri/build.rs:1 (src-tauri)"
+      ],
+      "created": "2026-11-06T16:45:22Z",
+      "last_seen": "2026-11-06T16:45:22Z"
+    }
+  ]
+}
