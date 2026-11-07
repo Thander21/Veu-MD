@@ -13,7 +13,6 @@
     RefreshCw,
     Search,
     ListTree,
-    TerminalSquare,
     FolderX
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
@@ -116,9 +115,6 @@
           </button>
           <button class="action-btn" title="Atualizar Árvore" on:click={onRefreshTree}>
             <RefreshCw size={13} />
-          </button>
-          <button class="action-btn" title="Abrir no Terminal" on:click={() => onOpenTerminalInFolder(currentFolderPath)}>
-            <TerminalSquare size={14} />
           </button>
           <button class="action-btn close-folder-btn" title="Fechar Pasta" on:click={onCloseFolder}>
             <FolderX size={14} />

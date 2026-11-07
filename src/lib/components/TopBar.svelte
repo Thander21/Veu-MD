@@ -17,13 +17,16 @@
     Undo,
     Redo,
     FolderOpen,
-    FilePlus,
     Palette,
     TerminalSquare,
     PanelLeft,
     Save,
     Printer,
-    FolderX
+    Copy,
+    Check,
+    FolderX,
+    Wand2,
+    Search
   } from 'lucide-svelte';
   import type { EditorView } from 'prosemirror-view';
   import { toggleMark, setBlockType } from 'prosemirror-commands';
@@ -42,9 +45,11 @@
   export let editorView: EditorView | null = null;
   export let onOpenFolder: () => void;
   export let onCloseFolder: () => void = () => {};
-  export let onNewFile: () => void;
   export let onSave: () => void;
   export let onPrint: () => void = () => {};
+  export let onCopyHtml: (() => void) | undefined = undefined;
+  export let onQuickOpen: () => void = () => {};
+  export let onWizard: () => void = () => {};
   export let onToggleSidebar: () => void;
   export let onToggleThemeSettings: () => void;
   export let onToggleTerminal: () => void;
@@ -54,6 +59,19 @@
   export let hasFolder: boolean = false;
 
   let currentHeading = 'p';
+  let copiedHtmlNotice = false;
+  let copyHtmlTimeout: any = null;
+
+  function triggerCopyHtml() {
+    if (onCopyHtml) {
+      onCopyHtml();
+      copiedHtmlNotice = true;
+      if (copyHtmlTimeout) clearTimeout(copyHtmlTimeout);
+      copyHtmlTimeout = setTimeout(() => {
+        copiedHtmlNotice = false;
+      }, 1500);
+    }
+  }
 
   let inTable = false;
   $: if (editorView) {
@@ -198,29 +216,18 @@
       </button>
     {/if}
     <button
-      class="btn icon-btn"
-      class:disabled={!hasFolder}
-      disabled={!hasFolder}
-      title={hasFolder ? "Novo Arquivo (.md)" : "Selecione uma pasta para criar arquivos"}
-      on:click={onNewFile}
+      class="btn icon-btn wizard-btn"
+      title="Assistente IA / Wizard (Em desenvolvimento)"
+      on:click={onWizard}
     >
-      <FilePlus size={16} />
+      <Wand2 size={16} />
     </button>
     <button
       class="btn icon-btn"
-      class:disabled={!hasFolder}
-      disabled={!hasFolder}
-      title={hasFolder ? "Salvar Arquivo (Ctrl+S)" : "Selecione uma pasta para salvar arquivos"}
-      on:click={onSave}
+      title="Localizador Rápido no Projeto (Ctrl+P)"
+      on:click={onQuickOpen}
     >
-      <Save size={16} />
-    </button>
-    <button
-      class="btn icon-btn"
-      title="Exportar PDF / Imprimir (Ctrl+P)"
-      on:click={onPrint}
-    >
-      <Printer size={16} />
+      <Search size={16} />
     </button>
   </div>
 
@@ -320,6 +327,50 @@
     <button class="btn icon-btn" title="Refazer (Ctrl+Y)" on:click={doRedo}>
       <Redo size={15} />
     </button>
+
+    <div class="sub-divider"></div>
+
+    <button
+      class="btn icon-btn"
+      class:disabled={!hasFolder}
+      disabled={!hasFolder}
+      title={hasFolder ? "Salvar Arquivo (Ctrl+S)" : "Selecione uma pasta para salvar arquivos"}
+      on:click={onSave}
+    >
+      <Save size={16} />
+    </button>
+    <button
+      class="btn icon-btn"
+      title="Exportar PDF / Imprimir (Ctrl+Shift+P)"
+      on:click={onPrint}
+    >
+      <Printer size={16} />
+    </button>
+    <button
+      class="btn icon-btn"
+      class:feedback-active={copiedHtmlNotice}
+      title={copiedHtmlNotice ? "HTML Formatado Copiado!" : "Copiar como HTML formatado (para Docs, Word e e-mail)"}
+      on:click={triggerCopyHtml}
+    >
+      {#if copiedHtmlNotice}
+        <Check size={16} style="color: var(--veu-h2-color);" />
+      {:else}
+        <Copy size={16} />
+      {/if}
+    </button>
+    {#if onCopyHtml}
+      <button
+        class="btn icon-btn"
+        title={copiedHtmlNotice ? "Copiado com sucesso!" : "Copiar como HTML formatado (Rich Text)"}
+        on:click={triggerCopyHtml}
+      >
+        {#if copiedHtmlNotice}
+          <Check size={16} color="var(--veu-h1-color)" />
+        {:else}
+          <Copy size={16} />
+        {/if}
+      </button>
+    {/if}
   </div>
 
   <!-- Grupo Direito: Temas & Terminal -->
@@ -423,7 +474,12 @@
     color: #ef4444;
   }
 
-  .btn.active {
+  .btn.wizard-btn:hover {
+    color: var(--veu-h1-color);
+  }
+
+  .btn.active,
+  .btn.feedback-active {
     background-color: var(--veu-active-item-bg);
     color: var(--veu-h1-color);
   }

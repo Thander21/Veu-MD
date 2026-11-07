@@ -1,4 +1,4 @@
-import { Schema, Slice } from 'prosemirror-model';
+import { Schema, Slice, DOMSerializer, Node as ProseMirrorNode } from 'prosemirror-model';
 import { defaultMarkdownParser, defaultMarkdownSerializer, MarkdownParser, MarkdownSerializer } from 'prosemirror-markdown';
 import { schema as baseSchema } from 'prosemirror-schema-basic';
 import { addListNodes, splitListItem, liftListItem, sinkListItem } from 'prosemirror-schema-list';
@@ -355,4 +355,39 @@ export function handleSmartPaste(
   }
 
   return false;
+}
+
+// 9. Exportação Fiel: Serialização HTML e Cópia Formatada (AC-ADV-017, AC-ADV-018)
+export function serializeDocToHtml(doc: ProseMirrorNode): string {
+  const serializer = DOMSerializer.fromSchema(veuSchema);
+  const container = document.createElement('div');
+  container.appendChild(serializer.serializeFragment(doc.content));
+  return container.innerHTML;
+}
+
+export async function copyFormattedHtml(html: string, plainText: string): Promise<boolean> {
+  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+    try {
+      const htmlBlob = new Blob([html], { type: 'text/html' });
+      const textBlob = new Blob([plainText], { type: 'text/plain' });
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': htmlBlob,
+          'text/plain': textBlob
+        })
+      ]);
+      return true;
+    } catch {
+      // Fallback para document.execCommand caso a API de ClipboardItem seja restrita
+    }
+  }
+
+  const listener = (e: ClipboardEvent) => {
+    e.preventDefault();
+    e.clipboardData?.setData('text/html', html);
+    e.clipboardData?.setData('text/plain', plainText);
+  };
+  document.addEventListener('copy', listener, { once: true });
+  document.execCommand('copy');
+  return true;
 }

@@ -13,6 +13,7 @@
   import StatusBar from './lib/components/StatusBar.svelte';
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
   import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
+  import { serializeDocToHtml, copyFormattedHtml } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import type { FileNode, TabItem, HeadingItem, ProjectWorkspace, RecentProject } from './lib/types';
   import type { EditorView } from 'prosemirror-view';
@@ -736,6 +737,15 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
   }
 
+  async function handleCopyAsHtml() {
+    if (!activeEditorView) return;
+    const html = serializeDocToHtml(activeEditorView.state.doc);
+    const plainText = activeTab?.content || activeEditorView.state.doc.textContent;
+    await copyFormattedHtml(html, plainText);
+    statusNotification = 'Documento copiado como HTML formatado para a área de transferência.';
+    setTimeout(() => (statusNotification = ''), 3500);
+  }
+
   async function handlePasteImage(base64Data: string) {
     if (!currentFolderPath) {
       statusNotification = 'Selecione uma pasta antes de colar imagens.';
@@ -788,9 +798,14 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     hasFolder={!!currentFolderPath}
     onOpenFolder={openFolderDialog}
     onCloseFolder={closeFolder}
-    onNewFile={createNewFile}
     onSave={saveCurrentFile}
     onPrint={() => window.print()}
+    onCopyHtml={handleCopyAsHtml}
+    onQuickOpen={() => (quickOpenVisible = true)}
+    onWizard={() => {
+      statusNotification = 'Assistente IA / Wizard (Em desenvolvimento)';
+      setTimeout(() => (statusNotification = ''), 3500);
+    }}
     onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
     onToggleThemeSettings={() => (themeSettingsOpen = !themeSettingsOpen)}
     onToggleTerminal={() => (terminalOpen = !terminalOpen)}
