@@ -1,7 +1,7 @@
 # AI Assistant Wizard and Multi-CLI Provider Switcher - verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at bfff5f8
+**Proofs**: `proofs.md` at 45f1426
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
