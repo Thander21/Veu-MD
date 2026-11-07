@@ -1,7 +1,7 @@
 import { defaultThemes } from './defaultThemes';
 import type { ThemeConfig } from '../types';
 
-let currentTheme: ThemeConfig = defaultThemes.dark;
+let currentTheme: ThemeConfig = defaultThemes.veu;
 const listeners = new Set<(theme: ThemeConfig) => void>();
 
 export function getTheme(): ThemeConfig {
@@ -113,6 +113,6 @@ export function initTheme() {
   } catch (e) {
     console.error(e);
   }
-  setTheme(defaultThemes.dark);
+  setTheme(defaultThemes.veu);
 }
 

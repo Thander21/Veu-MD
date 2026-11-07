@@ -1,6 +1,41 @@
 import type { ThemeConfig } from '../types';
 
 export const defaultThemes: Record<string, ThemeConfig> = {
+  veu: {
+    id: 'veu',
+    name: 'V.E.U. Crepúsculo (Padrão)',
+    isDark: true,
+    editorMaxWidth: '860px',
+    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+    fontSize: '16px',
+    lineHeight: '1.75',
+
+    bgApp: '#0e0b16',
+    bgSidebar: '#130f21',
+    bgEditor: '#181329',
+    textColor: '#f1f0f7',
+    borderColor: '#2b2144',
+    activeItemBg: '#322650',
+
+    h1: { color: '#e879f9', fontSize: '2.1rem', fontWeight: '700', borderBottom: '1px solid #4a1d96' },
+    h2: { color: '#c084fc', fontSize: '1.7rem', fontWeight: '600', borderBottom: '1px solid #3b1378' },
+    h3: { color: '#a855f7', fontSize: '1.4rem', fontWeight: '600' },
+    h4: { color: '#818cf8', fontSize: '1.2rem', fontWeight: '600' },
+    h5: { color: '#38bdf8', fontSize: '1.05rem', fontWeight: '600' },
+    h6: { color: '#a1a1aa', fontSize: '0.95rem', fontWeight: '600' },
+
+    bold: { color: '#ffffff', fontWeight: '700' },
+    italic: { color: '#e9d5ff' },
+    strikethrough: { color: '#71717a' },
+    highlight: { color: '#0e0b16', backgroundColor: '#f0abfc' },
+    inlineCode: { color: '#f472b6', backgroundColor: '#2e1947' },
+    blockquote: { color: '#d8b4fe', backgroundColor: '#24163d60', borderLeft: '4px solid #c084fc' },
+    codeBlock: { color: '#f5f3ff', backgroundColor: '#0d0918' },
+    link: { color: '#f472b6' },
+    listBullet: { color: '#c084fc' },
+    tableBorder: '#352554',
+    tableHeaderBg: '#23153d'
+  },
   dark: {
     id: 'dark',
     name: 'Dark Conforto',

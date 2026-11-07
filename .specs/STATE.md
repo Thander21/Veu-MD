@@ -103,17 +103,18 @@
 ## Handoff
 
 - **Feature**: veu-md-advanced / .specs/features/veu-md-advanced/
-- **Phase / Task**: Phase 4: Execute / T01: Terminal Multi-Projeto Persistente
+- **Phase / Task**: Phase 4: Execute / T02: Ergonomia, Seleção com Mouse & Ações Rápidas
 - **Completed**:
   - AD-001..AD-012
   - Backlog Técnico Anti-Bloat documentado em `Docs/BACKLOG_TECNICO.md`
   - context.md registrado com decisões 1 a 5 aprovadas
   - spec.md atualizado com requisitos EARS (18 critérios, 0 erros no validador)
   - tasks.md configurado com portões determinísticos e checks comprováveis (0 erros no validador)
-  - Portão `validate_tasks.py veu-md-advanced --execute` verificado com sucesso (Build limpo)
-- **In-progress**: T01: Terminal Multi-Projeto Persistente & Estado por Projeto
-- **Next step**: Executar T01 implementando o desacoplamento e persistência das sessões de terminal por projeto.
+  - Portão `validate_tasks.py veu-md-advanced --execute` verificado com sucesso
+  - T01: Terminal Multi-Projeto Persistente implementado e commitado (82db697)
+- **In-progress**: T02: Ergonomia, Seleção com Mouse e Ações Rápidas no Terminal
+- **Next step**: Implementar seleção contínua de mouse, proteção de fit e botões de ação rápida no TerminalPanel.svelte.
 - **Blockers**: none
 - **Uncommitted files**: none
-- **Branch**: main
+- **Branch**: master
 
