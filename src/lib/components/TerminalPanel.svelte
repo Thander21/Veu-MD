@@ -410,6 +410,29 @@
     fitAll();
   }
 
+  function attachResizeObserver(node: HTMLDivElement) {
+    terminalContentEl = node;
+    if (resizeObserver) resizeObserver.disconnect();
+    resizeObserver = new ResizeObserver(() => {
+      fitAll();
+    });
+    resizeObserver.observe(node);
+    requestAnimationFrame(() => {
+      fitAll();
+    });
+    return {
+      destroy() {
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+          resizeObserver = null;
+        }
+        if (terminalContentEl === node) {
+          terminalContentEl = null;
+        }
+      }
+    };
+  }
+
   onMount(() => {
     const savedEngine = localStorage.getItem('veu_terminal_engine');
     if (savedEngine === 'veu' || savedEngine === 'xterm') {
@@ -419,13 +442,6 @@
     unsubscribeTheme = subscribeTheme((theme) => {
       applyThemeToTerminals(theme);
     });
-
-    if (terminalContentEl) {
-      resizeObserver = new ResizeObserver(() => {
-        fitAll();
-      });
-      resizeObserver.observe(terminalContentEl);
-    }
   });
 
   onDestroy(() => {
@@ -634,7 +650,7 @@
       </div>
 
       <!-- Área de Visualização do xterm.js -->
-      <div class="terminal-content" bind:this={terminalContentEl}>
+      <div class="terminal-content" bind:this={terminalContentEl} use:attachResizeObserver>
         {#each currentTabs as t (t.id)}
           <div
             class="term-wrapper"

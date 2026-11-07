@@ -129,9 +129,13 @@
             value={theme.fontFamily}
             on:change={(e) => handleDirectChange('fontFamily', (e.target as HTMLSelectElement).value)}
           >
-            <option value="Inter, system-ui, -apple-system, sans-serif">Sem Serifa Moderna (Inter)</option>
-            <option value='"Merriweather", "Georgia", serif'>Serifada Livro (Georgia / Merriweather)</option>
-            <option value='"JetBrains Mono", monospace'>Monoespaçada (Código)</option>
+            <option value="'Roboto', system-ui, -apple-system, sans-serif">Roboto (Padrão Veu MD)</option>
+            <option value="'JetBrains Mono', 'Fira Code', monospace">JetBrains Mono (IDE / Código)</option>
+            <option value="'Fira Code', 'JetBrains Mono', monospace">Fira Code (Ligaduras / IDE)</option>
+            <option value="'Cascadia Code', 'Fira Code', monospace">Cascadia Code (Windows Terminal / IDE)</option>
+            <option value="'Source Code Pro', monospace">Source Code Pro (Adobe / IDE)</option>
+            <option value="Inter, system-ui, -apple-system, sans-serif">Inter (Sem Serifa Moderna)</option>
+            <option value='"Merriweather", "Georgia", serif'>Merriweather (Serifada Livro)</option>
           </select>
         </div>
 

@@ -4,7 +4,10 @@
     Folder,
     FolderOpen,
     FileText,
+    FileCode,
     FileCode2,
+    FileJson,
+    FileQuestion,
     Image,
     File,
     ChevronRight,
@@ -87,19 +90,34 @@
     expandedFolders[path] = !expandedFolders[path];
   }
 
+  const BINARY_EXTENSIONS = new Set([
+    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'psd',
+    'zip', 'rar', '7z', 'tar', 'gz', 'bz2',
+    'exe', 'dll', 'so', 'dylib', 'bin', 'iso', 'apk', 'msi',
+    'pdf', 'docx', 'xlsx', 'pptx',
+    'mp3', 'wav', 'ogg', 'flac', 'aac',
+    'mp4', 'mkv', 'avi', 'mov', 'webm', 'flv',
+    'woff', 'woff2', 'ttf', 'otf', 'eot'
+  ]);
+
   function getFileIcon(ext?: string) {
-    if (!ext) return File;
+    if (!ext) return FileQuestion;
     const lower = ext.toLowerCase();
     if (lower === 'md' || lower === 'markdown') return FileText;
-    if (lower === 'txt' || lower === 'log') return FileCode2;
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(lower)) return Image;
-    return File;
+    if (lower === 'html' || lower === 'htm') return FileCode;
+    if (lower === 'json' || lower === 'jsonc') return FileJson;
+    if (['css', 'scss', 'sass', 'less'].includes(lower)) return FileCode;
+    if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'mts', 'cts'].includes(lower)) return FileCode2;
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(lower)) return Image;
+    if (lower === 'txt' || lower === 'log') return FileText;
+    if (BINARY_EXTENSIONS.has(lower)) return File;
+    return FileQuestion;
   }
 
-  function isEditable(ext?: string) {
-    if (!ext) return false;
+  function isEditable(ext?: string): boolean {
+    if (!ext) return true;
     const lower = ext.toLowerCase();
-    return lower === 'md' || lower === 'markdown' || lower === 'txt' || lower === 'log';
+    return !BINARY_EXTENSIONS.has(lower);
   }
 
   function filterTree(nodes: FileNode[], query: string): FileNode[] {

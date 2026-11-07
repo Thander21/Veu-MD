@@ -3,7 +3,10 @@
     Folder,
     FolderOpen,
     FileText,
+    FileCode,
     FileCode2,
+    FileJson,
+    FileQuestion,
     Image,
     File,
     ChevronRight,
@@ -26,19 +29,66 @@
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void;
   export let onOpenTerminalInFolder: (path: string) => void;
 
+  const BINARY_EXTENSIONS = new Set([
+    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'psd',
+    'zip', 'rar', '7z', 'tar', 'gz', 'bz2',
+    'exe', 'dll', 'so', 'dylib', 'bin', 'iso', 'apk', 'msi',
+    'pdf', 'docx', 'xlsx', 'pptx',
+    'mp3', 'wav', 'ogg', 'flac', 'aac',
+    'mp4', 'mkv', 'avi', 'mov', 'webm', 'flv',
+    'woff', 'woff2', 'ttf', 'otf', 'eot'
+  ]);
+
   function getFileIcon(ext?: string) {
-    if (!ext) return File;
+    if (!ext) return FileQuestion;
     const lower = ext.toLowerCase();
+
+    // 1. Markdown
     if (lower === 'md' || lower === 'markdown') return FileText;
-    if (lower === 'txt' || lower === 'log') return FileCode2;
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(lower)) return Image;
-    return File;
+
+    // 2. HTML
+    if (lower === 'html' || lower === 'htm') return FileCode;
+
+    // 3. JSON
+    if (lower === 'json' || lower === 'jsonc') return FileJson;
+
+    // 4. Estilos (CSS, SCSS, LESS)
+    if (['css', 'scss', 'sass', 'less'].includes(lower)) return FileCode;
+
+    // 5. Scripts (JS, TS, JSX, TSX, MJS, CJS)
+    if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'mts', 'cts'].includes(lower)) return FileCode2;
+
+    // 6. Imagens
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(lower)) return Image;
+
+    // 7. Texto comum
+    if (lower === 'txt' || lower === 'log') return FileText;
+
+    // 8. Binários conhecidos (não editáveis)
+    if (BINARY_EXTENSIONS.has(lower)) return File;
+
+    // 9. Outros arquivos texto (formato indefinido / não mapeado)
+    return FileQuestion;
   }
 
-  function isEditable(ext?: string) {
-    if (!ext) return false;
+  function getFileIconColor(ext?: string): string {
+    if (!ext) return 'var(--veu-text-color)';
     const lower = ext.toLowerCase();
-    return lower === 'md' || lower === 'markdown' || lower === 'txt' || lower === 'log';
+    if (lower === 'md' || lower === 'markdown') return 'var(--veu-h1-color)';
+    if (lower === 'html' || lower === 'htm') return '#f97316';
+    if (lower === 'json' || lower === 'jsonc') return '#facc15';
+    if (['css', 'scss', 'sass', 'less'].includes(lower)) return '#38bdf8';
+    if (['js', 'jsx', 'mjs', 'cjs'].includes(lower)) return '#fde047';
+    if (['ts', 'tsx', 'mts', 'cts'].includes(lower)) return '#60a5fa';
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(lower)) return '#c084fc';
+    if (BINARY_EXTENSIONS.has(lower)) return 'rgba(127, 127, 127, 0.4)';
+    return 'var(--veu-text-color)';
+  }
+
+  function isEditable(ext?: string): boolean {
+    if (!ext) return true;
+    const lower = ext.toLowerCase();
+    return !BINARY_EXTENSIONS.has(lower);
   }
 </script>
 
@@ -139,7 +189,7 @@
       <svelte:component
         this={getFileIcon(node.extension)}
         size={14}
-        color={node.extension === 'md' ? 'var(--veu-h1-color)' : 'var(--veu-text-color)'}
+        color={getFileIconColor(node.extension)}
       />
       <span class="node-name" title={node.name}>{node.name}</span>
 

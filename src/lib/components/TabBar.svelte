@@ -1,11 +1,35 @@
 <script lang="ts">
-  import { X, FileText, FileCode2 } from 'lucide-svelte';
+  import { X, FileText, FileCode, FileCode2, FileJson, FileQuestion } from 'lucide-svelte';
   import type { TabItem } from '../types';
 
   export let tabs: TabItem[] = [];
   export let activeTabId: string | null = null;
   export let onSelectTab: (id: string) => void;
   export let onCloseTab: (id: string) => void;
+
+  function getTabIcon(tab: TabItem) {
+    if (tab.isMarkdown) return FileText;
+    const lower = (tab.title || '').toLowerCase();
+    const ext = lower.split('.').pop() || '';
+    if (ext === 'html' || ext === 'htm') return FileCode;
+    if (ext === 'json' || ext === 'jsonc') return FileJson;
+    if (['css', 'scss', 'sass', 'less'].includes(ext)) return FileCode;
+    if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'mts', 'cts'].includes(ext)) return FileCode2;
+    if (['txt', 'log'].includes(ext)) return FileText;
+    return FileQuestion;
+  }
+
+  function getTabIconColor(tab: TabItem): string {
+    if (tab.isMarkdown) return 'var(--veu-h1-color)';
+    const lower = (tab.title || '').toLowerCase();
+    const ext = lower.split('.').pop() || '';
+    if (ext === 'html' || ext === 'htm') return '#f97316';
+    if (ext === 'json' || ext === 'jsonc') return '#facc15';
+    if (['css', 'scss', 'sass', 'less'].includes(ext)) return '#38bdf8';
+    if (['js', 'jsx', 'mjs', 'cjs'].includes(ext)) return '#fde047';
+    if (['ts', 'tsx', 'mts', 'cts'].includes(ext)) return '#60a5fa';
+    return 'var(--veu-text-color)';
+  }
 </script>
 
 <div class="tabbar">
@@ -19,11 +43,11 @@
       on:keydown={(e) => e.key === 'Enter' && onSelectTab(tab.id)}
     >
       <span class="icon">
-        {#if tab.isMarkdown}
-          <FileText size={14} color="var(--veu-h1-color)" />
-        {:else}
-          <FileCode2 size={14} color="var(--veu-text-color)" />
-        {/if}
+        <svelte:component
+          this={getTabIcon(tab)}
+          size={14}
+          color={getTabIconColor(tab)}
+        />
       </span>
       <span class="title" title={tab.path}>{tab.title}</span>
 

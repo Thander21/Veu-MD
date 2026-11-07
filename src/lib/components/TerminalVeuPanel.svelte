@@ -185,9 +185,6 @@
   let resizeObserver: ResizeObserver | null = null;
 
   function syncPtySize(termId?: string) {
-    const id = termId || activeTermId;
-    if (!id) return;
-
     let w = 800;
     let h = 260;
     if (panelEl) {
@@ -207,7 +204,42 @@
 
     const cols = Math.max(40, Math.min(320, Math.floor(usableW / 8.2)));
     const rows = Math.max(8, Math.min(160, Math.floor(usableH / 19)));
-    invoke('resize_terminal', { termId: id, cols, rows }).catch(() => {});
+
+    if (termId) {
+      invoke('resize_terminal', { termId, cols, rows }).catch(() => {});
+    } else {
+      currentTabs.forEach((t) => {
+        invoke('resize_terminal', { termId: t.id, cols, rows }).catch(() => {});
+      });
+    }
+  }
+
+  function attachResizeObserver(node: HTMLDivElement) {
+    panelEl = node;
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
+    resizeObserver = new ResizeObserver(() => {
+      syncPtySize();
+    });
+    resizeObserver.observe(node);
+
+    syncPtySize();
+    requestAnimationFrame(() => {
+      syncPtySize();
+    });
+
+    return {
+      destroy() {
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+          resizeObserver = null;
+        }
+        if (panelEl === node) {
+          panelEl = null;
+        }
+      }
+    };
   }
 
   export async function createTerminalSession(
@@ -796,12 +828,6 @@
   }
 
   onMount(() => {
-    if (panelEl) {
-      resizeObserver = new ResizeObserver(() => {
-        syncPtySize();
-      });
-      resizeObserver.observe(panelEl);
-    }
     syncPtySize();
   });
 
@@ -829,6 +855,7 @@
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     bind:this={panelEl}
+    use:attachResizeObserver
     class="terminal-panel orientation-{orientation}"
     class:maximized={isMaximized || !hasActiveFile}
     style={(isMaximized || !hasActiveFile)

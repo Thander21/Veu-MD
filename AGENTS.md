@@ -40,7 +40,8 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Performance de Temas via GPU:**
   - Todas as cores de elementos semânticos (H1..H6, negrito, itálico, citações, inline code, blocos de código, tabelas, links) e espaçamentos são aplicados estritamente via CSS Custom Properties no `:root`.
   - A troca de tema ocorre sem recálculo de árvore DOM no JavaScript (custo zero de CPU / re-render pela GPU).
-  - O tema canônico de primeiro uso é **"Veu MD (Oficial)"** (`veumd`) com a paleta Crepúsculo Obsidian (`#0e0b16`, `#f472b6`, `#c084fc`, `#7c3aed`).
+  - O tema canônico de primeiro uso é **"Veu MD (Oficial)"** (`veumd`) com a paleta Catppuccin Mocha (`#11111b`, `#181825`, `#1e1e2e`, `#cba6f7`, `#f5c2e7`) e tipografia Roboto.
+  - O tema legado **"Veu Crepúsculo"** (`veu`) permanece disponível para os usuários que apreciam a estética crepúsculo obsidian original.
   - O drawer de temas deve disponibilizar seleção via Dropdown; qualquer ajuste manual feito pelo usuário em cores, medidas ou fontes deve comutar automaticamente o seletor para **"Personalizado"** (`custom`).
 - **Ergonomia e Invariantes da Barra de Projetos:**
   - **NUNCA** sobreponha botões flutuantes de fechar (`X`) no topo dos avatares de projetos na barra de atividades, evitando cliques acidentais e poluição visual.
