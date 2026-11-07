@@ -1,0 +1,45 @@
+# ai-assistant-wizard-and-multi-cli proofs
+
+**HEAD**: bfff5f8
+**Tree**: clean
+**Shell**: C:/Program Files/Git\bin\bash.exe
+**Result**: 6 pass, 0 fail
+
+| Check | Proof | Result |
+| --- | --- | --- |
+| C01 | `run providercheck / SUCCESS: Todos os contratos do AI Wizard e Multi-CLI passaram!` | pass |
+| C02 | `run typecheck / svelte-check found 0 errors` | pass |
+| C03 | `run typecheck / svelte-check found 0 errors` | pass |
+| C04 | `run typecheck / svelte-check found 0 errors` | pass |
+| C05 | `run rustcheck / Finished` | pass |
+| Build | `npm run build` | pass |
+
+## Output
+
+`Run providercheck` - exit 0
+
+```
+--- TESTANDO CONTRATOS DO AI WIZARD E MULTI-CLI PROVIDERS ---
+SUCCESS: Todos os contratos do AI Wizard e Multi-CLI passaram!
+```
+
+`Run typecheck` - exit 0
+
+```
+> veu-md@0.1.0 check
+> svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: w:\_Projetos\Veu MD
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+```
+
+`Run rustcheck` - exit 0
+
+```
+> veu-md@0.1.0 check:rust
+> %USERPROFILE%\.cargo\bin\cargo.exe check --manifest-path src-tauri/Cargo.toml
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.73s
+```
