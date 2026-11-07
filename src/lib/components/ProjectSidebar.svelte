@@ -8,7 +8,8 @@
     Check,
     Trash2,
     ExternalLink,
-    Sparkles
+    Sparkles,
+    PanelLeft
   } from 'lucide-svelte';
   import type { ProjectWorkspace, RecentProject } from '../types';
 
@@ -16,6 +17,7 @@
   export let activeProjectId: string | null = null;
   export let recentProjects: RecentProject[] = [];
   export let aiAssistantOpen: boolean = false;
+  export let sidebarOpen: boolean = true;
   export let onSelectProject: (id: string) => void;
   export let onCloseProject: (id: string) => void;
   export let onOpenNewProject: () => void;
@@ -23,6 +25,7 @@
   export let onRemoveRecent: (folderPath: string) => void;
   export let onClearRecent: () => void = () => {};
   export let onToggleAiAssistant: () => void = () => {};
+  export let onToggleSidebar: () => void = () => {};
 
   let recentMenuOpen = false;
 
@@ -70,7 +73,20 @@
 </script>
 
 <aside class="project-activity-bar" aria-label="Abas de Projetos">
-  <!-- Topo: Lista de abas de projetos abertos -->
+  <!-- Topo Fixo: Botão de Alternância da Barra Lateral de Arquivos -->
+  <div class="top-controls">
+    <button
+      class="action-btn toggle-sidebar-btn"
+      class:active={sidebarOpen}
+      title={sidebarOpen ? "Recolher Barra Lateral de Arquivos" : "Expandir Barra Lateral de Arquivos"}
+      on:click={onToggleSidebar}
+      aria-label="Alternar Barra Lateral"
+    >
+      <PanelLeft size={18} />
+    </button>
+  </div>
+
+  <!-- Lista de abas de projetos abertos -->
   <div class="projects-list">
     {#each projects as project (project.id)}
       {@const isActive = project.id === activeProjectId}
@@ -230,6 +246,42 @@
     user-select: none;
     z-index: 15;
     flex-shrink: 0;
+  }
+
+  .top-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .toggle-sidebar-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: var(--veu-text-color);
+    opacity: 0.75;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .toggle-sidebar-btn:hover {
+    opacity: 1;
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h1-color);
+  }
+
+  .toggle-sidebar-btn.active {
+    color: var(--veu-h1-color);
+    background-color: rgba(244, 114, 182, 0.12);
   }
 
   .projects-list {

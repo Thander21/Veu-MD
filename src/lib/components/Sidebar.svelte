@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import {
     Folder,
     FolderOpen,
@@ -15,7 +16,8 @@
     ListTree,
     FolderX,
     PanelLeftClose,
-    X
+    X,
+    Wand2
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
   import type { FileNode, HeadingItem } from '../types';
@@ -35,10 +37,54 @@
   export let onRenameEntry: (path: string, currentName: string) => void = () => {};
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
   export let onCollapse: (() => void) | undefined = undefined;
+  export let onQuickOpen: (() => void) | undefined = undefined;
 
   let activeTab: 'explorer' | 'outline' = 'explorer';
   let searchQuery = '';
   let expandedFolders: Record<string, boolean> = {};
+
+  // Redimensionamento interativo da barra lateral (180px a 600px)
+  let sidebarWidth = 260;
+  let isResizing = false;
+
+  onMount(() => {
+    const saved = localStorage.getItem('veu_sidebar_width');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 180 && parsed <= 600) {
+        sidebarWidth = parsed;
+      }
+    }
+  });
+
+  function startResizing(e: MouseEvent) {
+    e.preventDefault();
+    isResizing = true;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizing) return;
+      // 48px corresponde à barra fina de projetos fixa à esquerda
+      const newWidth = Math.min(600, Math.max(180, moveEvent.clientX - 48));
+      sidebarWidth = newWidth;
+    };
+
+    const onMouseUp = () => {
+      if (isResizing) {
+        isResizing = false;
+        localStorage.setItem('veu_sidebar_width', String(sidebarWidth));
+      }
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function resetWidth() {
+    sidebarWidth = 260;
+    localStorage.setItem('veu_sidebar_width', '260');
+  }
 
   function toggleFolder(path: string) {
     expandedFolders[path] = !expandedFolders[path];
@@ -81,7 +127,55 @@
   $: displayedTree = filterTree(fileTree, searchQuery);
 </script>
 
-<aside class="sidebar">
+<aside class="sidebar" style="width: {sidebarWidth}px;">
+  <!-- Cabeçalho de Ponta a Ponta do Sidebar -->
+  <div class="sidebar-top-header">
+    <div class="header-left">
+      {#if onCollapse}
+        <button
+          class="header-action-btn collapse-header-btn"
+          title="Recolher Barra Lateral (Alternar)"
+          on:click={onCollapse}
+          aria-label="Recolher Barra Lateral"
+        >
+          <PanelLeftClose size={16} />
+        </button>
+      {/if}
+    </div>
+
+    <div class="header-right">
+      <button
+        class="header-action-btn switch-project-btn"
+        title={currentFolderPath ? "Trocar Projeto Aberto" : "Abrir Projeto"}
+        on:click={onOpenFolder}
+        aria-label="Trocar Projeto"
+      >
+        <FolderOpen size={14} />
+        <span class="btn-text">Trocar Projeto</span>
+      </button>
+
+      <button
+        class="header-action-btn wizard-btn disabled"
+        disabled
+        title="Assistente de Criação (Em breve)"
+        aria-label="Assistente Wizard (Desativado)"
+      >
+        <Wand2 size={14} />
+      </button>
+
+      {#if onQuickOpen}
+        <button
+          class="header-action-btn search-quick-btn"
+          title="Localizador Rápido no Projeto (Ctrl+P)"
+          on:click={onQuickOpen}
+          aria-label="Buscar Arquivos"
+        >
+          <Search size={14} />
+        </button>
+      {/if}
+    </div>
+  </div>
+
   <!-- Abas do Sidebar: Explorer vs Sumário -->
   <div class="sidebar-tabs">
     <button
@@ -100,16 +194,6 @@
       <ListTree size={14} />
       <span>Sumário</span>
     </button>
-    {#if onCollapse}
-      <button
-        class="collapse-btn"
-        title="Recolher Barra Lateral"
-        on:click={onCollapse}
-        aria-label="Recolher Barra Lateral"
-      >
-        <PanelLeftClose size={15} />
-      </button>
-    {/if}
   </div>
 
   {#if activeTab === 'explorer'}
@@ -204,13 +288,25 @@
       {/if}
     </div>
   {/if}
+
+  <!-- Alça de Redimensionamento Interativa (180px a 600px) -->
+  <button
+    type="button"
+    class="sidebar-resizer"
+    class:resizing={isResizing}
+    on:mousedown={startResizing}
+    on:dblclick={resetWidth}
+    title="Arraste para redimensionar (Duplo clique para redefinir 260px)"
+    aria-label="Redimensionar Barra Lateral"
+    tabindex="0"
+  ></button>
 </aside>
 
 <style>
   .sidebar {
+    position: relative;
     display: flex;
     flex-direction: column;
-    width: 260px;
     height: 100%;
     background-color: var(--veu-bg-sidebar);
     border-right: 1px solid var(--veu-border-color);
@@ -218,34 +314,94 @@
     user-select: none;
     font-size: 13px;
     flex-shrink: 0;
-    z-index: 5;
+    z-index: 10;
+  }
+
+  .sidebar-resizer {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 25;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    transition: background-color 0.15s ease;
+  }
+
+  .sidebar-resizer:hover,
+  .sidebar-resizer.resizing {
+    background: var(--veu-h1-color);
+  }
+
+  .sidebar-top-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 44px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--veu-border-color);
+    background-color: var(--veu-bg-sidebar);
+    flex-shrink: 0;
+    gap: 4px;
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  .header-left, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .header-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 7px;
+    border-radius: 5px;
+    background: transparent;
+    border: none;
+    color: var(--veu-text-color);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: all 0.15s ease;
+  }
+
+  .header-action-btn:hover:not(:disabled) {
+    opacity: 1;
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h1-color);
+  }
+
+  .header-action-btn.disabled,
+  .header-action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .header-action-btn .btn-text {
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+
+  .collapse-header-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
   }
 
   .sidebar-tabs {
     display: flex;
     align-items: center;
     border-bottom: 1px solid var(--veu-border-color);
-  }
-
-  .collapse-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    background: transparent;
-    border: none;
-    border-left: 1px solid var(--veu-border-color);
-    color: var(--veu-text-color);
-    opacity: 0.6;
-    cursor: pointer;
-    transition: opacity 0.15s, background-color 0.15s, color 0.15s;
-  }
-
-  .collapse-btn:hover {
-    opacity: 1;
-    background-color: var(--veu-active-item-bg);
-    color: var(--veu-h1-color);
   }
 
   .tab-btn {

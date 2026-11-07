@@ -16,17 +16,12 @@
     Minus,
     Undo,
     Redo,
-    FolderOpen,
     Palette,
     TerminalSquare,
-    PanelLeft,
     Save,
     Printer,
     Copy,
-    Check,
-    FolderX,
-    Wand2,
-    Search
+    Check
   } from 'lucide-svelte';
   import type { EditorView } from 'prosemirror-view';
   import { toggleMark, setBlockType } from 'prosemirror-commands';
@@ -43,19 +38,12 @@
   } from '../editor/proseMirrorSetup';
 
   export let editorView: EditorView | null = null;
-  export let onOpenFolder: () => void;
-  export let onCloseFolder: () => void = () => {};
   export let onSave: () => void;
   export let onPrint: () => void = () => {};
   export let onCopyHtml: (() => void) | undefined = undefined;
-  export let onQuickOpen: () => void = () => {};
-  export let onWizard: () => void = () => {};
-  export let onToggleSidebar: () => void;
   export let onToggleThemeSettings: () => void;
   export let onToggleTerminal: () => void;
-  export let sidebarOpen: boolean = true;
   export let themeSettingsOpen: boolean = false;
-  export let aiAssistantOpen: boolean = false;
   export let terminalOpen: boolean = false;
   export let hasFolder: boolean = false;
 
@@ -202,50 +190,6 @@
 </script>
 
 <header class="topbar">
-  <!-- Marca Oficial do App: Ícone e Nome V.E.U. MD -->
-  <div class="app-brand" title="V.E.U. MD — Editor Markdown de Alta Performance">
-    <img src="/veu-logo.svg" alt="V.E.U. MD" class="brand-logo-img" />
-    <span class="brand-title">
-      <span class="brand-acronym">V.E.U.</span>
-      <span class="brand-suffix">MD</span>
-    </span>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- Grupo Esquerdo: Arquivo e Janela -->
-  <div class="group">
-    <button class="btn icon-btn" class:active={sidebarOpen} title="Alternar Painel Lateral (Pastas / Sumário)" on:click={onToggleSidebar}>
-      <PanelLeft size={17} />
-    </button>
-    <button class="btn" title={hasFolder ? "Trocar Pasta Aberta" : "Abrir Pasta no Computador"} on:click={onOpenFolder}>
-      <FolderOpen size={16} />
-      <span>{hasFolder ? 'Trocar Pasta' : 'Abrir Pasta'}</span>
-    </button>
-    {#if hasFolder}
-      <button class="btn icon-btn close-btn" title="Fechar Pasta Atual" on:click={onCloseFolder}>
-        <FolderX size={16} />
-      </button>
-    {/if}
-    <button
-      class="btn icon-btn wizard-btn"
-      class:btn-active={aiAssistantOpen}
-      title="Assistente IA • Antigravity / agy (Ctrl+L)"
-      on:click={onWizard}
-    >
-      <Wand2 size={16} />
-    </button>
-    <button
-      class="btn icon-btn"
-      title="Localizador Rápido no Projeto (Ctrl+P)"
-      on:click={onQuickOpen}
-    >
-      <Search size={16} />
-    </button>
-  </div>
-
-  <div class="divider"></div>
-
   <!-- Grupo Central: Formatação Estilo Word -->
   <div class="group formatting-group">
     <select
@@ -414,6 +358,7 @@
   .topbar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     height: 44px;
     padding: 0 12px;
     background-color: var(--veu-bg-sidebar);
@@ -421,53 +366,6 @@
     gap: 10px;
     user-select: none;
     z-index: 10;
-  }
-
-  .app-brand {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 2px 8px 2px 2px;
-    user-select: none;
-    flex-shrink: 0;
-    cursor: default;
-  }
-
-  .brand-logo-img {
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 5px rgba(192, 132, 252, 0.35));
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .brand-logo-img:hover {
-    transform: scale(1.08);
-  }
-
-  .brand-title {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    line-height: 1;
-  }
-
-  .brand-acronym {
-    color: var(--veu-text-color);
-  }
-
-  .brand-suffix {
-    color: var(--veu-h1-color);
-    background: rgba(244, 114, 182, 0.14);
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 700;
   }
 
   .group {
@@ -483,13 +381,6 @@
 
   .right-group {
     margin-left: auto;
-  }
-
-  .divider {
-    width: 1px;
-    height: 22px;
-    background-color: var(--veu-border-color);
-    margin: 0 4px;
   }
 
   .sub-divider {
@@ -528,14 +419,6 @@
   .btn:disabled:hover,
   .btn.disabled:hover {
     background-color: transparent;
-  }
-
-  .btn.close-btn:hover {
-    color: #ef4444;
-  }
-
-  .btn.wizard-btn:hover {
-    color: var(--veu-h1-color);
   }
 
   .btn.active,

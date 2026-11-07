@@ -380,6 +380,15 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       activeTabId = welcomeTab.id;
     }
 
+    // Descarte suave do splash screen após carregamento dos componentes
+    setTimeout(() => {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.classList.add('fade-out');
+        setTimeout(() => splash.remove(), 400);
+      }
+    }, 150);
+
     // Escuta alterações de temas em tempo real e associa ao projeto ativo
     unsubscribeTheme = subscribeTheme((newTheme) => {
       if (activeProjectId) {
@@ -830,46 +839,22 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 </script>
 
 <div class="app-layout">
-  <!-- Barra Superior Estilo Word & Ações -->
-  <TopBar
-    editorView={activeEditorView}
-    {sidebarOpen}
-    {themeSettingsOpen}
-    {aiAssistantOpen}
-    {terminalOpen}
-    hasFolder={!!currentFolderPath}
-    onOpenFolder={openFolderDialog}
-    onCloseFolder={closeFolder}
-    onSave={saveCurrentFile}
-    onPrint={() => window.print()}
-    onCopyHtml={handleCopyAsHtml}
-    onQuickOpen={() => (quickOpenVisible = true)}
-    onWizard={() => {
-      aiAssistantOpen = !aiAssistantOpen;
-      if (aiAssistantOpen) themeSettingsOpen = false;
-    }}
-    onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
-    onToggleThemeSettings={() => {
-      themeSettingsOpen = !themeSettingsOpen;
-      if (themeSettingsOpen) aiAssistantOpen = false;
-    }}
-    onToggleTerminal={() => (terminalOpen = !terminalOpen)}
-  />
-
-  <!-- Corpo Principal: ActivityBar de Projetos + Sidebar + Abas + Editor -->
+  <!-- Layout Principal: Barra de Projetos + Barra Lateral de Arquivos de Ponta a Ponta + Palco Central -->
   <div class="workspace">
-    <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes & IA) -->
+    <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes & IA & Botão Fixo de Alternância) -->
     <ProjectSidebar
       projects={openProjects}
       {activeProjectId}
       {recentProjects}
       {aiAssistantOpen}
+      {sidebarOpen}
       onSelectProject={switchToProject}
       onCloseProject={closeProject}
       onOpenNewProject={openFolderDialog}
       onSelectRecent={handleSelectRecent}
       onRemoveRecent={removeRecent}
       onClearRecent={clearRecent}
+      onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
       onToggleAiAssistant={() => {
         aiAssistantOpen = !aiAssistantOpen;
         if (aiAssistantOpen) themeSettingsOpen = false;
@@ -893,10 +878,27 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         onRenameEntry={handleRenameEntry}
         onCreateInFolder={handleCreateInFolder}
         onCollapse={() => (sidebarOpen = false)}
+        onQuickOpen={() => (quickOpenVisible = true)}
       />
     {/if}
 
     <main class="center-stage">
+      <!-- Barra Superior Estilo Word (estritamente sobre o documento) -->
+      <TopBar
+        editorView={activeEditorView}
+        {themeSettingsOpen}
+        {terminalOpen}
+        hasFolder={!!currentFolderPath}
+        onSave={saveCurrentFile}
+        onPrint={() => window.print()}
+        onCopyHtml={handleCopyAsHtml}
+        onToggleThemeSettings={() => {
+          themeSettingsOpen = !themeSettingsOpen;
+          if (themeSettingsOpen) aiAssistantOpen = false;
+        }}
+        onToggleTerminal={() => (terminalOpen = !terminalOpen)}
+      />
+
       <FindReplaceBar
         bind:visible={findReplaceOpen}
         bind:showReplace={findReplaceShowReplace}
