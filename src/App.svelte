@@ -12,6 +12,7 @@
   import TerminalPanel from './lib/components/TerminalPanel.svelte';
   import StatusBar from './lib/components/StatusBar.svelte';
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
+  import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import type { FileNode, TabItem, HeadingItem, ProjectWorkspace, RecentProject } from './lib/types';
   import type { EditorView } from 'prosemirror-view';
@@ -39,6 +40,7 @@
   let findReplaceOpen = false;
   let findReplaceShowReplace = false;
   let smartPasteSanitizeAi = true;
+  let quickOpenVisible = false;
 
   let activeEditorView: EditorView | null = null;
   let editorRef: any = null;
@@ -437,8 +439,13 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         findReplaceOpen = true;
         findReplaceShowReplace = true;
       }
-      // Ctrl + P (Exportar PDF / Imprimir)
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+      // Ctrl + P (Localizador Rápido de Arquivos - Quick Open AC-ADV-012)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        quickOpenVisible = !quickOpenVisible;
+      }
+      // Ctrl + Shift + P (Exportar PDF / Imprimir)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         window.print();
       }
@@ -899,6 +906,15 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     {terminalOpen}
     notification={statusNotification}
     onToggleTerminal={() => (terminalOpen = !terminalOpen)}
+  />
+
+  <!-- Modal Flutuante de Busca Rápida (Ctrl+P) -->
+  <QuickOpenModal
+    visible={quickOpenVisible}
+    {fileTree}
+    {currentFolderPath}
+    onOpenFile={openFile}
+    onClose={() => (quickOpenVisible = false)}
   />
 </div>
 
