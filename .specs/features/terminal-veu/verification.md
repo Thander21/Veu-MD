@@ -1,7 +1,7 @@
 # Terminal Veu (Terminal Sequencial, Interativo e de Leitura Fluida) - verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 66f3d36
+**Proofs**: `proofs.md` at 1ceb117
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
