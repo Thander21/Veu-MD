@@ -1,4 +1,4 @@
-import { Schema } from 'prosemirror-model';
+import { Schema, Slice } from 'prosemirror-model';
 import { defaultMarkdownParser, defaultMarkdownSerializer, MarkdownParser, MarkdownSerializer } from 'prosemirror-markdown';
 import { schema as baseSchema } from 'prosemirror-schema-basic';
 import { addListNodes, splitListItem, liftListItem, sinkListItem } from 'prosemirror-schema-list';
@@ -283,4 +283,76 @@ export function createEditorState(
       taskListPlugin
     ]
   });
+}
+
+// 8. Smart Paste de IA (AC-ADV-009, AC-ADV-010)
+export function sanitizeAiGreetings(text: string): string {
+  const greetingPatterns = [
+    /^(Com certeza|Claro|Certamente|Com prazer|Sem problemas)[!.,]?\s*(aqui está|segue|veja|aqui estão)?.*?:?\s*\n+/i,
+    /^(Aqui está|Aqui estão|Segue|Seguem|Veja abaixo|Abaixo está)[!.,]?\s*(o resumo|o texto|o código|a lista|a tabela|o conteúdo|a versão formatada)?.*?:?\s*\n+/i,
+    /^(Sure|Certainly|Of course|Here is|Here are|Here's)[!.,]?\s*(the summary|the text|the code|the content)?.*?:?\s*\n+/i,
+    /^(Hello|Hi|Olá|Oi)[!.,]?\s*(Aqui está|Here is)?.*?:?\s*\n+/i
+  ];
+
+  const closingPatterns = [
+    /\n+\s*(Espero que (isso|esta resposta) ajude|Espero ter ajudado|Qualquer dúvida (estou à disposição|é só falar)|Se precisar de mais alguma coisa).*$/i,
+    /\n+\s*(Hope this helps|Let me know if you need anything else|Feel free to ask).*$/i
+  ];
+
+  let cleaned = text;
+  for (const pattern of greetingPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+  for (const pattern of closingPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+  return cleaned.trim();
+}
+
+export function handleSmartPaste(
+  view: EditorView,
+  event: ClipboardEvent,
+  sanitizeAi: boolean = true
+): boolean {
+  const clipboardData = event.clipboardData;
+  if (!clipboardData) return false;
+
+  // Prioriza imagens se houver
+  const items = clipboardData.items;
+  if (items) {
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        return false;
+      }
+    }
+  }
+
+  let text = clipboardData.getData('text/plain') || '';
+  if (!text || text.trim().length === 0) return false;
+
+  if (sanitizeAi) {
+    text = sanitizeAiGreetings(text);
+  }
+
+  // Detecta estruturas Markdown ricas (tabelas, blocos de código, títulos, listas, checklists)
+  const hasMarkdownStructures =
+    /(?:^|\n)(?:#{1,6}\s|>\s|[-*+]\s|\|\s*.+?\s*\||```|\[[ xX]\]|\d+\.\s)/.test(text);
+
+  if (hasMarkdownStructures) {
+    try {
+      const parsedDoc = veuMarkdownParser.parse(text);
+      if (parsedDoc && parsedDoc.content.size > 0) {
+        event.preventDefault();
+        const { state, dispatch } = view;
+        const slice = new Slice(parsedDoc.content, 0, 0);
+        const tr = state.tr.replaceSelection(slice);
+        dispatch(tr.scrollIntoView());
+        return true;
+      }
+    } catch {
+      // Deixa o comportamento nativo assumir caso o parser falhe
+    }
+  }
+
+  return false;
 }

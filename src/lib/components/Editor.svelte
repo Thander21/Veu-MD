@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { EditorView } from 'prosemirror-view';
-  import { createEditorState, veuMarkdownSerializer } from '../editor/proseMirrorSetup';
+  import { createEditorState, veuMarkdownSerializer, handleSmartPaste } from '../editor/proseMirrorSetup';
   import FloatingMenu from './FloatingMenu.svelte';
   import SlashMenu from './SlashMenu.svelte';
   import type { HeadingItem } from '../types';
@@ -13,6 +13,7 @@
   export let onStatsChange: (stats: { words: number; chars: number; readTime: string }) => void;
   export let onEditorReady: (view: EditorView) => void;
   export let onPasteImage: ((base64: string) => void) | undefined = undefined;
+  export let smartPasteSanitizeAi: boolean = true;
 
   let editorContainer: HTMLDivElement;
   let editorView: EditorView | null = null;
@@ -119,6 +120,12 @@
             return true;
           }
         }
+
+        // 2. Smart Paste para estruturas Markdown e texto de IA (AC-ADV-009, AC-ADV-010)
+        if (handleSmartPaste(view, event, smartPasteSanitizeAi)) {
+          return true;
+        }
+
         return false;
       },
       handleKeyDown(view, event) {

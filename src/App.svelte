@@ -38,6 +38,7 @@
   let terminalMaximized: boolean = false;
   let findReplaceOpen = false;
   let findReplaceShowReplace = false;
+  let smartPasteSanitizeAi = true;
 
   let activeEditorView: EditorView | null = null;
   let editorRef: any = null;
@@ -859,6 +860,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
                 onStatsChange={(s) => (stats = s)}
                 onEditorReady={(view) => (activeEditorView = view)}
                 onPasteImage={handlePasteImage}
+                {smartPasteSanitizeAi}
               />
             {/key}
           {:else}
