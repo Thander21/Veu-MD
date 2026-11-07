@@ -103,7 +103,7 @@
 ## Handoff
 
 - **Feature**: veu-md-advanced / .specs/features/veu-md-advanced/
-- **Phase / Task**: Phase 4: Execute / T04: Quick Open (Ctrl+P) no Projeto Ativo
+- **Phase / Task**: Phase 4: Execute / T05: Exportação Fiel ao Tema Ativo (PDF & Copiar HTML)
 - **Completed**:
   - AD-001..AD-012
   - Backlog Técnico Anti-Bloat documentado em `Docs/BACKLOG_TECNICO.md`
@@ -114,8 +114,9 @@
   - T01: Terminal Multi-Projeto Persistente implementado e commitado (82db697)
   - T02: Ergonomia, Seleção com Mouse e Ações Rápidas no Terminal implementado e commitado (1c69092)
   - T03: Smart Paste de IA & Normalização Estrutural de Markdown implementado e commitado (833609e)
-- **In-progress**: T04: Quick Open (Ctrl+P) Fuzzy Finder no Projeto Ativo
-- **Next step**: Criar o componente QuickOpenModal.svelte para busca instantânea em memória e acionamento por atalho Ctrl+P.
+  - T04: Quick Open (Ctrl+P) Fuzzy Finder no Projeto Ativo implementado e commitado (68d8b04)
+- **In-progress**: T05: Exportação Fiel ao Tema Ativo (PDF Print & Copiar HTML)
+- **Next step**: Implementar botão e atalho de exportação para PDF via @media print estilizado e ação 'Copiar como HTML formatado'.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master
