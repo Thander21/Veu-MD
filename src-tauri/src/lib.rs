@@ -55,8 +55,9 @@ fn scan_directory(dir: &Path) -> Result<Vec<FileNode>, String> {
         let path = entry.path();
         let name = entry.file_name().to_string_lossy().to_string();
 
-        // Ignora pastas ocultas / pesadas (ex: .git, node_modules)
-        if name.starts_with('.') || name == "node_modules" || name == "target" {
+        // Ignora apenas pastas internas de controle de versão ou pesadas (ex: .git, node_modules, target)
+        // Pastas e arquivos de configuração (.agent, .specs, .vscode, .github, .env, etc.) são exibidos normalmente
+        if name == ".git" || name == "node_modules" || name == "target" || name == ".DS_Store" || name == "Thumbs.db" {
             continue;
         }
 

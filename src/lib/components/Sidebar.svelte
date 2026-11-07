@@ -18,7 +18,8 @@
     Search,
     ListTree,
     FolderX,
-    X
+    X,
+    TerminalSquare
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
   import type { FileNode, HeadingItem } from '../types';
@@ -38,6 +39,8 @@
   export let onRenameEntry: (path: string, currentName: string) => void = () => {};
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
   export let onQuickOpen: (() => void) | undefined = undefined;
+  export let terminalOpen: boolean = false;
+  export let onToggleTerminal: () => void = () => {};
 
   let activeTab: 'explorer' | 'outline' = 'explorer';
   let searchQuery = '';
@@ -154,6 +157,17 @@
       >
         <FolderOpen size={14} />
         <span class="btn-text">Trocar Projeto</span>
+      </button>
+
+      <button
+        class="header-action-btn terminal-btn"
+        class:active={terminalOpen}
+        title="Terminal Integrado (Ctrl+')"
+        on:click={onToggleTerminal}
+        aria-label="Terminal Integrado"
+      >
+        <TerminalSquare size={14} />
+        <span class="btn-text">Terminal</span>
       </button>
     </div>
 
@@ -374,6 +388,13 @@
     opacity: 1;
     background-color: var(--veu-active-item-bg);
     color: var(--veu-h1-color);
+  }
+
+  .header-action-btn.active {
+    opacity: 1;
+    color: var(--veu-h1-color);
+    background-color: var(--veu-active-item-bg);
+    border: 1px solid var(--veu-h1-color);
   }
 
   .header-action-btn:disabled {

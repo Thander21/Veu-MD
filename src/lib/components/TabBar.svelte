@@ -1,5 +1,6 @@
 <script lang="ts">
   import { X, FileText, FileCode, FileCode2, FileJson, FileQuestion } from 'lucide-svelte';
+  import VeuMdIcon from './VeuMdIcon.svelte';
   import type { TabItem } from '../types';
 
   export let tabs: TabItem[] = [];
@@ -8,7 +9,7 @@
   export let onCloseTab: (id: string) => void;
 
   function getTabIcon(tab: TabItem) {
-    if (tab.isMarkdown) return FileText;
+    if (tab.isMarkdown) return VeuMdIcon;
     const lower = (tab.title || '').toLowerCase();
     const ext = lower.split('.').pop() || '';
     if (ext === 'html' || ext === 'htm') return FileCode;

@@ -14,6 +14,7 @@
   import StatusBar from './lib/components/StatusBar.svelte';
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
   import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
+  import { formatDocument } from './lib/utils/codeFormatter';
   import { serializeDocToHtml, copyFormattedHtml } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import type { FileNode, TabItem, HeadingItem, ProjectWorkspace, RecentProject } from './lib/types';
@@ -436,6 +437,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         }
         saveCurrentFile();
       }
+      // Shift + Alt + F (Formatar Documento)
+      if (e.shiftKey && e.altKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        handleFormatDocument();
+      }
       // Ctrl + ' ou Ctrl + ` (Terminal)
       if ((e.ctrlKey || e.metaKey) && (e.key === "'" || e.key === '`')) {
         e.preventDefault();
@@ -796,6 +802,29 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     setTimeout(() => (statusNotification = ''), 3500);
   }
 
+  function handleFormatDocument() {
+    if (!activeTab) return;
+    const res = formatDocument(activeTab.content, activeTab.title);
+    if (!res.success) {
+      statusNotification = res.error || 'Erro ao formatar arquivo.';
+      setTimeout(() => (statusNotification = ''), 4000);
+      return;
+    }
+    if (res.formattedText !== undefined && res.formattedText !== activeTab.content) {
+      activeTab.content = res.formattedText;
+      activeTab.isDirty = true;
+      tabs = [...tabs];
+      if (editorRef && typeof editorRef.setEditorContent === 'function') {
+        editorRef.setEditorContent(res.formattedText);
+      }
+      statusNotification = `Arquivo formatado com sucesso! (${activeTab.title})`;
+      setTimeout(() => (statusNotification = ''), 2500);
+    } else {
+      statusNotification = 'Arquivo já está perfeitamente formatado.';
+      setTimeout(() => (statusNotification = ''), 2000);
+    }
+  }
+
   async function handlePasteImage(base64Data: string) {
     if (!currentFolderPath) {
       statusNotification = 'Selecione uma pasta antes de colar imagens.';
@@ -847,6 +876,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       {activeProjectId}
       {recentProjects}
       {sidebarOpen}
+      {aiAssistantOpen}
+      onToggleAiAssistant={() => {
+        aiAssistantOpen = !aiAssistantOpen;
+        if (aiAssistantOpen) themeSettingsOpen = false;
+      }}
       onSelectProject={switchToProject}
       onCloseProject={closeProject}
       onOpenNewProject={openFolderDialog}
@@ -861,6 +895,8 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         {fileTree}
         {currentFolderPath}
         {headings}
+        {terminalOpen}
+        onToggleTerminal={() => (terminalOpen = !terminalOpen)}
         onOpenFile={openFile}
         onOpenFolder={openFolderDialog}
         onCloseFolder={closeFolder}
@@ -882,11 +918,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         editorView={activeEditorView}
         {themeSettingsOpen}
         {aiAssistantOpen}
-        {terminalOpen}
         hasFolder={!!currentFolderPath}
         onSave={saveCurrentFile}
         onPrint={() => window.print()}
         onCopyHtml={handleCopyAsHtml}
+        onFormatDocument={handleFormatDocument}
         onToggleAiAssistant={() => {
           aiAssistantOpen = !aiAssistantOpen;
           if (aiAssistantOpen) themeSettingsOpen = false;
@@ -895,7 +931,6 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           themeSettingsOpen = !themeSettingsOpen;
           if (themeSettingsOpen) aiAssistantOpen = false;
         }}
-        onToggleTerminal={() => (terminalOpen = !terminalOpen)}
       />
 
       <FindReplaceBar

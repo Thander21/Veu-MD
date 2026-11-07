@@ -1,6 +1,6 @@
 [package]
 name = "veu-md"
-version = "0.1.0"
+version = "0.3.0"
 description = "Veu MD - Editor Markdown WYSIWYG Estilo Word com Temas e Terminal"
 authors = ["Rahman"]
 edition = "2021"

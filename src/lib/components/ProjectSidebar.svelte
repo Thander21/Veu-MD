@@ -8,7 +8,8 @@
     Check,
     Trash2,
     ExternalLink,
-    PanelLeft
+    PanelLeft,
+    BotMessageSquare
   } from 'lucide-svelte';
   import type { ProjectWorkspace, RecentProject } from '../types';
 
@@ -23,6 +24,8 @@
   export let onRemoveRecent: (folderPath: string) => void;
   export let onClearRecent: () => void = () => {};
   export let onToggleSidebar: () => void = () => {};
+  export let aiAssistantOpen: boolean = false;
+  export let onToggleAiAssistant: () => void = () => {};
 
   let recentMenuOpen = false;
 
@@ -122,8 +125,19 @@
     </button>
   </div>
 
-  <!-- Base: Projetos Recentes -->
+  <!-- Base: Projetos Recentes e Retração do Chat IA -->
   <div class="bottom-actions">
+    {#if aiAssistantOpen}
+      <button
+        class="action-btn ai-retract-btn active"
+        title="Recolher Chat IA (Ctrl+L)"
+        on:click={onToggleAiAssistant}
+        aria-label="Recolher Chat IA"
+      >
+        <BotMessageSquare size={18} />
+      </button>
+    {/if}
+
     <div class="recent-anchor">
       <button
         class="action-btn recent-btn"
@@ -364,6 +378,13 @@
     opacity: 1;
     background-color: var(--veu-active-item-bg);
     border-color: var(--veu-h1-color);
+    color: var(--veu-h1-color);
+  }
+
+  .action-btn.active {
+    opacity: 1;
+    background-color: var(--veu-active-item-bg);
+    border: 1px solid var(--veu-h1-color);
     color: var(--veu-h1-color);
   }
 

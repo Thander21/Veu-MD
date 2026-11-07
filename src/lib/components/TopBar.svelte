@@ -6,6 +6,7 @@
     Underline,
     Highlighter,
     Code,
+    Code2,
     FileCode,
     Quote,
     List,
@@ -42,12 +43,11 @@
   export let onSave: () => void;
   export let onPrint: () => void = () => {};
   export let onCopyHtml: (() => void) | undefined = undefined;
+  export let onFormatDocument: () => void = () => {};
   export let onToggleThemeSettings: () => void;
-  export let onToggleTerminal: () => void;
   export let onToggleAiAssistant: () => void = () => {};
   export let aiAssistantOpen: boolean = false;
   export let themeSettingsOpen: boolean = false;
-  export let terminalOpen: boolean = false;
   export let hasFolder: boolean = false;
 
   let currentHeading = 'p';
@@ -309,7 +309,7 @@
     <button
       class="btn icon-btn"
       class:feedback-active={copiedHtmlNotice}
-      title={copiedHtmlNotice ? "HTML Formatado Copiado!" : "Copiar como HTML formatado (para Docs, Word e e-mail)"}
+      title={copiedHtmlNotice ? "HTML Formatado Copiado!" : "Copiar como HTML formatado (Rich Text)"}
       on:click={triggerCopyHtml}
     >
       {#if copiedHtmlNotice}
@@ -318,22 +318,16 @@
         <Copy size={16} />
       {/if}
     </button>
-    {#if onCopyHtml}
-      <button
-        class="btn icon-btn"
-        title={copiedHtmlNotice ? "Copiado com sucesso!" : "Copiar como HTML formatado (Rich Text)"}
-        on:click={triggerCopyHtml}
-      >
-        {#if copiedHtmlNotice}
-          <Check size={16} color="var(--veu-h1-color)" />
-        {:else}
-          <Copy size={16} />
-        {/if}
-      </button>
-    {/if}
+    <button
+      class="btn icon-btn"
+      title="Formatar Documento (Shift+Alt+F)"
+      on:click={onFormatDocument}
+    >
+      <Code2 size={16} />
+    </button>
   </div>
 
-  <!-- Grupo Direito: Temas, Terminal & Chat IA -->
+  <!-- Grupo Direito: Temas & Chat IA -->
   <div class="group right-group">
     <button
       class="btn icon-btn"
@@ -343,16 +337,6 @@
     >
       <Palette size={17} />
       <span>Temas & Cores</span>
-    </button>
-
-    <button
-      class="btn icon-btn"
-      class:active={terminalOpen}
-      title="Terminal Integrado (Ctrl+')"
-      on:click={onToggleTerminal}
-    >
-      <TerminalSquare size={17} />
-      <span>Terminal</span>
     </button>
 
     <button

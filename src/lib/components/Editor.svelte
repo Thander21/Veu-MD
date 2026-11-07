@@ -77,6 +77,13 @@
     }
   }
 
+  export function setEditorContent(newContent: string) {
+    if (!editorView) return;
+    const newState = createEditorState(newContent, handleSelection);
+    editorView.updateState(newState);
+    onChange(newContent);
+  }
+
   function initEditor() {
     if (editorView) {
       editorView.destroy();

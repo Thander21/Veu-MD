@@ -18,6 +18,7 @@
     Trash2
   } from 'lucide-svelte';
   import type { FileNode } from '../types';
+  import VeuMdIcon from './VeuMdIcon.svelte';
 
   export let node: FileNode;
   export let level: number = 0;
@@ -43,8 +44,8 @@
     if (!ext) return FileQuestion;
     const lower = ext.toLowerCase();
 
-    // 1. Markdown
-    if (lower === 'md' || lower === 'markdown') return FileText;
+    // 1. Markdown (.md, .markdown) — Ícone oficial Veu MD
+    if (lower === 'md' || lower === 'markdown') return VeuMdIcon;
 
     // 2. HTML
     if (lower === 'html' || lower === 'htm') return FileCode;
