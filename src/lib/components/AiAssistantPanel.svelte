@@ -224,11 +224,21 @@
     }
   }
 
-  $: if (visible) {
-    tick().then(() => {
+  let prevVisible = false;
+  $: if (visible && !prevVisible) {
+    prevVisible = true;
+    setTimeout(() => {
       inputEl?.focus();
-      resizeInput();
-    });
+    }, 60);
+  } else if (!visible && prevVisible) {
+    prevVisible = false;
+  }
+
+  function handleWindowKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && visible) {
+      e.preventDefault();
+      onClose();
+    }
   }
 
   onDestroy(() => {
@@ -238,6 +248,8 @@
     cleanupListeners();
   });
 </script>
+
+<svelte:window on:keydown={handleWindowKeydown} />
 
 {#if visible}
   <aside class="ai-drawer" aria-label="Chat IA Veu">
@@ -416,16 +428,18 @@
 
 <style>
   .ai-drawer {
+    position: fixed;
+    right: 0;
+    top: 44px;
+    bottom: 24px;
     width: 360px;
     max-width: 90vw;
-    height: 100%;
     background-color: var(--veu-bg-sidebar);
     border-left: 1px solid var(--veu-border-color);
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
-    z-index: 28;
-    box-shadow: -2px 0 16px rgba(0, 0, 0, 0.25);
+    z-index: 40;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.35);
     animation: slideInRight 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -749,6 +763,7 @@
 
   textarea {
     width: 100%;
+    min-height: 38px;
     background: transparent;
     border: none;
     outline: none;
