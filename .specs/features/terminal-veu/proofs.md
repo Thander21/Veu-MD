@@ -1,6 +1,6 @@
 # terminal-veu proofs
 
-**HEAD**: 7dacc29
+**HEAD**: 66f3d36
 **Tree**: clean
 **Shell**: C:/Program Files/Git\bin\bash.exe
 **Result**: 6 pass, 0 fail
@@ -54,5 +54,5 @@ Test 6: Testando fechamento de projetos...
 > veu-md@0.1.0 check:rust
 > %USERPROFILE%\.cargo\bin\cargo.exe check --manifest-path src-tauri/Cargo.toml
 
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.82s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.86s
 ```
