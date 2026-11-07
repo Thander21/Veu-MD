@@ -243,6 +243,33 @@
     });
   }
 
+  function finishBlock(tab: TermTab, block: CommandBlock) {
+    let cleanRaw = stripAnsi(block.outputRaw).trimEnd();
+    cleanRaw = cleanRaw
+      .replace(/(?:PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s*>[^\n\r>]*|>|\s+[^>\r\n]+)>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>|[a-zA-Z]:\\[^\n\r>]*>|\$\s*|>\s*)\s*$/, '')
+      .trimEnd();
+
+    // Remove eco redundante do comando no topo da saída se presente
+    const firstLineBreak = cleanRaw.indexOf('\n');
+    if (firstLineBreak > -1) {
+      const firstLine = cleanRaw.substring(0, firstLineBreak).trim();
+      if (firstLine === block.command.trim()) {
+        cleanRaw = cleanRaw.substring(firstLineBreak + 1).trimStart();
+      }
+    }
+
+    block.outputRaw = cleanRaw;
+    block.outputHtml = ansiToHtml(cleanRaw);
+    block.status = 'completed';
+    tab.isRunning = false;
+    allTabs = [...allTabs];
+
+    tick().then(() => {
+      focusActiveInput();
+      scrollToBottom(tab.id);
+    });
+  }
+
   function handleTerminalOutput(tabId: string, chunk: string) {
     const tab = allTabs.find((t) => t.id === tabId);
     if (!tab) return;
@@ -252,7 +279,17 @@
       if (tab.blocks.length > 0) {
         targetBlock = tab.blocks[tab.blocks.length - 1];
       } else {
-        return;
+        const welcomeBlock: CommandBlock = {
+          id: `init-${Date.now()}`,
+          command: 'sessão iniciada',
+          cwd: tab.cwd || currentFolderPath,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          outputRaw: '',
+          outputHtml: '',
+          status: 'completed'
+        };
+        tab.blocks = [welcomeBlock];
+        targetBlock = welcomeBlock;
       }
     }
 
@@ -260,38 +297,31 @@
 
     // Detecta se a saída indica retorno do prompt interativo do shell hospedeiro
     const cleanRaw = stripAnsi(targetBlock.outputRaw).trimEnd();
-    const isShellPrompt = /(?:PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s*>[^\n\r>]*|>|\s+[^>\r\n]+)>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>|[a-zA-Z]:\\[^\n\r>]*>)\s*$/.test(
+    const isShellPrompt = /(?:PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s*>[^\n\r>]*|>|\s+[^>\r\n]+)>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>|[a-zA-Z]:\\[^\n\r>]*>|\$\s*|>\s*)\s*$/.test(
       cleanRaw
     );
 
-    if (isShellPrompt) {
-      let formattedText = cleanRaw
-        .replace(/(?:PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s*>[^\n\r>]*|>|\s+[^>\r\n]+)>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>|[a-zA-Z]:\\[^\n\r>]*>)\s*$/, '')
-        .trimEnd();
-
-      // Remove eco redundante inicial do comando se presente no topo da saída
-      const firstLineBreak = formattedText.indexOf('\n');
-      if (firstLineBreak > -1) {
-        const firstLine = formattedText.substring(0, firstLineBreak).trim();
-        if (firstLine === targetBlock.command.trim()) {
-          formattedText = formattedText.substring(firstLineBreak + 1).trimStart();
-        }
-      }
-
-      targetBlock.outputRaw = formattedText;
-      targetBlock.outputHtml = ansiToHtml(formattedText);
-      targetBlock.status = 'completed';
-      tab.isRunning = false;
-      allTabs = [...allTabs];
-
-      tick().then(() => {
-        focusActiveInput();
-        scrollToBottom(tabId);
-      });
+    if (isShellPrompt && targetBlock.status === 'running') {
+      finishBlock(tab, targetBlock);
     } else {
       targetBlock.outputHtml = ansiToHtml(targetBlock.outputRaw);
       allTabs = [...allTabs];
       scrollToBottom(tabId);
+
+      // Debounce para detectar silêncio do processo caso retorne prompt sem quebra final
+      if (targetBlock.status === 'running') {
+        if ((tab as any)._completionTimeout) {
+          clearTimeout((tab as any)._completionTimeout);
+        }
+        (tab as any)._completionTimeout = setTimeout(() => {
+          if (targetBlock && targetBlock.status === 'running') {
+            const currentClean = stripAnsi(targetBlock.outputRaw).trimEnd();
+            if (/[>%$#]\s*$/.test(currentClean)) {
+              finishBlock(tab, targetBlock);
+            }
+          }
+        }, 1000);
+      }
     }
   }
 
@@ -940,7 +970,32 @@
           {/each}
 
           <!-- Linha de Entrada Contínua no Próprio Fluxo (Sem caixa separada) -->
-          {#if !t.isRunning}
+          {#if t.isRunning}
+            <div class="prompt-stream-container running-status-bar">
+              <div class="inline-prompt-row">
+                <span class="inline-glyph running-pulse">●</span>
+                <span class="running-info-label">Comando em execução...</span>
+                <button
+                  class="stop-btn"
+                  title="Interromper execução (Ctrl+C)"
+                  on:click={() => stopCommand(t)}
+                >
+                  <Square size={10} fill="currentColor" /> Parar (Ctrl+C)
+                </button>
+                <button
+                  class="liberar-btn"
+                  title="Liberar campo de digitação"
+                  on:click={() => {
+                    const r = t.blocks.find((b) => b.status === 'running');
+                    if (r) finishBlock(t, r);
+                    else t.isRunning = false;
+                  }}
+                >
+                  Liberar Prompt
+                </button>
+              </div>
+            </div>
+          {:else}
             <div class="prompt-stream-container">
               <!-- Sugestões de comandos predigitados flutuantes -->
               {#if showSuggestions && suggestions.length > 0}
@@ -1323,6 +1378,43 @@
 
   .stop-btn:hover {
     background: rgba(239, 68, 68, 0.28);
+  }
+
+  .liberar-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(127, 127, 127, 0.15);
+    color: var(--veu-text-color);
+    border: 1px solid var(--veu-border-color);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+    user-select: none;
+  }
+
+  .liberar-btn:hover {
+    background: var(--veu-active-item-bg);
+    color: var(--veu-h2-color);
+  }
+
+  .running-status-bar {
+    border-top: 1px dashed var(--veu-border-color);
+    padding-top: 4px;
+  }
+
+  .running-pulse {
+    color: #facc15;
+    animation: pulse 1s infinite;
+  }
+
+  .running-info-label {
+    font-size: 11px;
+    font-style: italic;
+    opacity: 0.7;
+    margin-right: 4px;
   }
 
   .block-actions {

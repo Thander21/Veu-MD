@@ -75,6 +75,8 @@ function color256ToCss(code: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+export { resolveCarriageReturns as normalizeCarriageReturns };
+
 /**
  * Processa carriage return (\r), sequências de limpeza de linha (\x1b[2K, \x1b[K)
  * e reposicionamento de cursor (\x1b[1A, \x1b[1B), simulando o comportamento de
