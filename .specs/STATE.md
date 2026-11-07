@@ -82,27 +82,37 @@
 - **Date**: 2026-11-06
 - **Status**: active
 
+### AD-011
+- **Decision**: Manter sessões de terminal e processos PTY isolados por projeto (`Map<ProjectId, TerminalSession>`) com visibilidade alternada via CSS sem recriar nós do DOM.
+- **Reason**: Evita que comandos de longa duração (compilações, servidores locais, scripts de IA) sejam interrompidos ao navegar entre múltiplos projetos abertos no workspace.
+- **Trade-off**: Retém contêineres e buffers leves de xterm na memória para cada projeto aberto ativo, encerrando-os apenas ao fechar o projeto.
+- **Scope**: Terminal nativo, gerenciamento multi-projeto, ciclo de vida de PTY.
+- **Date**: 2026-11-07
+- **Status**: active
+
+### AD-012
+- **Decision**: Aperfeiçoar o terminal integrado com seleção contínua de mouse, proteção de recalculo de `fitAddon` (apenas em containers com largura/altura > 0) e barra de ações rápidas ("Copiar Seleção", "Limpar", "Inserir no Cursor").
+- **Reason**: O xterm clássico cru dificulta seleção de texto com mouse, quebra métricas de colunas quando redimensionado oculto e intimida usuários leigos.
+- **Trade-off**: Adiciona pequenas camadas de botões e listeners de clipboard no componente Svelte, mantendo overhead < 1 MB de RAM.
+- **Scope**: TerminalPanel.svelte, usabilidade, seleção e clipboard.
+- **Date**: 2026-11-07
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: veu-md-core / .specs/features/veu-md-core/
-- **Phase / Task**: Phase 4 / Verified & Complete
-- **Completed**: 
-  - AD-001..AD-010
-  - context.md (decisões de gray areas aprovadas)
-  - spec.md (21 critérios EARS, aprovado)
-  - design.md (arquitetura em 4 camadas validada)
-  - tasks.md (T01..T08 implementados com commits atômicos)
-  - proofs.md (22 pass, 0 fail em HEAD 098cf7d)
-  - verification.md (verificado com zero defeitos)
-  - Finalização completa dos Gaps da Spec e Plano de Produto:
-    - Task 1: Árvore recursiva infinita (FileTreeNode), Renomear e Excluir com confirmação, criação de arquivos em subpastas.
-    - Task 2: File Watcher nativo (notify em Rust) com evento 'file-changed-externally' e recarregamento automático no Svelte; decodificação binária de Base64 em save_image_asset e renderização instantânea de imagens no editor.
-    - Task 3: Localizar e Substituir (Ctrl+F / Ctrl+H) com contador, navegação, substituição e substituição global; Exportação PDF e impressão limpa (Ctrl+P) com @media print e botão na barra.
-    - Task 4: Checklists interativas (- [ ] e - [x]) com toggle em tempo real e preservação GFM; ações de tabela (+linha, +coluna, -linha, -coluna, excluir tabela e Tab na última célula); Restauração de sessão de abas e arquivo ativo no localStorage.
-- **In-progress**: none
-- **Next step**: Sistema 100% finalizado e validado.
+- **Feature**: veu-md-advanced / .specs/features/veu-md-advanced/
+- **Phase / Task**: Phase 4: Execute / T01: Terminal Multi-Projeto Persistente
+- **Completed**:
+  - AD-001..AD-012
+  - Backlog Técnico Anti-Bloat documentado em `Docs/BACKLOG_TECNICO.md`
+  - context.md registrado com decisões 1 a 5 aprovadas
+  - spec.md atualizado com requisitos EARS (18 critérios, 0 erros no validador)
+  - tasks.md configurado com portões determinísticos e checks comprováveis (0 erros no validador)
+  - Portão `validate_tasks.py veu-md-advanced --execute` verificado com sucesso (Build limpo)
+- **In-progress**: T01: Terminal Multi-Projeto Persistente & Estado por Projeto
+- **Next step**: Executar T01 implementando o desacoplamento e persistência das sessões de terminal por projeto.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: main

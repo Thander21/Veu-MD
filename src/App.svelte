@@ -41,6 +41,7 @@
 
   let activeEditorView: EditorView | null = null;
   let editorRef: any = null;
+  let terminalPanelRef: TerminalPanel | null = null;
 
   // Documento inicial padrão (Boas-vindas ao Veu MD)
   const defaultWelcomeDoc = `# Bem-vindo ao Veu MD
@@ -260,6 +261,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   async function closeProject(projectId: string) {
     const idx = openProjects.findIndex((p) => p.id === projectId);
     if (idx === -1) return;
+
+    // Encerra imediatamente as sessões PTY associadas a este projeto no backend Rust (Decision 2 / AC-ADV-003)
+    if (terminalPanelRef) {
+      terminalPanelRef.closeProjectTerminals(projectId);
+    }
 
     const closingActive = projectId === activeProjectId;
     openProjects = openProjects.filter((p) => p.id !== projectId);
@@ -851,17 +857,17 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           {/if}
         </div>
 
-        <!-- Terminal Integrado Contextualizado no Projeto -->
-        {#key currentFolderPath}
-          <TerminalPanel
-            visible={terminalOpen}
-            {currentFolderPath}
-            hasActiveFile={!!activeTab}
-            bind:orientation={terminalOrientation}
-            bind:isMaximized={terminalMaximized}
-            onClose={() => (terminalOpen = false)}
-          />
-        {/key}
+        <!-- Terminal Integrado Contextualizado no Projeto (Persistente entre projetos) -->
+        <TerminalPanel
+          bind:this={terminalPanelRef}
+          projectId={activeProjectId || 'default'}
+          visible={terminalOpen}
+          {currentFolderPath}
+          hasActiveFile={!!activeTab}
+          bind:orientation={terminalOrientation}
+          bind:isMaximized={terminalMaximized}
+          onClose={() => (terminalOpen = false)}
+        />
       </div>
     </main>
 

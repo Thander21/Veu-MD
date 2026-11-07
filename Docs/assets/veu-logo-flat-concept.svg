@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente Linear Puro 2D (Crepúsculo Editorial) -->
+    <linearGradient id="flatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="50%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fundo Sólido Dark Obsidian (#0e0b16) -->
+  <rect width="512" height="512" rx="104" ry="104" fill="#0e0b16"/>
+
+  <!-- Borda Mínima 2D -->
+  <rect x="2" y="2" width="508" height="508" rx="102" ry="102" fill="none" stroke="#2b2144" stroke-width="4"/>
+
+  <!-- Glifo Flat Geométrico: As 3 Dobras do V.E.U. -->
+  <g transform="translate(48, 40)">
+    <!-- Asa Esquerda (Ver) -->
+    <path d="M 50 80 L 190 320 L 225 320 L 115 80 Z" fill="#7c3aed" opacity="0.9"/>
+    
+    <!-- Centro Conector (Editar) -->
+    <path d="M 120 80 L 208 340 L 296 80 L 260 80 L 208 280 L 156 80 Z" fill="#c084fc"/>
+    
+    <!-- Asa Direita Frontal (Usar) -->
+    <path d="M 270 80 L 215 320 L 250 320 L 366 80 Z" fill="#f472b6"/>
+
+    <!-- Ponto Acrônimo / Dobra da Revelação -->
+    <circle cx="208" cy="360" r="12" fill="#f472b6"/>
+  </g>
+
+  <!-- Tipografia Flat Suíça na Base -->
+  <text x="256" y="440" text-anchor="middle" font-family="'JetBrains Mono', Inter, monospace, sans-serif" font-size="22" font-weight="800" letter-spacing="6" fill="#f1f0f7">V.E.U. MD</text>
+</svg>

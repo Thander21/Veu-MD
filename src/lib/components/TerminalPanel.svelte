@@ -9,6 +9,7 @@
   import { subscribeTheme, getTheme } from '../theme/themeStore';
   import type { ThemeConfig } from '../types';
 
+  export let projectId: string = 'default';
   export let visible: boolean = false;
   export let currentFolderPath: string = '';
   export let hasActiveFile: boolean = true;
@@ -18,6 +19,7 @@
 
   interface TermTab {
     id: string;
+    projectId: string;
     title: string;
     shell: string;
     termInstance?: Terminal;
@@ -25,8 +27,14 @@
     unlisten?: UnlistenFn;
   }
 
-  let tabs: TermTab[] = [];
-  let activeTermId: string = '';
+  // Todas as sessões ativas no app, indexadas por projeto
+  let allTabs: TermTab[] = [];
+  let projectActiveTermId: Record<string, string> = {};
+
+  $: effectiveProjectId = projectId || 'default';
+  $: currentTabs = allTabs.filter((t) => t.projectId === effectiveProjectId);
+  $: activeTermId = projectActiveTermId[effectiveProjectId] || (currentTabs[0]?.id || '');
+
   let terminalContainers: Record<string, HTMLDivElement> = {};
   let terminalContentEl: HTMLDivElement | null = null;
   let resizeObserver: ResizeObserver | null = null;
@@ -87,7 +95,7 @@
   function applyThemeToTerminals(theme: ThemeConfig) {
     currentThemeConfig = theme;
     const termTheme = getXtermTheme(theme);
-    tabs.forEach((t) => {
+    allTabs.forEach((t) => {
       if (t.termInstance) {
         t.termInstance.options.theme = termTheme;
       }
@@ -97,12 +105,16 @@
   function fitAll() {
     requestAnimationFrame(() => {
       setTimeout(() => {
-        tabs.forEach((t) => {
+        currentTabs.forEach((t) => {
           if (t.fitAddon && t.termInstance) {
-            try {
-              t.fitAddon.fit();
-            } catch {
-              // container ainda não dimensionado
+            const container = terminalContainers[t.id];
+            // AC-ADV-004: recalcula fit apenas quando dimensões são reais e maiores que zero
+            if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+              try {
+                t.fitAddon.fit();
+              } catch {
+                // container em transição de renderização
+              }
             }
           }
         });
@@ -110,16 +122,19 @@
     });
   }
 
-  async function createTerminalSession(shell = 'powershell.exe', cwd = currentFolderPath) {
-    const id = `term-${Date.now()}`;
+  export async function createTerminalSession(shell = 'powershell.exe', cwd = currentFolderPath) {
+    const pId = effectiveProjectId;
+    const id = `term-${pId}-${Date.now()}`;
     const newTab: TermTab = {
       id,
+      projectId: pId,
       title: shell.includes('powershell') ? 'PowerShell' : shell.includes('cmd') ? 'CMD' : 'Bash',
       shell
     };
 
-    tabs = [...tabs, newTab];
-    activeTermId = id;
+    allTabs = [...allTabs, newTab];
+    projectActiveTermId[pId] = id;
+    projectActiveTermId = { ...projectActiveTermId };
 
     setTimeout(async () => {
       const container = terminalContainers[id];
@@ -138,7 +153,13 @@
       const fit = new FitAddon();
       term.loadAddon(fit);
       term.open(container);
-      fit.fit();
+      if (container.clientWidth > 0 && container.clientHeight > 0) {
+        try {
+          fit.fit();
+        } catch {
+          // container ainda inicializando
+        }
+      }
 
       newTab.termInstance = term;
       newTab.fitAddon = fit;
@@ -168,22 +189,41 @@
   }
 
   function closeTerminal(id: string) {
-    const tab = tabs.find((t) => t.id === id);
+    const tab = allTabs.find((t) => t.id === id);
     if (tab) {
       if (tab.unlisten) tab.unlisten();
       if (tab.termInstance) tab.termInstance.dispose();
       invoke('kill_terminal', { termId: id }).catch(() => {});
+      delete terminalContainers[id];
     }
 
-    tabs = tabs.filter((t) => t.id !== id);
+    allTabs = allTabs.filter((t) => t.id !== id);
     if (activeTermId === id) {
-      activeTermId = tabs[0]?.id || '';
+      const remaining = allTabs.filter((t) => t.projectId === effectiveProjectId);
+      projectActiveTermId[effectiveProjectId] = remaining[0]?.id || '';
+      projectActiveTermId = { ...projectActiveTermId };
     }
-    if (tabs.length === 0) {
+
+    const remainingCurrent = allTabs.filter((t) => t.projectId === effectiveProjectId);
+    if (remainingCurrent.length === 0) {
       onClose();
     } else {
       fitAll();
     }
+  }
+
+  // Encerra imediatamente todos os terminais PTY associados a um projeto específico (Decision 2 / AC-ADV-003)
+  export function closeProjectTerminals(targetProjectId: string) {
+    const toClose = allTabs.filter((t) => t.projectId === targetProjectId);
+    toClose.forEach((t) => {
+      if (t.unlisten) t.unlisten();
+      if (t.termInstance) t.termInstance.dispose();
+      invoke('kill_terminal', { termId: t.id }).catch(() => {});
+      delete terminalContainers[t.id];
+    });
+    allTabs = allTabs.filter((t) => t.projectId !== targetProjectId);
+    delete projectActiveTermId[targetProjectId];
+    projectActiveTermId = { ...projectActiveTermId };
   }
 
   function toggleMaximize() {
@@ -229,11 +269,13 @@
     window.addEventListener('mouseup', onMouseUp);
   }
 
-  $: if (visible && tabs.length === 0) {
+  // Cria a primeira sessão para o projeto atual se ainda não existir nenhuma
+  $: if (visible && currentTabs.length === 0 && currentFolderPath) {
     createTerminalSession('powershell.exe', currentFolderPath);
   }
 
-  $: if (visible) {
+  // Ajusta o fit sempre que a visibilidade ou o projeto ativo alternar
+  $: if (visible && activeTermId) {
     fitAll();
   }
 
@@ -253,7 +295,8 @@
   onDestroy(() => {
     if (unsubscribeTheme) unsubscribeTheme();
     if (resizeObserver) resizeObserver.disconnect();
-    tabs.forEach((t) => {
+    // No encerramento da aplicação, encerra todos os PTYs restantes
+    allTabs.forEach((t) => {
       if (t.unlisten) t.unlisten();
       if (t.termInstance) t.termInstance.dispose();
       invoke('kill_terminal', { termId: t.id }).catch(() => {});
@@ -284,22 +327,24 @@
       ? `height: ${panelHeight}px; width: 100%;`
       : `width: ${panelWidth}px; height: 100%;`}
   >
-    <!-- Barra Superior de Abas do Terminal -->
+    <!-- Barra Superior de Abas do Terminal do Projeto Ativo -->
     <div class="terminal-bar">
       <div class="term-tabs">
-        {#each tabs as t (t.id)}
+        {#each currentTabs as t (t.id)}
           <div
             class="term-tab"
             class:active={t.id === activeTermId}
             role="button"
             tabindex="0"
             on:click={() => {
-              activeTermId = t.id;
+              projectActiveTermId[effectiveProjectId] = t.id;
+              projectActiveTermId = { ...projectActiveTermId };
               fitAll();
             }}
             on:keydown={(e) => {
               if (e.key === 'Enter') {
-                activeTermId = t.id;
+                projectActiveTermId[effectiveProjectId] = t.id;
+                projectActiveTermId = { ...projectActiveTermId };
                 fitAll();
               }
             }}
@@ -359,12 +404,12 @@
       </div>
     </div>
 
-    <!-- Área de Exibição dos Terminais -->
+    <!-- Área de Exibição dos Terminais Persistentes (Preserva instâncias xterm em background via CSS) -->
     <div class="terminal-content" bind:this={terminalContentEl}>
-      {#each tabs as t (t.id)}
+      {#each allTabs as t (t.id)}
         <div
           class="term-wrapper"
-          class:hidden={t.id !== activeTermId}
+          class:hidden={!(t.projectId === effectiveProjectId && t.id === activeTermId)}
           bind:this={terminalContainers[t.id]}
         ></div>
       {/each}
