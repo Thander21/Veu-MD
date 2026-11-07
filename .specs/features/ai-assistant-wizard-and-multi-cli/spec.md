@@ -1,5 +1,7 @@
 # Feature Specification: AI Assistant Wizard and Multi-CLI Provider Switcher
 
+**Approved**: 2026-11-07 - user: "aprovado"
+
 ## Problem Statement
 Atualmente o painel do Assistente de IA (`AiAssistantPanel.svelte`) está configurado primordialmente para o runner de CLI `agy` (Google Antigravity), sem verificação antecipada de disponibilidade no ambiente do usuário e sem capacidade visual de alternar entre múltiplos provedores de CLI com planos mensais (como Claude Code e Muse Code).
 

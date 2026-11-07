@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { open } from '@tauri-apps/plugin-dialog';
@@ -793,6 +793,14 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
   }
 
+  async function handleRunTerminalCommand(command: string, customTitle?: string) {
+    terminalOpen = true;
+    await tick();
+    if (terminalPanelRef && typeof (terminalPanelRef as any).runCommandInTerminal === 'function') {
+      await (terminalPanelRef as any).runCommandInTerminal(command, customTitle);
+    }
+  }
+
   async function handleCopyAsHtml() {
     if (!activeEditorView) return;
     const html = serializeDocToHtml(activeEditorView.state.doc);
@@ -1003,6 +1011,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         visible={aiAssistantOpen}
         {currentFolderPath}
         onInsertText={handleInsertTerminalText}
+        onRunTerminalCommand={handleRunTerminalCommand}
         getEditorSelection={getEditorSelectedText}
         onClose={() => (aiAssistantOpen = false)}
       />

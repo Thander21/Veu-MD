@@ -71,6 +71,18 @@
   let copyTimeout: any = null;
   let insertTimeout: any = null;
 
+  export async function runCommandInTerminal(command: string, customTitle?: string) {
+    if (veuRef && typeof veuRef.runCommandInNewTab === 'function') {
+      await veuRef.runCommandInNewTab(command, customTitle);
+    } else {
+      await createTerminalSession('powershell.exe', currentFolderPath);
+      const tab = getActiveTab();
+      if (tab) {
+        invoke('write_terminal', { termId: tab.id, data: `${command}\r\n` }).catch(() => {});
+      }
+    }
+  }
+
   function switchEngine(engine: 'xterm' | 'veu') {
     terminalEngine = engine;
     localStorage.setItem('veu_terminal_engine', engine);
@@ -469,7 +481,6 @@
       onSwitchEngine={switchEngine}
       {onClose}
       {onInsertText}
-      {onOpenAiAssistant}
     />
   {:else}
     <!-- Resizer Bar (oculto quando maximizado ou sem arquivo ativo) -->

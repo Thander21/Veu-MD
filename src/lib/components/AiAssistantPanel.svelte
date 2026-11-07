@@ -26,21 +26,38 @@
     FileText,
     CheckCheck,
     Code2,
-    Compass
+    Compass,
+    Settings,
+    RefreshCw,
+    Download,
+    Terminal,
+    ArrowLeft
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
+  import {
+    AI_PROVIDERS,
+    type AiProvider,
+    getSupportedAiProviders,
+    DEFAULT_AI_PROVIDER_ID
+  } from '../ai/aiProviders';
+  import AiWizardView from './AiWizardView.svelte';
 
   export let visible: boolean = false;
   export let currentFolderPath: string = '';
   export let onClose: () => void;
   export let onInsertText: ((text: string) => void) | undefined = undefined;
   export let getEditorSelection: (() => string) | undefined = undefined;
+  export let onRunTerminalCommand: ((command: string, customTitle?: string) => void) | undefined = undefined;
 
   let messages: ChatMessage[] = [];
   let currentInput: string = '';
   let isGenerating: boolean = false;
+  let providers: AiProvider[] = getSupportedAiProviders();
+  let defaultProviderId: string = 'agy';
   let activeCliTool: string = 'agy';
+  let activeView: 'chat' | 'settings' | 'wizard' = 'chat';
+  let isCheckingProviders: boolean = false;
   let activeReqId: string = '';
   let unlistenStream: (() => void) | null = null;
   let unlistenDone: (() => void) | null = null;
@@ -245,7 +262,59 @@
         panelWidth = parsed;
       }
     }
+    const savedDefault = localStorage.getItem('veu_ai_default_provider');
+    if (savedDefault && AI_PROVIDERS[savedDefault]) {
+      defaultProviderId = savedDefault;
+      activeCliTool = savedDefault;
+    }
+    checkInstalledTools();
   });
+
+  async function checkInstalledTools() {
+    isCheckingProviders = true;
+    try {
+      const res: Record<string, boolean> = await invoke('check_ai_tools', {
+        tools: ['agy', 'claude', 'muse']
+      });
+      providers = providers.map((p) => ({
+        ...p,
+        isInstalled: !!res[p.cli] || !!res[p.id]
+      }));
+
+      const anyInstalled = providers.some((p) => p.isInstalled);
+      const wizardSeen = localStorage.getItem('veu_ai_wizard_seen');
+      if (!anyInstalled && !wizardSeen) {
+        activeView = 'wizard';
+      }
+    } catch (err) {
+      console.error('Erro ao checar ferramentas de IA:', err);
+    } finally {
+      isCheckingProviders = false;
+    }
+  }
+
+  function setDefaultProvider(id: string) {
+    defaultProviderId = id;
+    activeCliTool = id;
+    localStorage.setItem('veu_ai_default_provider', id);
+  }
+
+  function handleInstallProvider(provider: AiProvider) {
+    if (onRunTerminalCommand) {
+      onRunTerminalCommand(provider.installCmd, `Instalar ${provider.name}`);
+    }
+  }
+
+  function handleOpenTerminalSession(provider: AiProvider) {
+    if (onRunTerminalCommand) {
+      onRunTerminalCommand(provider.cli, provider.name);
+    }
+  }
+
+  function handleFinishWizard() {
+    localStorage.setItem('veu_ai_wizard_seen', 'true');
+    activeView = 'chat';
+  }
 
   function startResizing(e: MouseEvent) {
     e.preventDefault();
@@ -301,174 +370,315 @@
   <aside class="ai-drawer" style="width: {panelWidth}px;" aria-label="Chat IA Veu">
     <!-- Cabeçalho do Assistente -->
     <div class="drawer-header">
-      <div class="drawer-title">
-        <div class="wand-icon-wrap">
-          <BotMessageSquare size={16} class="icon-accent" />
+      {#if activeView === 'chat'}
+        <div class="drawer-title">
+          <div class="wand-icon-wrap">
+            <BotMessageSquare size={16} class="icon-accent" />
+          </div>
+          <div class="title-meta">
+            <span class="main-title">Chat IA</span>
+            <div class="provider-select-wrap">
+              <select
+                class="provider-select"
+                bind:value={activeCliTool}
+                title="Alternar ferramenta de IA ativa"
+              >
+                {#each providers as p}
+                  <option value={p.id}>
+                    {p.name} {p.isInstalled ? '●' : '○'}
+                  </option>
+                {/each}
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="title-meta">
-          <span class="main-title">Chat IA</span>
-          <span class="agent-badge" title="Agente CLI ativo">{activeCliTool.toUpperCase()}</span>
-        </div>
-      </div>
 
-      <div class="header-actions">
-        {#if messages.length > 0}
-          <button class="action-btn" title="Limpar conversa" on:click={clearHistory}>
-            <Trash2 size={13} />
+        <div class="header-actions">
+          <button
+            class="action-btn"
+            title="Assistente de Boas-Vindas (Wizard)"
+            on:click={() => (activeView = 'wizard')}
+          >
+            <Wand2 size={13} />
           </button>
-        {/if}
-        <button class="action-btn close-btn" title="Fechar Assistente (Esc)" on:click={onClose}>
-          <X size={15} />
-        </button>
-      </div>
-    </div>
-
-    <!-- Corpo das Mensagens -->
-    <div class="drawer-body" bind:this={messagesContainerEl}>
-      {#if messages.length === 0}
-        <div class="empty-state">
-          <div class="spark-circle">
-            <Sparkles size={24} class="spark-icon" />
-          </div>
-          <h3 class="empty-title">Como posso acelerar sua escrita?</h3>
-          <p class="empty-desc">
-            Comunique-se diretamente com o <strong>Antigravity CLI (agy)</strong> e modelos de IA para refinar, expandir e gerar conteúdo em Markdown puro.
-          </p>
-
-          <div class="chips-grid">
-            <button
-              class="chip-btn"
-              on:click={() => submitPrompt('Revise a pontuação, clareza e ritmo deste documento.')}
-            >
-              <CheckCheck size={13} />
-              <span>Revisar clareza e estilo</span>
+          <button
+            class="action-btn"
+            title="Configurações do Assistente de IA"
+            on:click={() => (activeView = 'settings')}
+          >
+            <Settings size={13} />
+          </button>
+          {#if messages.length > 0}
+            <button class="action-btn" title="Limpar conversa" on:click={clearHistory}>
+              <Trash2 size={13} />
             </button>
-            <button
-              class="chip-btn"
-              on:click={() => submitPrompt('Faça um resumo executivo em 3 tópicos do tema principal.')}
-            >
-              <FileText size={13} />
-              <span>Resumo em 3 tópicos</span>
-            </button>
-            <button
-              class="chip-btn"
-              on:click={() => submitPrompt('Crie uma estrutura detalhada de tópicos para este artigo.')}
-            >
-              <Compass size={13} />
-              <span>Estruturar novos tópicos</span>
-            </button>
-            <button
-              class="chip-btn"
-              on:click={() => submitPrompt('Escreva uma introdução atraente e direta sobre o tema.')}
-            >
-              <Code2 size={13} />
-              <span>Introdução envolvente</span>
-            </button>
-          </div>
+          {/if}
+          <button class="action-btn close-btn" title="Fechar Assistente (Esc)" on:click={onClose}>
+            <X size={15} />
+          </button>
         </div>
       {:else}
-        <div class="messages-list">
-          {#each messages as msg (msg.id)}
-            <div class="message-row {msg.role}">
-              <div class="message-bubble">
-                <div class="message-header">
-                  <span class="message-sender">
-                    {msg.role === 'user' ? 'Você' : activeCliTool.toUpperCase()}
-                  </span>
-                  <span class="message-time">{msg.timestamp}</span>
-                </div>
-
-                <div class="message-content">
-                  {#if msg.role === 'assistant' && !msg.content && msg.isStreaming}
-                    <div class="typing-indicator">
-                      <span></span><span></span><span></span>
-                    </div>
-                  {:else}
-                    <div class="content-text">{msg.content}</div>
-                  {/if}
-                </div>
-
-                {#if msg.role === 'assistant' && msg.content && !msg.isStreaming}
-                  <div class="message-actions">
-                    <button
-                      class="msg-btn"
-                      class:btn-active={msg.copied}
-                      title="Copiar resposta"
-                      on:click={() => copyText(msg)}
-                    >
-                      {#if msg.copied}
-                        <Check size={11} /> Copiado
-                      {:else}
-                        <Copy size={11} /> Copiar
-                      {/if}
-                    </button>
-
-                    {#if onInsertText}
-                      <button
-                        class="msg-btn"
-                        class:btn-active={msg.inserted}
-                        title="Inserir no editor Markdown"
-                        on:click={() => insertToEditor(msg)}
-                      >
-                        {#if msg.inserted}
-                          <Check size={11} /> Inserido
-                        {:else}
-                          <CornerDownLeft size={11} /> No Editor
-                        {/if}
-                      </button>
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-            </div>
-          {/each}
+        <div class="drawer-title">
+          <button class="btn-back-header" on:click={() => (activeView = 'chat')}>
+            <ArrowLeft size={14} />
+            <span>Voltar ao Chat</span>
+          </button>
+        </div>
+        <div class="header-actions">
+          <button class="action-btn close-btn" title="Fechar Assistente (Esc)" on:click={onClose}>
+            <X size={15} />
+          </button>
         </div>
       {/if}
     </div>
 
-    <!-- Rodapé: Entrada do Chat -->
-    <div class="drawer-footer">
-      <div class="input-container">
-        <textarea
-          bind:this={inputEl}
-          bind:value={currentInput}
-          rows="1"
-          placeholder="Peça à IA para escrever, resumir ou revisar... (Enter envia)"
-          on:keydown={handleKeydown}
-          on:input={resizeInput}
-          spellcheck="false"
-        ></textarea>
+    {#if activeView === 'wizard'}
+      <AiWizardView
+        {providers}
+        selectedProviderId={defaultProviderId}
+        isChecking={isCheckingProviders}
+        onSelectDefault={setDefaultProvider}
+        onInstallProvider={handleInstallProvider}
+        onOpenTerminalSession={handleOpenTerminalSession}
+        onRefreshStatus={checkInstalledTools}
+        onFinishWizard={handleFinishWizard}
+      />
+    {:else if activeView === 'settings'}
+      <div class="settings-scroll-body">
+        <div class="settings-card">
+          <h4 class="settings-card-title">IA Padrão do Sistema</h4>
+          <p class="settings-card-desc">
+            Selecione qual ferramenta será utilizada por padrão para novos chats e atalhos.
+          </p>
+          <div class="provider-radio-list">
+            {#each providers as p}
+              <label class="provider-radio-row" class:is-default={p.id === defaultProviderId}>
+                <input
+                  type="radio"
+                  name="defaultAiProvider"
+                  value={p.id}
+                  checked={p.id === defaultProviderId}
+                  on:change={() => setDefaultProvider(p.id)}
+                />
+                <div class="radio-label-info">
+                  <div class="name-status-row">
+                    <span class="p-name">{p.name}</span>
+                    {#if p.isInstalled}
+                      <span class="p-badge ok">Instalado</span>
+                    {:else}
+                      <span class="p-badge missing">Não detectado</span>
+                    {/if}
+                  </div>
+                  <span class="p-plan">{p.planType}</span>
+                </div>
+              </label>
+            {/each}
+          </div>
+        </div>
 
-        <div class="input-actions-bar">
-          <button
-            class="context-chip-btn"
-            title="Anexar trecho selecionado no editor"
-            on:click={attachSelection}
-          >
-            <FileText size={11} />
-            <span>+ Seleção</span>
+        <div class="settings-card">
+          <div class="card-header-flex">
+            <h4 class="settings-card-title">Ferramentas e Terminal</h4>
+            <button
+              class="refresh-icon-btn"
+              disabled={isCheckingProviders}
+              on:click={checkInstalledTools}
+              title="Re-verificar instalação no PATH"
+            >
+              <RefreshCw size={12} class={isCheckingProviders ? 'spin' : ''} />
+            </button>
+          </div>
+
+          <div class="tools-manage-list">
+            {#each providers as p}
+              <div class="tool-manage-item">
+                <div class="tool-text">
+                  <span class="tool-title">{p.name}</span>
+                  <span class="tool-command">CLI: <code>{p.cli}</code></span>
+                </div>
+                <div class="tool-actions-flex">
+                  {#if p.isInstalled}
+                    <button
+                      class="btn-tool-terminal"
+                      on:click={() => handleOpenTerminalSession(p)}
+                      title="Abrir sessão interativa com controle total no Terminal Veu"
+                    >
+                      <Terminal size={12} /> Terminal
+                    </button>
+                  {:else}
+                    <button
+                      class="btn-tool-install"
+                      on:click={() => handleInstallProvider(p)}
+                      title="Instalar via Terminal Veu com controle total"
+                    >
+                      <Download size={12} /> Instalar
+                    </button>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h4 class="settings-card-title">Assistente de Configuração</h4>
+          <p class="settings-card-desc">
+            Deseja revisar a visão geral e guia de instalação das 3 ferramentas?
+          </p>
+          <button class="btn-launch-wizard" on:click={() => (activeView = 'wizard')}>
+            <Wand2 size={13} />
+            <span>Abrir Wizard de Primeiro Uso</span>
           </button>
+        </div>
+      </div>
+    {:else}
+      <!-- Corpo das Mensagens -->
+      <div class="drawer-body" bind:this={messagesContainerEl}>
+        {#if messages.length === 0}
+          <div class="empty-state">
+            <div class="spark-circle">
+              <Sparkles size={24} class="spark-icon" />
+            </div>
+            <h3 class="empty-title">Como posso acelerar sua escrita?</h3>
+            <p class="empty-desc">
+              Comunique-se diretamente com o <strong>{AI_PROVIDERS[activeCliTool]?.name || 'Agente de IA'}</strong> ({activeCliTool}) para refinar, expandir e gerar conteúdo em Markdown puro.
+            </p>
 
-          <div class="action-submit-wrap">
-            {#if isGenerating}
-              <button class="stop-btn" title="Interromper geração" on:click={handleStop}>
-                <Square size={11} fill="currentColor" /> Parar
-              </button>
-            {:else}
+            <div class="chips-grid">
               <button
-                class="send-btn"
-                class:can-send={!!currentInput.trim()}
-                title="Enviar mensagem (Enter)"
-                on:click={() => submitPrompt(currentInput)}
-                disabled={!currentInput.trim()}
+                class="chip-btn"
+                on:click={() => submitPrompt('Revise a pontuação, clareza e ritmo deste documento.')}
               >
-                <Send size={12} />
+                <CheckCheck size={13} />
+                <span>Revisar clareza e estilo</span>
               </button>
-            {/if}
+              <button
+                class="chip-btn"
+                on:click={() => submitPrompt('Faça um resumo executivo em 3 tópicos do tema principal.')}
+              >
+                <FileText size={13} />
+                <span>Resumo em 3 tópicos</span>
+              </button>
+              <button
+                class="chip-btn"
+                on:click={() => submitPrompt('Crie uma estrutura detalhada de tópicos para este artigo.')}
+              >
+                <Compass size={13} />
+                <span>Estruturar novos tópicos</span>
+              </button>
+              <button
+                class="chip-btn"
+                on:click={() => submitPrompt('Escreva uma introdução atraente e direta sobre o tema.')}
+              >
+                <Code2 size={13} />
+                <span>Introdução envolvente</span>
+              </button>
+            </div>
+          </div>
+        {:else}
+          <div class="messages-list">
+            {#each messages as msg (msg.id)}
+              <div class="message-row {msg.role}">
+                <div class="message-bubble">
+                  <div class="message-header">
+                    <span class="message-sender">
+                      {msg.role === 'user' ? 'Você' : activeCliTool.toUpperCase()}
+                    </span>
+                    <span class="message-time">{msg.timestamp}</span>
+                  </div>
+
+                  <div class="message-content">
+                    {#if msg.role === 'assistant' && !msg.content && msg.isStreaming}
+                      <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                      </div>
+                    {:else}
+                      <div class="content-text">{msg.content}</div>
+                    {/if}
+                  </div>
+
+                  {#if msg.role === 'assistant' && msg.content && !msg.isStreaming}
+                    <div class="message-actions">
+                      <button
+                        class="msg-btn"
+                        class:btn-active={msg.copied}
+                        title="Copiar resposta"
+                        on:click={() => copyText(msg)}
+                      >
+                        {#if msg.copied}
+                          <Check size={11} /> Copiado
+                        {:else}
+                          <Copy size={11} /> Copiar
+                        {/if}
+                      </button>
+
+                      {#if onInsertText}
+                        <button
+                          class="msg-btn"
+                          class:btn-active={msg.inserted}
+                          title="Inserir no editor Markdown"
+                          on:click={() => insertToEditor(msg)}
+                        >
+                          {#if msg.inserted}
+                            <Check size={11} /> Inserido
+                          {:else}
+                            <CornerDownLeft size={11} /> No Editor
+                          {/if}
+                        </button>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Rodapé: Entrada do Chat -->
+      <div class="drawer-footer">
+        <div class="input-container">
+          <textarea
+            bind:this={inputEl}
+            bind:value={currentInput}
+            rows="1"
+            placeholder="Peça à IA para escrever, resumir ou revisar... (Enter envia)"
+            on:keydown={handleKeydown}
+            on:input={resizeInput}
+            spellcheck="false"
+          ></textarea>
+
+          <div class="input-actions-bar">
+            <button
+              class="context-chip-btn"
+              title="Anexar trecho selecionado no editor"
+              on:click={attachSelection}
+            >
+              <FileText size={11} />
+              <span>+ Seleção</span>
+            </button>
+
+            <div class="action-submit-wrap">
+              {#if isGenerating}
+                <button class="stop-btn" title="Interromper geração" on:click={handleStop}>
+                  <Square size={11} fill="currentColor" /> Parar
+                </button>
+              {:else}
+                <button
+                  class="send-btn"
+                  class:can-send={!!currentInput.trim()}
+                  title="Enviar mensagem (Enter)"
+                  on:click={() => submitPrompt(currentInput)}
+                  disabled={!currentInput.trim()}
+                >
+                  <Send size={12} />
+                </button>
+              {/if}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    {/if}
   </aside>
 {/if}
 
@@ -531,6 +741,246 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+
+  .provider-select-wrap {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .provider-select {
+    background-color: var(--veu-active-item-bg);
+    border: 1px solid var(--veu-border-color);
+    color: var(--veu-text-color);
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .btn-back-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: var(--veu-text-color);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.8;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+  }
+
+  .btn-back-header:hover {
+    opacity: 1;
+    color: var(--veu-h1-color);
+    background-color: var(--veu-active-item-bg);
+  }
+
+  .settings-scroll-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .settings-card {
+    background-color: var(--veu-bg-app);
+    border: 1px solid var(--veu-border-color);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-header-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .settings-card-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--veu-text-color);
+  }
+
+  .settings-card-desc {
+    font-size: 11px;
+    line-height: 1.45;
+    opacity: 0.75;
+    margin: 0;
+  }
+
+  .provider-radio-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .provider-radio-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--veu-border-color);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .provider-radio-row.is-default {
+    border-color: var(--veu-h1-color);
+    background-color: var(--veu-active-item-bg);
+  }
+
+  .radio-label-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .name-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .p-name {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .p-plan {
+    font-size: 10px;
+    opacity: 0.65;
+  }
+
+  .p-badge {
+    font-size: 9.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .p-badge.ok {
+    background-color: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+  }
+
+  .p-badge.missing {
+    background-color: rgba(127, 127, 127, 0.15);
+    color: var(--veu-text-color);
+    opacity: 0.6;
+  }
+
+  .tools-manage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tool-manage-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background-color: rgba(127, 127, 127, 0.05);
+  }
+
+  .tool-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tool-title {
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+
+  .tool-command {
+    font-size: 10px;
+    opacity: 0.6;
+  }
+
+  .tool-command code {
+    color: var(--veu-h2-color);
+  }
+
+  .btn-tool-terminal, .btn-tool-install {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--veu-border-color);
+    background-color: transparent;
+    color: var(--veu-text-color);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-tool-terminal:hover {
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h1-color);
+  }
+
+  .btn-tool-install {
+    background-color: var(--veu-active-item-bg);
+    border-color: var(--veu-h1-color);
+    color: var(--veu-h1-color);
+  }
+
+  .btn-launch-wizard {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--veu-border-color);
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h1-color);
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-launch-wizard:hover {
+    filter: brightness(1.15);
+  }
+
+  .refresh-icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--veu-text-color);
+    cursor: pointer;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+  }
+
+  .refresh-icon-btn:hover:not(:disabled) {
+    opacity: 1;
+    color: var(--veu-h1-color);
   }
 
   .main-title {

@@ -1,5 +1,7 @@
 # Tasks: AI Assistant Wizard and Multi-CLI Provider Switcher
 
+**Approved**: 2026-11-07 - user: "aprovado"
+
 ## Test Coverage Matrix
 
 | Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |

@@ -104,7 +104,6 @@
   export let isMaximized: boolean = false;
   export let onClose: () => void;
   export let onInsertText: ((text: string) => void) | undefined = undefined;
-  export let onOpenAiAssistant: ((command?: string) => void) | undefined = undefined;
   export let terminalEngine: 'xterm' | 'veu' = 'veu';
   export let onSwitchEngine: ((engine: 'xterm' | 'veu') => void) | undefined = undefined;
 
@@ -138,23 +137,6 @@
     }
   }
 
-  function isAiInteractiveCommand(cmd: string): boolean {
-    const trimmed = cmd.trim();
-    // Intercepta chamadas a CLIs de IA (agy, gemini, claude, muse, ai)
-    const match = trimmed.match(/^(?:npx\s+)?(agy|gemini|claude|muse|ai)(\s+.*)?$/i);
-    if (!match) return false;
-
-    const args = match[2] ? match[2].trim() : '';
-    // Se for pura invocação interativa
-    if (!args) return true;
-
-    // Se tiver flags puramente informativas de sistema, deixa rodar no terminal para leitura rápida
-    if (/(?:^|\s)(?:--help|-h|--version|-v|models|changelog)(?:\s|$)/i.test(args)) {
-      return false;
-    }
-
-    return true;
-  }
 
   // Autocomplete e sugestões de comandos predigitados
   let suggestions: CommandSuggestion[] = [];
@@ -240,6 +222,48 @@
         }
       }
     };
+  }
+
+  export async function runCommandInNewTab(command: string, customTitle?: string) {
+    const pId = effectiveProjectId;
+    const id = `term-${pId}-${Date.now()}`;
+    const newTab: TermTab = {
+      id,
+      projectId: pId,
+      title: customTitle || 'Terminal',
+      shell: 'powershell.exe',
+      cwd: currentFolderPath || '',
+      blocks: [],
+      activeInput: command,
+      history: [command],
+      historyIndex: -1,
+      isRunning: false
+    };
+
+    allTabs = [...allTabs, newTab];
+    projectActiveTermId[pId] = id;
+    projectActiveTermId = { ...projectActiveTermId };
+
+    try {
+      await invoke('spawn_terminal', {
+        termId: id,
+        cwd: currentFolderPath || null,
+        shell: 'powershell.exe'
+      });
+
+      syncPtySize(id);
+
+      newTab.unlisten = await listen(`term-output-${id}`, (event: any) => {
+        const payload = event.payload as string;
+        if (!payload) return;
+        handleTerminalOutput(id, payload);
+      });
+
+      await tick();
+      submitCommand(newTab);
+    } catch (err) {
+      console.error('Erro ao abrir sessão de comando:', err);
+    }
   }
 
   export async function createTerminalSession(
@@ -408,34 +432,6 @@
     if (!rawCmd || !rawCmd.trim()) return;
 
     const command = rawCmd.trim();
-
-    // Intercepta comandos de IA (agy, gemini, claude, muse, ai) para abrir no Assistente Lateral
-    if (isAiInteractiveCommand(command) && onOpenAiAssistant) {
-      if (tab.history.length === 0 || tab.history[tab.history.length - 1] !== command) {
-        tab.history = [...tab.history, command];
-      }
-      tab.historyIndex = -1;
-      tab.activeInput = '';
-      ghostSuggestion = '';
-      showSuggestions = false;
-
-      const aiNoticeBlock: CommandBlock = {
-        id: `ai-${Date.now()}`,
-        command,
-        cwd: tab.cwd || currentFolderPath,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        outputRaw: '✨ Sessão de IA detectada. Abrindo Assistente IA na barra lateral...',
-        outputHtml: '<span class="ansi-magenta">✨ Sessão de IA detectada. Abrindo Assistente IA na barra lateral...</span>',
-        status: 'completed'
-      };
-
-      tab.blocks = [...tab.blocks, aiNoticeBlock];
-      allTabs = [...allTabs];
-
-      onOpenAiAssistant(command);
-      scrollToBottom(tab.id);
-      return;
-    }
 
     if (tab.history.length === 0 || tab.history[tab.history.length - 1] !== command) {
       tab.history = [...tab.history, command];
