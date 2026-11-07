@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 2,
+  "next_id": 3,
   "lessons": [
     {
       "id": "L-001",
@@ -22,6 +22,24 @@
       ],
       "created": "2026-11-06T16:45:22Z",
       "last_seen": "2026-11-06T16:45:22Z"
+    },
+    {
+      "id": "L-002",
+      "key": "gate_fail::never enter phase 4 execute without clarifying gray areas in context md and receiving formal user approval in spec md and tasks md",
+      "text": "Never enter Phase 4 Execute without clarifying gray areas in context.md and receiving formal user approval in spec.md and tasks.md.",
+      "signal": "gate_fail",
+      "scope": "sdd/orchestration",
+      "status": "candidate",
+      "features": [
+        "veu-md-advanced"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validate_tasks.py:--execute (sdd/orchestration)"
+      ],
+      "created": "2026-11-07T13:32:02Z",
+      "last_seen": "2026-11-07T13:32:02Z"
     }
   ]
 }

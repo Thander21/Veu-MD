@@ -20,6 +20,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src-tauri/build.rs:1 (src-tauri)
 - last seen: 2026-11-06T16:45:22Z
 
+### L-002 - Never enter Phase 4 Execute without clarifying gray areas in context.md and receiving formal user approval in spec.md and tasks.md.
+- signal: `gate_fail` · recurrence: 1 feature(s) · scope: `sdd/orchestration` · harmful: 0
+- features: veu-md-advanced
+- evidence: validate_tasks.py:--execute (sdd/orchestration)
+- last seen: 2026-11-07T13:32:02Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -113,6 +113,6 @@ export function initTheme() {
   } catch (e) {
     console.error(e);
   }
-  setTheme(defaultThemes.veu);
+  setTheme(defaultThemes.veumd || defaultThemes.veu);
 }
 
