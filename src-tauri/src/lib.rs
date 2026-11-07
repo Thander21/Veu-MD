@@ -32,6 +32,7 @@ pub struct WatcherState {
 pub struct AppState {
     terminals: Arc<Mutex<HashMap<String, TerminalSession>>>,
     file_watcher: Arc<Mutex<WatcherState>>,
+    ai_processes: Arc<Mutex<HashMap<String, u32>>>,
 }
 
 #[tauri::command]
@@ -390,6 +391,170 @@ fn load_custom_themes() -> Result<HashMap<String, String>, String> {
     Ok(themes)
 }
 
+fn resolve_tool_path(tool: &str) -> (PathBuf, Option<PathBuf>) {
+    #[cfg(windows)]
+    {
+        if tool.eq_ignore_ascii_case("agy") {
+            if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+                let agy_path = PathBuf::from(local_app_data).join("agy").join("bin").join("agy.exe");
+                if agy_path.exists() {
+                    let bin_dir = agy_path.parent().map(|p| p.to_path_buf());
+                    return (agy_path, bin_dir);
+                }
+            }
+            if let Ok(user_profile) = std::env::var("USERPROFILE") {
+                let agy_path = PathBuf::from(user_profile).join("AppData").join("Local").join("agy").join("bin").join("agy.exe");
+                if agy_path.exists() {
+                    let bin_dir = agy_path.parent().map(|p| p.to_path_buf());
+                    return (agy_path, bin_dir);
+                }
+            }
+        }
+    }
+    (PathBuf::from(tool), None)
+}
+
+#[tauri::command]
+fn cancel_ai_prompt(state: State<'_, AppState>, req_id: String) -> Result<(), String> {
+    let mut procs = state.ai_processes.lock().map_err(|e| e.to_string())?;
+    if let Some(pid) = procs.remove(&req_id) {
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            let mut kill_cmd = std::process::Command::new("taskkill");
+            kill_cmd.args(["/F", "/T", "/PID", &pid.to_string()]);
+            kill_cmd.creation_flags(0x08000000);
+            let _ = kill_cmd.spawn();
+        }
+        #[cfg(not(windows))]
+        {
+            let mut kill_cmd = std::process::Command::new("kill");
+            kill_cmd.args(["-9", &pid.to_string()]);
+            let _ = kill_cmd.spawn();
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn run_ai_prompt(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    req_id: String,
+    cwd: Option<String>,
+    cli_tool: Option<String>,
+    prompt: String,
+    continue_session: bool,
+) -> Result<(), String> {
+    let raw_tool = cli_tool.unwrap_or_else(|| "agy".to_string());
+    let (tool_path, extra_path) = resolve_tool_path(&raw_tool);
+
+    let mut cmd = std::process::Command::new(&tool_path);
+
+    if let Some(bin_dir) = extra_path {
+        let current_path = std::env::var("PATH").unwrap_or_default();
+        let new_path = format!("{};{}", bin_dir.to_string_lossy(), current_path);
+        cmd.env("PATH", new_path);
+    }
+
+    if let Some(dir) = cwd {
+        if Path::new(&dir).exists() {
+            cmd.current_dir(dir);
+        }
+    }
+
+    if raw_tool.eq_ignore_ascii_case("agy") {
+        cmd.arg("--dangerously-skip-permissions");
+        if continue_session {
+            cmd.arg("-c");
+        }
+        cmd.arg("-p").arg(&prompt);
+    } else {
+        cmd.arg(&prompt);
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    // Crucial: stdin como null para nunca bloquear aguardando input interativo
+    cmd.stdin(std::process::Stdio::null());
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let app_handle = app.clone();
+    let stream_event = format!("ai-stream-{}", req_id);
+    let done_event = format!("ai-done-{}", req_id);
+    let req_id_clone = req_id.clone();
+    let ai_procs = Arc::clone(&state.ai_processes);
+
+    std::thread::spawn(move || {
+        match cmd.spawn() {
+            Ok(mut child) => {
+                let pid = child.id();
+                if let Ok(mut map) = ai_procs.lock() {
+                    map.insert(req_id_clone.clone(), pid);
+                }
+
+                // Drena stderr concorrentemente em thread separada para prevenir deadlock
+                let app_handle_err = app_handle.clone();
+                let stream_event_err = stream_event.clone();
+                let err_thread = if let Some(stderr) = child.stderr.take() {
+                    Some(std::thread::spawn(move || {
+                        let mut reader = std::io::BufReader::new(stderr);
+                        let mut buffer = [0u8; 1024];
+                        while let Ok(n) = reader.read(&mut buffer) {
+                            if n == 0 {
+                                break;
+                            }
+                            let text = String::from_utf8_lossy(&buffer[..n]).to_string();
+                            // Se a CLI reportar aviso ou erro em stderr, emite para feedback visual
+                            let _ = app_handle_err.emit(&stream_event_err, text);
+                        }
+                    }))
+                } else {
+                    None
+                };
+
+                // Drena stdout concorrentemente
+                if let Some(stdout) = child.stdout.take() {
+                    let mut reader = std::io::BufReader::new(stdout);
+                    let mut buffer = [0u8; 1024];
+                    while let Ok(n) = reader.read(&mut buffer) {
+                        if n == 0 {
+                            break;
+                        }
+                        let text = String::from_utf8_lossy(&buffer[..n]).to_string();
+                        let _ = app_handle.emit(&stream_event, text);
+                    }
+                }
+
+                if let Some(th) = err_thread {
+                    let _ = th.join();
+                }
+
+                let status = child.wait();
+                let exit_code = status.map(|s| s.code().unwrap_or(0)).unwrap_or(-1);
+
+                if let Ok(mut map) = ai_procs.lock() {
+                    map.remove(&req_id_clone);
+                }
+
+                let _ = app_handle.emit(&done_event, exit_code);
+            }
+            Err(e) => {
+                let err_msg = format!("Erro ao executar CLI '{}': {}. Verifique se o executável existe e está configurado.", raw_tool, e);
+                let _ = app_handle.emit(&stream_event, err_msg);
+                let _ = app_handle.emit(&done_event, -1);
+            }
+        }
+    });
+
+    Ok(())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -411,7 +576,9 @@ pub fn run() {
             watch_file,
             unwatch_file,
             save_custom_theme,
-            load_custom_themes
+            load_custom_themes,
+            run_ai_prompt,
+            cancel_ai_prompt
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao iniciar aplicativo Veu MD");

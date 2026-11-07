@@ -7,19 +7,22 @@
     FolderGit2,
     Check,
     Trash2,
-    ExternalLink
+    ExternalLink,
+    Sparkles
   } from 'lucide-svelte';
   import type { ProjectWorkspace, RecentProject } from '../types';
 
   export let projects: ProjectWorkspace[] = [];
   export let activeProjectId: string | null = null;
   export let recentProjects: RecentProject[] = [];
+  export let aiAssistantOpen: boolean = false;
   export let onSelectProject: (id: string) => void;
   export let onCloseProject: (id: string) => void;
   export let onOpenNewProject: () => void;
   export let onSelectRecent: (recent: RecentProject) => void;
   export let onRemoveRecent: (folderPath: string) => void;
   export let onClearRecent: () => void = () => {};
+  export let onToggleAiAssistant: () => void = () => {};
 
   let recentMenuOpen = false;
 
@@ -67,30 +70,6 @@
 </script>
 
 <aside class="project-activity-bar" aria-label="Abas de Projetos">
-  <!-- Marca / Logo Conceito no Topo -->
-  <div class="brand-header" title="V.E.U. MD — Editor Markdown de Alta Performance">
-    <div class="brand-logo">
-      <svg viewBox="0 0 512 512" width="28" height="28" aria-hidden="true">
-        <defs>
-          <linearGradient id="brandLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#f472b6"/>
-            <stop offset="50%" stop-color="#c084fc"/>
-            <stop offset="100%" stop-color="#7c3aed"/>
-          </linearGradient>
-        </defs>
-        <rect width="512" height="512" rx="112" ry="112" fill="#0e0b16"/>
-        <rect x="6" y="6" width="500" height="500" rx="106" ry="106" fill="none" stroke="#2b2144" stroke-width="8"/>
-        <g transform="translate(48, 40)">
-          <path d="M 50 80 L 190 320 L 225 320 L 115 80 Z" fill="#7c3aed" opacity="0.95"/>
-          <path d="M 120 80 L 208 340 L 296 80 L 260 80 L 208 280 L 156 80 Z" fill="#c084fc"/>
-          <path d="M 270 80 L 215 320 L 250 320 L 366 80 Z" fill="#f472b6"/>
-          <circle cx="208" cy="360" r="14" fill="#f472b6"/>
-        </g>
-      </svg>
-    </div>
-  </div>
-  <div class="brand-divider"></div>
-
   <!-- Topo: Lista de abas de projetos abertos -->
   <div class="projects-list">
     {#each projects as project (project.id)}
@@ -130,8 +109,24 @@
     </button>
   </div>
 
-  <!-- Base: Projetos Recentes -->
+  <!-- Base: Projetos Recentes & Assistente IA -->
   <div class="bottom-actions">
+    <!-- Botão da Aba Lateral de IA (Antigravity agy) -->
+    <div class="ai-anchor">
+      <button
+        class="action-btn ai-sidebar-btn"
+        class:active={aiAssistantOpen}
+        title="Assistente IA • Antigravity / agy (Ctrl+L)"
+        on:click={onToggleAiAssistant}
+        aria-label="Abrir Assistente IA"
+      >
+        <Sparkles size={18} />
+        {#if aiAssistantOpen}
+          <span class="ai-active-glow"></span>
+        {/if}
+      </button>
+    </div>
+
     <div class="recent-anchor">
       <button
         class="action-btn recent-btn"
@@ -235,34 +230,6 @@
     user-select: none;
     z-index: 15;
     flex-shrink: 0;
-  }
-
-  .brand-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 2px 0 6px 0;
-  }
-
-  .brand-logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: default;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .brand-logo:hover {
-    transform: scale(1.08);
-  }
-
-  .brand-divider {
-    width: 24px;
-    height: 1px;
-    background-color: var(--veu-border-color);
-    margin: 0 0 8px 0;
-    opacity: 0.7;
   }
 
   .projects-list {
@@ -374,6 +341,46 @@
     align-items: center;
     gap: 8px;
     width: 100%;
+  }
+
+  .ai-anchor {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-sidebar-btn {
+    border: 1px solid transparent;
+    position: relative;
+    color: var(--veu-h2-color);
+  }
+
+  .ai-sidebar-btn:hover {
+    background-color: var(--veu-active-item-bg);
+    border-color: var(--veu-h1-color);
+    color: var(--veu-h1-color);
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  .ai-sidebar-btn.active {
+    background: rgba(244, 114, 182, 0.15);
+    border-color: var(--veu-h1-color);
+    color: var(--veu-h1-color);
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(244, 114, 182, 0.3);
+  }
+
+  .ai-active-glow {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--veu-h1-color);
+    box-shadow: 0 0 6px var(--veu-h1-color);
   }
 
   .recent-anchor {

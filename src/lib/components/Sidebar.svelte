@@ -14,6 +14,7 @@
     Search,
     ListTree,
     FolderX,
+    PanelLeftClose,
     X
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
@@ -33,6 +34,7 @@
   export let onDeleteEntry: (path: string, name: string, isDir: boolean) => void = () => {};
   export let onRenameEntry: (path: string, currentName: string) => void = () => {};
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
+  export let onCollapse: (() => void) | undefined = undefined;
 
   let activeTab: 'explorer' | 'outline' = 'explorer';
   let searchQuery = '';
@@ -98,6 +100,16 @@
       <ListTree size={14} />
       <span>Sumário</span>
     </button>
+    {#if onCollapse}
+      <button
+        class="collapse-btn"
+        title="Recolher Barra Lateral"
+        on:click={onCollapse}
+        aria-label="Recolher Barra Lateral"
+      >
+        <PanelLeftClose size={15} />
+      </button>
+    {/if}
   </div>
 
   {#if activeTab === 'explorer'}
@@ -202,13 +214,38 @@
     height: 100%;
     background-color: var(--veu-bg-sidebar);
     border-right: 1px solid var(--veu-border-color);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
     user-select: none;
     font-size: 13px;
+    flex-shrink: 0;
+    z-index: 5;
   }
 
   .sidebar-tabs {
     display: flex;
+    align-items: center;
     border-bottom: 1px solid var(--veu-border-color);
+  }
+
+  .collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--veu-border-color);
+    color: var(--veu-text-color);
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+  }
+
+  .collapse-btn:hover {
+    opacity: 1;
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h1-color);
   }
 
   .tab-btn {

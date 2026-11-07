@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
-  "productName": "Veu MD",
+  "productName": "V.E.U. MD",
   "version": "0.1.0",
   "identifier": "com.veumd.editor",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Veu MD",
+        "title": "V.E.U. MD",
         "width": 1280,
         "height": 800,
         "minWidth": 800,

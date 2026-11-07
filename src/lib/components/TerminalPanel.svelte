@@ -24,6 +24,55 @@
     isRunning: boolean;
     unlisten?: () => void;
   }
+
+  export interface CommandSuggestion {
+    cmd: string;
+    category: 'histórico' | 'git' | 'npm' | 'tauri' | 'agy' | 'cargo' | 'sistema';
+  }
+
+  const DEFAULT_COMMANDS: CommandSuggestion[] = [
+    // Git
+    { cmd: 'git status', category: 'git' },
+    { cmd: 'git add .', category: 'git' },
+    { cmd: 'git commit -m ""', category: 'git' },
+    { cmd: 'git push', category: 'git' },
+    { cmd: 'git pull', category: 'git' },
+    { cmd: 'git diff', category: 'git' },
+    { cmd: 'git log --oneline -n 10', category: 'git' },
+    { cmd: 'git branch', category: 'git' },
+    { cmd: 'git checkout', category: 'git' },
+
+    // NPM / Svelte / Vite / Tauri
+    { cmd: 'npm run dev', category: 'npm' },
+    { cmd: 'npm run build', category: 'npm' },
+    { cmd: 'npm run check', category: 'npm' },
+    { cmd: 'npm test', category: 'npm' },
+    { cmd: 'npm install', category: 'npm' },
+    { cmd: 'npm run tauri dev', category: 'tauri' },
+    { cmd: 'npm run tauri build', category: 'tauri' },
+
+    // Antigravity CLI (agy)
+    { cmd: 'agy', category: 'agy' },
+    { cmd: 'agy --help', category: 'agy' },
+    { cmd: 'agy --continue', category: 'agy' },
+    { cmd: 'agy models', category: 'agy' },
+    { cmd: 'agy agents', category: 'agy' },
+    { cmd: 'agy changelog', category: 'agy' },
+
+    // Cargo / Rust
+    { cmd: 'cargo check', category: 'cargo' },
+    { cmd: 'cargo build', category: 'cargo' },
+    { cmd: 'cargo test', category: 'cargo' },
+    { cmd: 'cargo run', category: 'cargo' },
+
+    // Shell / Sistema
+    { cmd: 'dir', category: 'sistema' },
+    { cmd: 'ls', category: 'sistema' },
+    { cmd: 'cls', category: 'sistema' },
+    { cmd: 'clear', category: 'sistema' },
+    { cmd: 'cd ..', category: 'sistema' },
+    { cmd: 'code .', category: 'sistema' }
+  ];
 </script>
 
 <script lang="ts">
@@ -43,7 +92,7 @@
     Square
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+  import { listen } from '@tauri-apps/api/event';
   import { stripAnsi, ansiToHtml } from '../utils/ansiParser';
 
   export let projectId: string = 'default';
@@ -54,6 +103,7 @@
   export let isMaximized: boolean = false;
   export let onClose: () => void;
   export let onInsertText: ((text: string) => void) | undefined = undefined;
+  export let onOpenAiAssistant: ((command?: string) => void) | undefined = undefined;
 
   // Monitora presença de arquivo ativo
   let prevHasActiveFile = hasActiveFile;
@@ -76,7 +126,38 @@
   $: activeTermId = projectActiveTermId[effectiveProjectId] || (currentTabs[0]?.id || '');
 
   let timelineContainers: Record<string, HTMLDivElement> = {};
-  let activeInputEl: HTMLInputElement | null = null;
+  let activeInputEl: HTMLTextAreaElement | null = null;
+
+  function resizeTextarea() {
+    if (activeInputEl) {
+      activeInputEl.style.height = 'auto';
+      activeInputEl.style.height = `${Math.min(180, Math.max(22, activeInputEl.scrollHeight))}px`;
+    }
+  }
+
+  function isAiInteractiveCommand(cmd: string): boolean {
+    const trimmed = cmd.trim();
+    // Intercepta chamadas a CLIs de IA (agy, gemini, claude, muse, ai)
+    const match = trimmed.match(/^(?:npx\s+)?(agy|gemini|claude|muse|ai)(\s+.*)?$/i);
+    if (!match) return false;
+
+    const args = match[2] ? match[2].trim() : '';
+    // Se for pura invocação interativa
+    if (!args) return true;
+
+    // Se tiver flags puramente informativas de sistema, deixa rodar no terminal para leitura rápida
+    if (/(?:^|\s)(?:--help|-h|--version|-v|models|changelog)(?:\s|$)/i.test(args)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  // Autocomplete e sugestões de comandos predigitados
+  let suggestions: CommandSuggestion[] = [];
+  let ghostSuggestion: string = '';
+  let selectedSuggestionIndex: number = -1;
+  let showSuggestions: boolean = false;
 
   let panelHeight = 260;
   let panelWidth = 480;
@@ -95,6 +176,13 @@
         container.scrollTop = container.scrollHeight;
       }
     });
+  }
+
+  function syncPtySize(termId: string) {
+    if (!termId) return;
+    const cols = Math.max(40, Math.min(240, Math.floor((panelWidth || 600) / 8.5)));
+    const rows = Math.max(10, Math.min(100, Math.floor((panelHeight || 260) / 20)));
+    invoke('resize_terminal', { termId, cols, rows }).catch(() => {});
   }
 
   export async function createTerminalSession(
@@ -127,6 +215,8 @@
         shell: shell || null
       });
 
+      syncPtySize(id);
+
       newTab.unlisten = await listen(`term-output-${id}`, (event: any) => {
         const payload = event.payload as string;
         if (!payload) return;
@@ -157,40 +247,40 @@
     const tab = allTabs.find((t) => t.id === tabId);
     if (!tab) return;
 
-    // Localiza o bloco atualmente em execução
-    const runningBlock = tab.blocks.find((b) => b.status === 'running');
-    if (!runningBlock) {
-      // Se não há bloco rodando (ex: banner inicial do PowerShell ao abrir a janela),
-      // não polui a tela com o banner cru, apenas garante o prompt pronto
-      return;
+    let targetBlock = tab.blocks.find((b) => b.status === 'running');
+    if (!targetBlock) {
+      if (tab.blocks.length > 0) {
+        targetBlock = tab.blocks[tab.blocks.length - 1];
+      } else {
+        return;
+      }
     }
 
-    runningBlock.outputRaw += chunk;
+    targetBlock.outputRaw += chunk;
 
-    // Verifica se a saída indica conclusão do comando (retorno do prompt do shell)
-    const cleanRaw = stripAnsi(runningBlock.outputRaw).trimEnd();
-    const isPrompt = /(?:PS\s+[a-zA-Z]:[^\n\r>]*>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>)\s*$/.test(
+    // Detecta se a saída indica retorno do prompt interativo do shell hospedeiro
+    const cleanRaw = stripAnsi(targetBlock.outputRaw).trimEnd();
+    const isShellPrompt = /(?:PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s*>[^\n\r>]*|>|\s+[^>\r\n]+)>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>|[a-zA-Z]:\\[^\n\r>]*>)\s*$/.test(
       cleanRaw
     );
 
-    if (isPrompt) {
-      // Remove o prompt final da saída para apresentação editorial limpa
+    if (isShellPrompt) {
       let formattedText = cleanRaw
-        .replace(/(?:PS\s+[a-zA-Z]:[^\n\r>]*>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>)\s*$/, '')
+        .replace(/(?:PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s*>[^\n\r>]*|>|\s+[^>\r\n]+)>|\w+@[^:]+:[^$#\n\r]*[$#]|^[a-zA-Z]:[^\n\r>]*>|[a-zA-Z]:\\[^\n\r>]*>)\s*$/, '')
         .trimEnd();
 
-      // Remove o echo inicial do comando se presente
+      // Remove eco redundante inicial do comando se presente no topo da saída
       const firstLineBreak = formattedText.indexOf('\n');
       if (firstLineBreak > -1) {
         const firstLine = formattedText.substring(0, firstLineBreak).trim();
-        if (firstLine === runningBlock.command.trim()) {
+        if (firstLine === targetBlock.command.trim()) {
           formattedText = formattedText.substring(firstLineBreak + 1).trimStart();
         }
       }
 
-      runningBlock.outputRaw = formattedText;
-      runningBlock.outputHtml = ansiToHtml(formattedText);
-      runningBlock.status = 'completed';
+      targetBlock.outputRaw = formattedText;
+      targetBlock.outputHtml = ansiToHtml(formattedText);
+      targetBlock.status = 'completed';
       tab.isRunning = false;
       allTabs = [...allTabs];
 
@@ -199,7 +289,7 @@
         scrollToBottom(tabId);
       });
     } else {
-      runningBlock.outputHtml = ansiToHtml(runningBlock.outputRaw);
+      targetBlock.outputHtml = ansiToHtml(targetBlock.outputRaw);
       allTabs = [...allTabs];
       scrollToBottom(tabId);
     }
@@ -207,16 +297,66 @@
 
   export function submitCommand(tab: TermTab) {
     const rawCmd = tab.activeInput;
+
+    // Se o terminal estiver executando um processo interativo
+    if (tab.isRunning) {
+      const inputToSend = rawCmd;
+      tab.activeInput = '';
+      ghostSuggestion = '';
+      showSuggestions = false;
+
+      if (inputToSend.trim() && (tab.history.length === 0 || tab.history[tab.history.length - 1] !== inputToSend.trim())) {
+        tab.history = [...tab.history, inputToSend.trim()];
+      }
+
+      invoke('write_terminal', { termId: tab.id, data: `${inputToSend}\r\n` }).catch((err) => {
+        console.error('Erro ao enviar entrada para o processo:', err);
+      });
+
+      scrollToBottom(tab.id);
+      return;
+    }
+
+    // Terminal ocioso: inicia nova execução de comando em bloco
     if (!rawCmd || !rawCmd.trim()) return;
 
     const command = rawCmd.trim();
 
-    // Adiciona ao histórico se for diferente do último
+    // Intercepta comandos de IA (agy, gemini, claude, muse, ai) para abrir no Assistente Lateral
+    if (isAiInteractiveCommand(command) && onOpenAiAssistant) {
+      if (tab.history.length === 0 || tab.history[tab.history.length - 1] !== command) {
+        tab.history = [...tab.history, command];
+      }
+      tab.historyIndex = -1;
+      tab.activeInput = '';
+      ghostSuggestion = '';
+      showSuggestions = false;
+
+      const aiNoticeBlock: CommandBlock = {
+        id: `ai-${Date.now()}`,
+        command,
+        cwd: tab.cwd || currentFolderPath,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        outputRaw: '✨ Sessão de IA detectada. Abrindo Assistente IA na barra lateral...',
+        outputHtml: '<span class="ansi-magenta">✨ Sessão de IA detectada. Abrindo Assistente IA na barra lateral...</span>',
+        status: 'completed'
+      };
+
+      tab.blocks = [...tab.blocks, aiNoticeBlock];
+      allTabs = [...allTabs];
+
+      onOpenAiAssistant(command);
+      scrollToBottom(tab.id);
+      return;
+    }
+
     if (tab.history.length === 0 || tab.history[tab.history.length - 1] !== command) {
       tab.history = [...tab.history, command];
     }
     tab.historyIndex = -1;
     tab.activeInput = '';
+    ghostSuggestion = '';
+    showSuggestions = false;
 
     const newBlock: CommandBlock = {
       id: `cmd-${Date.now()}`,
@@ -232,7 +372,6 @@
     tab.isRunning = true;
     allTabs = [...allTabs];
 
-    // Envia o comando para o processo nativo PTY
     invoke('write_terminal', { termId: tab.id, data: `${command}\r\n` }).catch((err) => {
       newBlock.outputRaw = `Erro ao executar comando: ${err}`;
       newBlock.outputHtml = `<span class="ansi-red">Erro ao executar comando: ${err}</span>`;
@@ -245,14 +384,18 @@
   }
 
   export function stopCommand(tab: TermTab) {
+    // Envia SIGINT (^C) ao PTY
     invoke('write_terminal', { termId: tab.id, data: '\x03' }).catch(() => {});
 
     const runningBlock = tab.blocks.find((b) => b.status === 'running');
     if (runningBlock) {
       runningBlock.status = 'interrupted';
       if (!runningBlock.outputRaw) {
-        runningBlock.outputRaw = '^C (Interrompido pelo usuário)';
-        runningBlock.outputHtml = '<span class="ansi-yellow">^C (Interrompido pelo usuário)</span>';
+        runningBlock.outputRaw = '^C (Interrompido)';
+        runningBlock.outputHtml = '<span class="ansi-yellow">^C (Interrompido)</span>';
+      } else {
+        runningBlock.outputRaw += '\n^C';
+        runningBlock.outputHtml = ansiToHtml(runningBlock.outputRaw);
       }
     }
 
@@ -265,11 +408,128 @@
     });
   }
 
+  function updateSuggestions(input: string) {
+    if (!input || !input.trim()) {
+      suggestions = [];
+      ghostSuggestion = '';
+      showSuggestions = false;
+      selectedSuggestionIndex = -1;
+      return;
+    }
+
+    const query = input.trim().toLowerCase();
+    const tab = getActiveTab();
+
+    const historyItems: CommandSuggestion[] = (tab?.history || [])
+      .slice()
+      .reverse()
+      .map((cmd) => ({
+        cmd,
+        category: 'histórico' as const
+      }));
+
+    const allPool: CommandSuggestion[] = [...historyItems, ...DEFAULT_COMMANDS];
+    const seen = new Set<string>();
+    const matches: CommandSuggestion[] = [];
+
+    for (const item of allPool) {
+      if (seen.has(item.cmd)) continue;
+      seen.add(item.cmd);
+
+      if (item.cmd.toLowerCase().startsWith(query) && item.cmd.toLowerCase() !== query) {
+        matches.push(item);
+      } else if (item.cmd.toLowerCase().includes(query) && item.cmd.toLowerCase() !== query) {
+        matches.push(item);
+      }
+
+      if (matches.length >= 6) break;
+    }
+
+    suggestions = matches;
+    selectedSuggestionIndex = matches.length > 0 ? 0 : -1;
+    showSuggestions = matches.length > 0;
+
+    // Atualiza ghost text (se houver correspondência de prefixo e linha única)
+    if (!input.includes('\n')) {
+      const prefixMatch = matches.find((m) => m.cmd.toLowerCase().startsWith(input.toLowerCase()));
+      if (prefixMatch && prefixMatch.cmd.length > input.length) {
+        ghostSuggestion = prefixMatch.cmd.substring(input.length);
+      } else {
+        ghostSuggestion = '';
+      }
+    } else {
+      ghostSuggestion = '';
+    }
+  }
+
+  function applySuggestion(cmd: string, tab: TermTab) {
+    tab.activeInput = cmd;
+    ghostSuggestion = '';
+    showSuggestions = false;
+    selectedSuggestionIndex = -1;
+    tick().then(() => {
+      resizeTextarea();
+      focusActiveInput();
+    });
+  }
+
   function handleInputKeydown(e: KeyboardEvent, tab: TermTab) {
-    if (e.key === 'Enter') {
+    if (e.key === 'Tab') {
+      if (showSuggestions && suggestions.length > 0) {
+        e.preventDefault();
+        const sel = suggestions[selectedSuggestionIndex] || suggestions[0];
+        if (sel) {
+          applySuggestion(sel.cmd, tab);
+        }
+        return;
+      } else if (ghostSuggestion) {
+        e.preventDefault();
+        tab.activeInput += ghostSuggestion;
+        ghostSuggestion = '';
+        showSuggestions = false;
+        tick().then(resizeTextarea);
+        return;
+      }
+    } else if (e.key === 'ArrowRight' && ghostSuggestion && activeInputEl) {
+      if (activeInputEl.selectionStart === tab.activeInput.length) {
+        e.preventDefault();
+        tab.activeInput += ghostSuggestion;
+        ghostSuggestion = '';
+        showSuggestions = false;
+        tick().then(resizeTextarea);
+        return;
+      }
+    } else if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        // Shift+Enter insere quebra de linha natural
+        tick().then(resizeTextarea);
+        return;
+      }
+
       e.preventDefault();
+      if (showSuggestions && suggestions.length > 0 && selectedSuggestionIndex >= 0) {
+        const sel = suggestions[selectedSuggestionIndex];
+        if (sel && sel.cmd !== tab.activeInput) {
+          applySuggestion(sel.cmd, tab);
+          return;
+        }
+      }
       submitCommand(tab);
     } else if (e.key === 'ArrowUp') {
+      if (showSuggestions && suggestions.length > 0) {
+        e.preventDefault();
+        selectedSuggestionIndex = (selectedSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+        return;
+      }
+
+      // Permite navegação vertical nativa no textarea se houver múltiplas linhas
+      if (activeInputEl && tab.activeInput.includes('\n')) {
+        const firstLineBreak = tab.activeInput.indexOf('\n');
+        if (activeInputEl.selectionStart > firstLineBreak) {
+          return;
+        }
+      }
+
       e.preventDefault();
       if (tab.history.length > 0) {
         if (tab.historyIndex === -1) {
@@ -278,8 +538,23 @@
           tab.historyIndex--;
         }
         tab.activeInput = tab.history[tab.historyIndex] || '';
+        updateSuggestions(tab.activeInput);
+        tick().then(resizeTextarea);
       }
     } else if (e.key === 'ArrowDown') {
+      if (showSuggestions && suggestions.length > 0) {
+        e.preventDefault();
+        selectedSuggestionIndex = (selectedSuggestionIndex + 1) % suggestions.length;
+        return;
+      }
+
+      if (activeInputEl && tab.activeInput.includes('\n')) {
+        const lastLineBreak = tab.activeInput.lastIndexOf('\n');
+        if (activeInputEl.selectionStart < lastLineBreak) {
+          return;
+        }
+      }
+
       e.preventDefault();
       if (tab.historyIndex !== -1) {
         if (tab.historyIndex < tab.history.length - 1) {
@@ -289,16 +564,39 @@
           tab.historyIndex = -1;
           tab.activeInput = '';
         }
+        updateSuggestions(tab.activeInput);
+        tick().then(resizeTextarea);
+      }
+    } else if (e.key === 'Escape') {
+      if (showSuggestions) {
+        e.preventDefault();
+        showSuggestions = false;
       }
     }
   }
 
   function handlePanelKeydown(e: KeyboardEvent) {
+    const tab = getActiveTab();
+    if (!tab) return;
+
     if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
-      const tab = getActiveTab();
-      if (tab && tab.isRunning) {
+      if (tab.isRunning) {
         e.preventDefault();
         stopCommand(tab);
+      }
+      return;
+    }
+
+    // Se o processo estiver executando e o usuário pressionar teclas, repassa diretamente ao PTY
+    if (tab.isRunning && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.key === 'Enter') {
+        invoke('write_terminal', { termId: tab.id, data: '\r\n' }).catch(() => {});
+      } else if (e.key === 'Backspace') {
+        invoke('write_terminal', { termId: tab.id, data: '\x08' }).catch(() => {});
+      } else if (e.key === 'Escape') {
+        invoke('write_terminal', { termId: tab.id, data: '\x1b' }).catch(() => {});
+      } else if (e.key.length === 1) {
+        invoke('write_terminal', { termId: tab.id, data: e.key }).catch(() => {});
       }
     }
   }
@@ -347,6 +645,18 @@
     focusActiveInput();
   }
 
+  export function closeProjectTerminals(pId: string) {
+    const tabsToClose = allTabs.filter((t) => t.projectId === pId);
+    for (const t of tabsToClose) {
+      if (t.unlisten) t.unlisten();
+      invoke('kill_terminal', { termId: t.id }).catch(() => {});
+      delete timelineContainers[t.id];
+    }
+    allTabs = allTabs.filter((t) => t.projectId !== pId);
+    delete projectActiveTermId[pId];
+    projectActiveTermId = { ...projectActiveTermId };
+  }
+
   function closeTerminal(id: string) {
     const tab = allTabs.find((t) => t.id === id);
     if (tab) {
@@ -374,6 +684,7 @@
     projectActiveTermId[effectiveProjectId] = id;
     projectActiveTermId = { ...projectActiveTermId };
     tick().then(() => {
+      syncPtySize(id);
       focusActiveInput();
       scrollToBottom(id);
     });
@@ -381,10 +692,12 @@
 
   function toggleOrientation() {
     orientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
+    syncPtySize(activeTermId);
   }
 
   function toggleMaximize() {
     isMaximized = !isMaximized;
+    syncPtySize(activeTermId);
   }
 
   function startResize(e: MouseEvent) {
@@ -407,6 +720,7 @@
 
     function onMouseUp() {
       isResizing = false;
+      syncPtySize(activeTermId);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     }
@@ -424,8 +738,7 @@
   }
 
   onDestroy(() => {
-    // Mantém as abas vivas no Map global se o painel apenas fechar sua visibilidade,
-    // garantindo continuidade de servidores e compilações em background.
+    // Abas permanecem em memória para manter continuidade de processos em background
   });
 </script>
 
@@ -554,7 +867,7 @@
           <!-- Contexto Inicial da Sessão -->
           <div class="session-header">
             <span class="session-path">{t.cwd || currentFolderPath || 'Pasta ativa'}</span>
-            <span class="session-hint">Terminal Veu ativo • Digite comandos e pressione Enter</span>
+            <span class="session-hint">Terminal Veu • Digite comandos inline no fluxo contínuo</span>
           </div>
 
           <!-- Linha do Tempo de Blocos de Comando e Saída -->
@@ -626,44 +939,63 @@
             </div>
           {/each}
 
-          <!-- Linha de Entrada Interativa ao Final do Fluxo (quando idle) -->
+          <!-- Linha de Entrada Contínua no Próprio Fluxo (Sem caixa separada) -->
           {#if !t.isRunning}
-            <div class="active-prompt-row">
-              <span class="prompt-glyph active">›</span>
-              <input
-                type="text"
-                class="active-prompt-input"
-                bind:value={t.activeInput}
-                bind:this={activeInputEl}
-                placeholder="Digite um comando (ex: git status, npm test, dir)..."
-                on:keydown={(e) => handleInputKeydown(e, t)}
-                spellcheck="false"
-                autocomplete="off"
-              />
-              {#if t.activeInput.trim().length > 0}
-                <button
-                  class="submit-btn"
-                  title="Executar comando (Enter)"
-                  on:click={() => submitCommand(t)}
-                >
-                  <CornerDownLeft size={12} />
-                </button>
+            <div class="prompt-stream-container">
+              <!-- Sugestões de comandos predigitados flutuantes -->
+              {#if showSuggestions && suggestions.length > 0}
+                <div class="suggestions-popover">
+                  <div class="suggestions-header">
+                    <span class="header-title">Sugestões de Comandos</span>
+                    <span class="header-hint">Tab ou Enter seleciona • Esc fecha</span>
+                  </div>
+                  <div class="suggestions-list">
+                    {#each suggestions as item, idx}
+                      <button
+                        type="button"
+                        class="suggestion-item"
+                        class:selected={idx === selectedSuggestionIndex}
+                        on:click|stopPropagation={() => applySuggestion(item.cmd, t)}
+                        on:mouseenter={() => (selectedSuggestionIndex = idx)}
+                        role="option"
+                        tabindex="-1"
+                        aria-selected={idx === selectedSuggestionIndex}
+                      >
+                        <span class="suggestion-cmd">{item.cmd}</span>
+                        <span class="suggestion-badge badge-{item.category}">{item.category}</span>
+                      </button>
+                    {/each}
+                  </div>
+                </div>
               {/if}
-            </div>
-          {:else}
-            <!-- Barra de Processo Ativo (previne concorrência e confusão) -->
-            <div class="process-running-bar">
-              <div class="running-info">
-                <span class="pulse-indicator"></span>
-                <span>Executando comando no Terminal Veu...</span>
+
+              <div class="inline-prompt-row">
+                <span class="inline-glyph">›</span>
+
+                <div class="inline-input-wrapper">
+                  <!-- Ghost Text de Autocompletion (Linha Única) -->
+                  {#if ghostSuggestion && !t.activeInput.includes('\n')}
+                    <div class="ghost-overlay" aria-hidden="true">
+                      <span class="ghost-invisible">{t.activeInput}</span><span class="ghost-visible">{ghostSuggestion}</span>
+                    </div>
+                  {/if}
+
+                  <textarea
+                    class="inline-terminal-input"
+                    rows="1"
+                    bind:value={t.activeInput}
+                    bind:this={activeInputEl}
+                    placeholder="Digite um comando... (Enter executa, Shift+Enter quebra linha)"
+                    on:keydown={(e) => handleInputKeydown(e, t)}
+                    on:input={() => {
+                      updateSuggestions(t.activeInput);
+                      resizeTextarea();
+                    }}
+                    spellcheck="false"
+                    autocomplete="off"
+                  ></textarea>
+                </div>
               </div>
-              <button
-                class="stop-running-btn"
-                title="Interromper processo (Ctrl+C)"
-                on:click={() => stopCommand(t)}
-              >
-                <Square size={11} fill="currentColor" /> Parar Processo (Ctrl+C)
-              </button>
             </div>
           {/if}
         </div>
@@ -749,7 +1081,6 @@
     color: var(--veu-h2-color);
     font-size: 11px;
     font-weight: 600;
-    margin-right: 4px;
   }
 
   .term-tab {
@@ -758,44 +1089,47 @@
     gap: 6px;
     padding: 3px 8px;
     border-radius: 4px;
-    font-size: 11px;
-    background: transparent;
+    font-size: 11.5px;
     color: var(--veu-text-color);
     opacity: 0.7;
+    background: transparent;
     cursor: pointer;
-    transition: background-color 0.15s, opacity 0.15s;
+    transition: opacity 0.15s, background-color 0.15s;
+    user-select: none;
   }
 
   .term-tab:hover {
     opacity: 1;
-    background-color: rgba(127, 127, 127, 0.12);
+    background-color: var(--veu-active-item-bg);
   }
 
   .term-tab.active {
+    opacity: 1;
     background-color: var(--veu-active-item-bg);
     color: var(--veu-h2-color);
-    opacity: 1;
     font-weight: 500;
   }
 
   .tab-running-dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background-color: #facc15;
-    animation: pulse 1.4s infinite;
+    animation: pulse 1.2s infinite;
   }
 
   .close-tab {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    padding: 2px;
     display: flex;
     align-items: center;
-    opacity: 0.6;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--veu-text-color);
+    cursor: pointer;
+    padding: 2px;
     border-radius: 2px;
+    opacity: 0.6;
+    transition: opacity 0.15s, background-color 0.15s;
   }
 
   .close-tab:hover {
@@ -875,7 +1209,7 @@
     padding: 10px 14px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     cursor: text;
   }
 
@@ -892,19 +1226,19 @@
     color: var(--veu-text-color);
     opacity: 0.6;
     border-bottom: 1px dashed var(--veu-border-color);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     user-select: none;
   }
 
   .session-path {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     font-size: 10.5px;
   }
 
   .command-block {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
     padding: 8px 10px;
     border-radius: 6px;
     background-color: rgba(127, 127, 127, 0.05);
@@ -928,7 +1262,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   }
 
   .prompt-glyph {
@@ -936,10 +1270,6 @@
     font-weight: 700;
     font-size: 13px;
     user-select: none;
-  }
-
-  .prompt-glyph.active {
-    color: var(--veu-h2-color);
   }
 
   .command-name {
@@ -1037,7 +1367,7 @@
     word-break: break-word;
     color: var(--veu-text-color);
     opacity: 0.95;
-    padding-top: 3px;
+    padding-top: 2px;
     user-select: text;
   }
 
@@ -1058,91 +1388,224 @@
     animation: pulse 1s infinite;
   }
 
-  .active-prompt-row {
+  /* Entrada Contínua no Fluxo do Terminal (Sem caixa separada) */
+  .prompt-stream-container {
+    position: relative;
+    margin-top: 4px;
+  }
+
+  .inline-prompt-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    background-color: rgba(127, 127, 127, 0.08);
-    border: 1px solid var(--veu-border-color);
-    margin-top: 2px;
-  }
-
-  .active-prompt-input {
-    flex: 1;
+    padding: 4px 6px;
     background: transparent;
     border: none;
-    outline: none;
+    box-sizing: border-box;
+  }
+
+  .inline-glyph {
+    color: var(--veu-h1-color);
+    font-weight: 700;
+    font-size: 14px;
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 12.5px;
-    color: var(--veu-text-color);
-    padding: 0;
+    user-select: none;
+    line-height: 1;
   }
 
-  .active-prompt-input::placeholder {
-    color: var(--veu-text-color);
-    opacity: 0.4;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 12px;
+  .inline-glyph.running {
+    color: #facc15;
   }
 
-  .submit-btn {
+  .interactive-pill {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    background: var(--veu-h2-color);
-    color: var(--veu-bg-app);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: opacity 0.15s;
-  }
-
-  .submit-btn:hover {
-    opacity: 0.85;
-  }
-
-  .process-running-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    border-radius: 6px;
-    background-color: rgba(244, 114, 182, 0.08);
-    border: 1px dashed rgba(244, 114, 182, 0.35);
-    font-size: 12px;
-    margin-top: 2px;
+    gap: 4px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(250, 204, 21, 0.15);
+    color: #facc15;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     user-select: none;
   }
 
-  .running-info {
+  .inline-input-wrapper {
+    position: relative;
+    flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
+  }
+
+  .ghost-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12.5px;
+    line-height: 22px;
+    white-space: pre;
+    display: flex;
+    align-items: center;
+    user-select: none;
+  }
+
+  .ghost-invisible {
+    visibility: hidden;
+  }
+
+  .ghost-visible {
+    color: var(--veu-text-color);
+    opacity: 0.35;
+    font-style: italic;
+  }
+
+  .inline-terminal-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--veu-text-color);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12.5px;
+    line-height: 20px;
+    padding: 0;
+    margin: 0;
+    caret-color: var(--veu-h1-color);
+    resize: none;
+    overflow-y: hidden;
+    box-shadow: none;
+    display: block;
+  }
+
+  .inline-terminal-input::placeholder {
+    color: var(--veu-text-color);
+    opacity: 0.35;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11.5px;
+    font-style: italic;
+  }
+
+  /* Popover de Sugestões de Comandos */
+  .suggestions-popover {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 8px;
+    width: 320px;
+    max-width: 90vw;
+    background-color: var(--veu-bg-sidebar);
+    border: 1px solid var(--veu-border-color);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    z-index: 50;
+    overflow: hidden;
+    animation: fadeIn 0.12s ease-out;
+  }
+
+  .suggestions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    background-color: rgba(127, 127, 127, 0.08);
+    border-bottom: 1px solid var(--veu-border-color);
+    font-size: 10px;
+    color: var(--veu-text-color);
+    opacity: 0.75;
+    user-select: none;
+  }
+
+  .header-title {
+    font-weight: 600;
+  }
+
+  .header-hint {
+    font-size: 9.5px;
+    opacity: 0.8;
+  }
+
+  .suggestions-list {
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11.5px;
+    transition: background-color 0.1s;
+    user-select: none;
+  }
+
+  .suggestion-item:hover,
+  .suggestion-item.selected {
+    background-color: var(--veu-active-item-bg);
+  }
+
+  .suggestion-cmd {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     color: var(--veu-text-color);
     font-weight: 500;
   }
 
-  .stop-running-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: #ef4444;
-    color: #ffffff;
-    border: none;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 11.5px;
+  .suggestion-badge {
+    font-size: 9.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
     font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.15s;
+    letter-spacing: 0.3px;
   }
 
-  .stop-running-btn:hover {
-    opacity: 0.9;
+  .badge-histórico {
+    background: rgba(192, 132, 252, 0.15);
+    color: var(--veu-h2-color);
+  }
+
+  .badge-git {
+    background: rgba(244, 114, 182, 0.15);
+    color: #f472b6;
+  }
+
+  .badge-npm {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+
+  .badge-tauri {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+  }
+
+  .badge-agy {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+  }
+
+  .badge-cargo {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+  }
+
+  .badge-sistema {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
   }
 
   @keyframes pulse {
@@ -1152,72 +1615,19 @@
       transform: scale(1);
     }
     50% {
-      opacity: 0.35;
+      opacity: 0.4;
       transform: scale(0.85);
     }
   }
 
-  /* Classes Semânticas de Estilo ANSI do Terminal Veu */
-  :global(.ansi-bold) {
-    font-weight: 600;
-  }
-  :global(.ansi-dim) {
-    opacity: 0.6;
-  }
-  :global(.ansi-italic) {
-    font-style: italic;
-  }
-  :global(.ansi-underline) {
-    text-decoration: underline;
-  }
-
-  :global(.ansi-red) {
-    color: #f87171;
-  }
-  :global(.ansi-green) {
-    color: #4ade80;
-  }
-  :global(.ansi-yellow) {
-    color: #facc15;
-  }
-  :global(.ansi-blue) {
-    color: #60a5fa;
-  }
-  :global(.ansi-magenta) {
-    color: #c084fc;
-  }
-  :global(.ansi-cyan) {
-    color: #22d3ee;
-  }
-  :global(.ansi-white) {
-    color: #f8fafc;
-  }
-  :global(.ansi-black) {
-    color: #64748b;
-  }
-
-  :global(.ansi-bright-red) {
-    color: #fca5a5;
-  }
-  :global(.ansi-bright-green) {
-    color: #86efac;
-  }
-  :global(.ansi-bright-yellow) {
-    color: #fde047;
-  }
-  :global(.ansi-bright-blue) {
-    color: #93c5fd;
-  }
-  :global(.ansi-bright-magenta) {
-    color: #e9d5ff;
-  }
-  :global(.ansi-bright-cyan) {
-    color: #67e8f9;
-  }
-  :global(.ansi-bright-white) {
-    color: #ffffff;
-  }
-  :global(.ansi-bright-black) {
-    color: #94a3b8;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>

@@ -9,6 +9,7 @@
   import TabBar from './lib/components/TabBar.svelte';
   import Editor from './lib/components/Editor.svelte';
   import ThemeSettings from './lib/components/ThemeSettings.svelte';
+  import AiAssistantPanel from './lib/components/AiAssistantPanel.svelte';
   import TerminalPanel from './lib/components/TerminalPanel.svelte';
   import StatusBar from './lib/components/StatusBar.svelte';
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
@@ -35,6 +36,7 @@
   // Painéis visíveis
   let sidebarOpen = true;
   let themeSettingsOpen = false;
+  let aiAssistantOpen = false;
   let terminalOpen = false;
   let terminalOrientation: 'horizontal' | 'vertical' = 'horizontal';
   let terminalMaximized: boolean = false;
@@ -46,6 +48,7 @@
   let activeEditorView: EditorView | null = null;
   let editorRef: any = null;
   let terminalPanelRef: TerminalPanel | null = null;
+  let aiPanelRef: any = null;
 
   // Documento inicial padrão (Boas-vindas ao Veu MD)
   const defaultWelcomeDoc = `# Bem-vindo ao Veu MD
@@ -165,6 +168,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 
     target.lastOpenedAt = Date.now();
     activeProjectId = target.id;
+    sidebarOpen = true;
     currentFolderPath = target.folderPath;
     addOrUpdateRecent(target.folderPath, target.name);
 
@@ -427,6 +431,15 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       if ((e.ctrlKey || e.metaKey) && (e.key === "'" || e.key === '`')) {
         e.preventDefault();
         terminalOpen = !terminalOpen;
+      }
+      // Ctrl + L ou Ctrl + Shift + I / Ctrl + Alt + I (Assistente IA / agy)
+      if (
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') ||
+        ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && e.key.toLowerCase() === 'i')
+      ) {
+        e.preventDefault();
+        aiAssistantOpen = !aiAssistantOpen;
+        if (aiAssistantOpen) themeSettingsOpen = false;
       }
       // Ctrl + F (Localizar)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
@@ -732,8 +745,36 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       const { from, to } = state.selection;
       dispatch(state.tr.replaceWith(from, to, state.schema.text(text)));
       activeEditorView.focus();
-      statusNotification = 'Texto do terminal inserido no documento.';
+      statusNotification = 'Texto inserido no documento.';
       setTimeout(() => (statusNotification = ''), 3000);
+    }
+  }
+
+  function getEditorSelectedText(): string {
+    if (activeEditorView) {
+      const { from, to } = activeEditorView.state.selection;
+      if (from !== to) {
+        return activeEditorView.state.doc.textBetween(from, to, '\n');
+      }
+    }
+    return '';
+  }
+
+  function handleOpenAiAssistant(command?: string) {
+    aiAssistantOpen = true;
+    themeSettingsOpen = false;
+    if (command) {
+      const trimmed = command.replace(/^(?:npx\s+)?(?:agy|gemini|claude|muse|ai)\s*/i, '').trim();
+      if (trimmed) {
+        const trySubmit = (attempts = 0) => {
+          if (aiPanelRef && typeof aiPanelRef.submitPrompt === 'function') {
+            aiPanelRef.submitPrompt(trimmed);
+          } else if (attempts < 10) {
+            setTimeout(() => trySubmit(attempts + 1), 100);
+          }
+        };
+        setTimeout(trySubmit, 80);
+      }
     }
   }
 
@@ -794,6 +835,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     editorView={activeEditorView}
     {sidebarOpen}
     {themeSettingsOpen}
+    {aiAssistantOpen}
     {terminalOpen}
     hasFolder={!!currentFolderPath}
     onOpenFolder={openFolderDialog}
@@ -803,27 +845,35 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     onCopyHtml={handleCopyAsHtml}
     onQuickOpen={() => (quickOpenVisible = true)}
     onWizard={() => {
-      statusNotification = 'Assistente IA / Wizard (Em desenvolvimento)';
-      setTimeout(() => (statusNotification = ''), 3500);
+      aiAssistantOpen = !aiAssistantOpen;
+      if (aiAssistantOpen) themeSettingsOpen = false;
     }}
     onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
-    onToggleThemeSettings={() => (themeSettingsOpen = !themeSettingsOpen)}
+    onToggleThemeSettings={() => {
+      themeSettingsOpen = !themeSettingsOpen;
+      if (themeSettingsOpen) aiAssistantOpen = false;
+    }}
     onToggleTerminal={() => (terminalOpen = !terminalOpen)}
   />
 
   <!-- Corpo Principal: ActivityBar de Projetos + Sidebar + Abas + Editor -->
   <div class="workspace">
-    <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes) -->
+    <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes & IA) -->
     <ProjectSidebar
       projects={openProjects}
       {activeProjectId}
       {recentProjects}
+      {aiAssistantOpen}
       onSelectProject={switchToProject}
       onCloseProject={closeProject}
       onOpenNewProject={openFolderDialog}
       onSelectRecent={handleSelectRecent}
       onRemoveRecent={removeRecent}
       onClearRecent={clearRecent}
+      onToggleAiAssistant={() => {
+        aiAssistantOpen = !aiAssistantOpen;
+        if (aiAssistantOpen) themeSettingsOpen = false;
+      }}
     />
 
     {#if sidebarOpen}
@@ -842,6 +892,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         onDeleteEntry={handleDeleteEntry}
         onRenameEntry={handleRenameEntry}
         onCreateInFolder={handleCreateInFolder}
+        onCollapse={() => (sidebarOpen = false)}
       />
     {/if}
 
@@ -903,6 +954,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           bind:orientation={terminalOrientation}
           bind:isMaximized={terminalMaximized}
           onInsertText={handleInsertTerminalText}
+          onOpenAiAssistant={handleOpenAiAssistant}
           onClose={() => (terminalOpen = false)}
         />
       </div>
@@ -912,6 +964,16 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     <ThemeSettings
       visible={themeSettingsOpen}
       onClose={() => (themeSettingsOpen = false)}
+    />
+
+    <!-- Painel Lateral Direito: Assistente IA (Antigravity CLI / agy / Muse / Gemini) -->
+    <AiAssistantPanel
+      bind:this={aiPanelRef}
+      visible={aiAssistantOpen}
+      {currentFolderPath}
+      onInsertText={handleInsertTerminalText}
+      getEditorSelection={getEditorSelectedText}
+      onClose={() => (aiAssistantOpen = false)}
     />
   </div>
 

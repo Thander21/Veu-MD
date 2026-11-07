@@ -55,6 +55,7 @@
   export let onToggleTerminal: () => void;
   export let sidebarOpen: boolean = true;
   export let themeSettingsOpen: boolean = false;
+  export let aiAssistantOpen: boolean = false;
   export let terminalOpen: boolean = false;
   export let hasFolder: boolean = false;
 
@@ -201,6 +202,17 @@
 </script>
 
 <header class="topbar">
+  <!-- Marca Oficial do App: Ícone e Nome V.E.U. MD -->
+  <div class="app-brand" title="V.E.U. MD — Editor Markdown de Alta Performance">
+    <img src="/veu-logo.svg" alt="V.E.U. MD" class="brand-logo-img" />
+    <span class="brand-title">
+      <span class="brand-acronym">V.E.U.</span>
+      <span class="brand-suffix">MD</span>
+    </span>
+  </div>
+
+  <div class="divider"></div>
+
   <!-- Grupo Esquerdo: Arquivo e Janela -->
   <div class="group">
     <button class="btn icon-btn" class:active={sidebarOpen} title="Alternar Painel Lateral (Pastas / Sumário)" on:click={onToggleSidebar}>
@@ -217,7 +229,8 @@
     {/if}
     <button
       class="btn icon-btn wizard-btn"
-      title="Assistente IA / Wizard (Em desenvolvimento)"
+      class:btn-active={aiAssistantOpen}
+      title="Assistente IA • Antigravity / agy (Ctrl+L)"
       on:click={onWizard}
     >
       <Wand2 size={16} />
@@ -408,6 +421,53 @@
     gap: 10px;
     user-select: none;
     z-index: 10;
+  }
+
+  .app-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 8px 2px 2px;
+    user-select: none;
+    flex-shrink: 0;
+    cursor: default;
+  }
+
+  .brand-logo-img {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 5px rgba(192, 132, 252, 0.35));
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .brand-logo-img:hover {
+    transform: scale(1.08);
+  }
+
+  .brand-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    line-height: 1;
+  }
+
+  .brand-acronym {
+    color: var(--veu-text-color);
+  }
+
+  .brand-suffix {
+    color: var(--veu-h1-color);
+    background: rgba(244, 114, 182, 0.14);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
   }
 
   .group {
