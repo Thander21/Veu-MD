@@ -11,6 +11,14 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Edição 100% WYSIWYG Estilo Word:**
   - O editor ProseMirror **NUNCA** deve exibir caracteres brutos de formatação Markdown (`#`, `**`, `*`, `>`, ````) no corpo do texto durante leitura ou digitação.
   - A experiência visual deve ser fluida e direta, idêntica a processadores de texto ricos (Word/Pages).
+- **Persistência e Continuidade do Terminal Multi-Projeto:**
+  - **NUNCA** destrua o `<TerminalPanel>` usando blocos de re-renderização reativa como `{#key currentFolderPath}`.
+  - Cada projeto aberto mantém suas sessões e buffers de PTY ativos em background (ocultos via CSS `.hidden`), preservando compilações, servidores locais e histórico de comandos ao alternar entre abas de projetos.
+  - O comando `kill_terminal` no backend Rust só deve ser disparado quando a aba do projeto for **explicitamente fechada** pelo usuário (`closeProject`), nunca durante troca de foco.
+  - O redimensionamento do xterm (`fitAddon.fit()`) só pode ser invocado quando o contêiner possuir dimensões reais (`clientWidth > 0 && clientHeight > 0`) para evitar corrupção de colunas no PTY.
+- **Anti-Bloat & Filtro Inegociável de Leveza:**
+  - O footprint do app deve permanecer em ~5 MB a repouso com cold start < 300 ms.
+  - É estritamente proibido embutir runtimes pesados (Node.js/npm no host, modelos de IA embutidos como Whisper de 500MB, ou WebViews secundárias para login).
 - **Fidelidade no Disco (.md Puro Padrão GFM):**
   - O documento em memória é serializado para Markdown padrão GitHub Flavored Markdown (GFM) com fidelidade total (tabelas, checklists, citações, código, imagens).
   - Qualquer outro editor de texto ou visualizador de repositório deve ler o arquivo normalmente com todas as tags canônicas.
@@ -45,6 +53,15 @@ O projeto adota a metodologia Spec-Driven Development através do framework `tlc
 2. **Tarefas (`tasks.md`):** Tarefas atômicas com portões executáveis determinísticos.
    - Validação: `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature> --execute`
 3. **Execução & Verificação:** Implementação tarefa a tarefa com verificação independente (`proofs.md` e `verification.md`).
+   - Validação Final: `python .agent/skills/tlc-spec-driven/scripts/validate_verification.py <feature>`
+
+### Invariantes Estritos do SDD
+- **Parada Obrigatória para Aprovação Humana:** NUNCA inicie a Fase 4 (Execute) sem antes:
+  1. Clarificar todas as áreas cinzentas (*gray areas*) com o usuário e documentá-las em `context.md`.
+  2. Obter a aprovação formal do usuário e registrá-la em `spec.md` e `tasks.md` como `**Approved**: <data> - user: "<suas palavras>"`.
+- **Sintaxe Canônica em `spec.md`:** Os títulos de seção **NÃO** devem conter números (use `## Problem Statement`, `## Out of Scope`, `## Assumptions & Open Questions`, `## User Stories`, `## Requirement Traceability`).
+- **Execução de Scripts no Windows:** Sempre execute scripts no diretório do projeto: `cd "W:\_Projetos\Veu MD"; python .agent/skills/tlc-spec-driven/scripts/...`
+- **Árvore Limpa para Verificação:** `check_proofs.py` e `validate_verification.py` só atestam sucesso sobre uma árvore limpa (`git status` sem alterações pendentes).
 
 ### Sintaxe Obrigatória em `tasks.md`
 - Nos blocos de tarefa (`### T01: ...`), as tags de metadados **NÃO** devem ter hífen de lista:

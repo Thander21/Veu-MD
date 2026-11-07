@@ -1,7 +1,7 @@
 import { defaultThemes } from './defaultThemes';
 import type { ThemeConfig } from '../types';
 
-let currentTheme: ThemeConfig = defaultThemes.veu;
+let currentTheme: ThemeConfig = defaultThemes.veumd || defaultThemes.veu;
 const listeners = new Set<(theme: ThemeConfig) => void>();
 
 export function getTheme(): ThemeConfig {

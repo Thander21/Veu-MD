@@ -278,8 +278,15 @@
     opacity: 1;
   }
 
-  .action-btn.close-folder-btn:hover {
+  .action-btn.close-folder-btn {
     color: #ef4444;
+    opacity: 0.9;
+  }
+
+  .action-btn.close-folder-btn:hover {
+    color: #ffffff;
+    background-color: #ef4444;
+    opacity: 1;
   }
 
   .no-folder-panel {
