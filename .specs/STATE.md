@@ -150,21 +150,22 @@
 
 ## Handoff
 
-- **Feature**: terminal-veu / .specs/features/terminal-veu/
+- **Feature**: sidebar-layout-and-splash / .specs/features/sidebar-layout-and-splash/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-001..AD-017
-  - spec.md com 9 critérios de aceitação EARS (0 erros no validador)
-  - tasks.md validado com portões determinísticos e checks comprováveis (0 erros no validador com --execute)
-  - T01: Utilitário Parser ANSI Ultraleve e Tipografia Limpa implementado
-  - T02: Linha do Tempo Sequencial e Blocos de Terminal Veu implementado
-  - T03: Prompt de Entrada Editável ao Final do Fluxo com Histórico implementado
-  - T04: Gestão de Concorrência, Streaming em Tempo Real e Botão Parar implementado
-  - T05: Ações Rápidas por Bloco (Copiar/Inserir) e Limpeza de Sessão implementado
-  - proofs.md gerado com 6 pass, 0 fail
+  - AD-001..AD-018
+  - spec.md com critérios EARS validados (0 erros no validador)
+  - tasks.md validado com portões determinísticos (0 erros no validador com --execute)
+  - T01: Splash Screen no index.html com logotipo Crepúsculo e fade-out suave implementado
+  - T02: Configuração de background escuro (#0e0b16) e theme Dark no Tauri v2 implementado
+  - T03: Botão de alternância fixo no topo da barra fina de projetos implementado
+  - T04: Barra lateral de arquivos de ponta a ponta com cabeçalho superior e redimensionamento dinâmico (180px a 600px) implementado
+  - T05: Limpeza e foco exclusivo da TopBar no documento (removido logotipo e duplicidades) implementado
+  - T06: Reestruturação do layout central em App.svelte implementado
+  - proofs.md gerado com 7 pass, 0 fail
   - verification.md verificado e aprovado com validate_verification
 - **In-progress**: none
-- **Next step**: Terminal Veu 100% integrado, leve, sem xterm cru, rápido e intuitivo.
+- **Next step**: Sistema com inicialização escura sem tela branca, barra lateral de ponta a ponta, redimensionável e TopBar limpa.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master

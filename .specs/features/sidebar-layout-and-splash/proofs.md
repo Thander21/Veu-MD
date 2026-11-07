@@ -1,6 +1,6 @@
 # sidebar-layout-and-splash proofs
 
-**HEAD**: 9bde3ed
+**HEAD**: 49ec385
 **Tree**: clean
 **Shell**: C:/Program Files/Git\bin\bash.exe
 **Result**: 7 pass, 0 fail
@@ -29,7 +29,7 @@ SUCCESS: Todos os contratos de layout, splash screen e barra lateral passaram!
 > veu-md@0.1.0 check:rust
 > %USERPROFILE%\.cargo\bin\cargo.exe check --manifest-path src-tauri/Cargo.toml
 
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.48s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.05s
 ```
 
 `Run typecheck` - exit 0
