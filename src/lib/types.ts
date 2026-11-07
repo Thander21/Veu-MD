@@ -31,6 +31,26 @@ export interface TagStyle {
   borderLeft?: string;
 }
 
+export interface ProjectWorkspace {
+  id: string;
+  name: string;
+  folderPath: string;
+  theme?: ThemeConfig;
+  terminalOrientation: 'horizontal' | 'vertical';
+  terminalOpen: boolean;
+  terminalMaximized: boolean;
+  activeTabId: string | null;
+  tabs: TabItem[];
+  lastOpenedAt: number;
+}
+
+export interface RecentProject {
+  folderPath: string;
+  name: string;
+  lastOpenedAt: number;
+  themeId?: string;
+}
+
 export interface ThemeConfig {
   id: string;
   name: string;

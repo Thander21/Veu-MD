@@ -5,17 +5,23 @@
   import { open } from '@tauri-apps/plugin-dialog';
   import TopBar from './lib/components/TopBar.svelte';
   import Sidebar from './lib/components/Sidebar.svelte';
+  import ProjectSidebar from './lib/components/ProjectSidebar.svelte';
   import TabBar from './lib/components/TabBar.svelte';
   import Editor from './lib/components/Editor.svelte';
   import ThemeSettings from './lib/components/ThemeSettings.svelte';
   import TerminalPanel from './lib/components/TerminalPanel.svelte';
   import StatusBar from './lib/components/StatusBar.svelte';
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
-  import { initTheme } from './lib/theme/themeStore';
-  import type { FileNode, TabItem, HeadingItem } from './lib/types';
+  import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
+  import type { FileNode, TabItem, HeadingItem, ProjectWorkspace, RecentProject } from './lib/types';
   import type { EditorView } from 'prosemirror-view';
 
-  // Estados principais
+  // Estados de múltiplos projetos
+  let openProjects: ProjectWorkspace[] = [];
+  let activeProjectId: string | null = null;
+  let recentProjects: RecentProject[] = [];
+
+  // Estados principais do projeto ativo
   let currentFolderPath: string = '';
   let fileTree: FileNode[] = [];
   let tabs: TabItem[] = [];
@@ -62,61 +68,291 @@ O **Veu MD** é um editor desktop de alta performance projetado para **leitura e
 Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o menu rápido de blocos!
 `;
 
+  let unsubscribeTheme: (() => void) | null = null;
+
+  // Persistência no LocalStorage
+  function saveProjectsToStorage() {
+    try {
+      const sanitized = openProjects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        folderPath: p.folderPath,
+        theme: p.theme,
+        terminalOrientation: p.terminalOrientation,
+        terminalOpen: p.terminalOpen,
+        terminalMaximized: p.terminalMaximized,
+        activeTabId: p.activeTabId,
+        tabs: p.tabs.map((t) => ({
+          id: t.id,
+          title: t.title,
+          path: t.path,
+          isMarkdown: t.isMarkdown
+        })),
+        lastOpenedAt: p.lastOpenedAt
+      }));
+      localStorage.setItem('veu_open_projects', JSON.stringify(sanitized));
+      if (activeProjectId) {
+        localStorage.setItem('veu_active_project_id', activeProjectId);
+      } else {
+        localStorage.removeItem('veu_active_project_id');
+      }
+    } catch (err) {
+      console.error('Erro ao salvar projetos no localStorage:', err);
+    }
+  }
+
+  function saveRecentProjectsToStorage() {
+    try {
+      localStorage.setItem('veu_recent_projects', JSON.stringify(recentProjects));
+    } catch (err) {
+      console.error('Erro ao salvar recentes no localStorage:', err);
+    }
+  }
+
+  function addOrUpdateRecent(folderPath: string, name: string) {
+    const existingIndex = recentProjects.findIndex(
+      (r) => r.folderPath.toLowerCase() === folderPath.toLowerCase()
+    );
+    const item: RecentProject = {
+      folderPath,
+      name,
+      lastOpenedAt: Date.now()
+    };
+    if (existingIndex >= 0) {
+      recentProjects.splice(existingIndex, 1);
+    }
+    recentProjects = [item, ...recentProjects].slice(0, 15);
+    saveRecentProjectsToStorage();
+  }
+
+  function removeRecent(folderPath: string) {
+    recentProjects = recentProjects.filter(
+      (r) => r.folderPath.toLowerCase() !== folderPath.toLowerCase()
+    );
+    saveRecentProjectsToStorage();
+  }
+
+  function clearRecent() {
+    recentProjects = [];
+    localStorage.removeItem('veu_recent_projects');
+  }
+
+  // Alterna o foco para outro projeto aberto
+  async function switchToProject(targetId: string, saveCurrent = true) {
+    if (saveCurrent && activeProjectId) {
+      if (activeTab?.isDirty) {
+        if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+        await saveCurrentFile();
+      }
+      const currentProj = openProjects.find((p) => p.id === activeProjectId);
+      if (currentProj) {
+        currentProj.tabs = tabs;
+        currentProj.activeTabId = activeTabId;
+        currentProj.terminalOpen = terminalOpen;
+        currentProj.terminalOrientation = terminalOrientation;
+        currentProj.terminalMaximized = terminalMaximized;
+        currentProj.theme = getTheme();
+      }
+    }
+
+    const target = openProjects.find((p) => p.id === targetId);
+    if (!target) return;
+
+    target.lastOpenedAt = Date.now();
+    activeProjectId = target.id;
+    currentFolderPath = target.folderPath;
+    addOrUpdateRecent(target.folderPath, target.name);
+
+    // 1. Aplica o último tema escolhido deste projeto
+    if (target.theme) {
+      setTheme(target.theme);
+    }
+
+    // 2. Aplica orientação e estado do terminal do projeto
+    terminalOrientation = target.terminalOrientation || 'horizontal';
+    terminalOpen = target.terminalOpen || false;
+    terminalMaximized = target.terminalMaximized || false;
+
+    // 3. Restaura as abas de arquivos do projeto
+    if (target.tabs && target.tabs.length > 0) {
+      const loadedTabs: TabItem[] = [];
+      for (const item of target.tabs) {
+        // Se a aba já existe na memória da sessão, preserva seu conteúdo e estado dirty
+        if (item.content !== undefined && item.content !== null && item.content !== '') {
+          loadedTabs.push(item);
+        } else if (item.path) {
+          try {
+            const content: string = await invoke('read_text_file', { path: item.path });
+            loadedTabs.push({
+              id: item.id || `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              title: item.title,
+              path: item.path,
+              content,
+              isDirty: false,
+              isMarkdown: item.isMarkdown
+            });
+          } catch {
+            // Arquivo movido ou inacessível, ignora
+          }
+        }
+      }
+      tabs = loadedTabs;
+      activeTabId = target.activeTabId && tabs.some((t) => t.id === target.activeTabId)
+        ? target.activeTabId
+        : (tabs[0]?.id || null);
+    } else {
+      tabs = [];
+      activeTabId = null;
+    }
+
+    await refreshFileTree();
+    saveProjectsToStorage();
+
+    statusNotification = `Projeto ativo: ${target.name}`;
+    setTimeout(() => (statusNotification = ''), 3000);
+  }
+
+  // Abre uma pasta como nova aba de projeto na barra ultra-slim
+  async function openProjectByPath(folderPath: string) {
+    const normPath = folderPath.replace(/[/\\]+$/, '');
+    const existing = openProjects.find(
+      (p) => p.folderPath.toLowerCase() === normPath.toLowerCase()
+    );
+    if (existing) {
+      await switchToProject(existing.id);
+      return;
+    }
+
+    const name = normPath.split(/[\\/]/).filter(Boolean).pop() || normPath;
+
+    // Snapshot do projeto atual antes de criar novo
+    if (activeProjectId) {
+      const currentProj = openProjects.find((p) => p.id === activeProjectId);
+      if (currentProj) {
+        currentProj.tabs = tabs;
+        currentProj.activeTabId = activeTabId;
+        currentProj.terminalOpen = terminalOpen;
+        currentProj.terminalOrientation = terminalOrientation;
+        currentProj.terminalMaximized = terminalMaximized;
+        currentProj.theme = getTheme();
+      }
+    }
+
+    const newProject: ProjectWorkspace = {
+      id: `proj-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name,
+      folderPath: normPath,
+      theme: getTheme(),
+      terminalOrientation: 'horizontal',
+      terminalOpen: false,
+      terminalMaximized: false,
+      activeTabId: null,
+      tabs: [],
+      lastOpenedAt: Date.now()
+    };
+
+    openProjects = [...openProjects, newProject];
+    addOrUpdateRecent(newProject.folderPath, newProject.name);
+    await switchToProject(newProject.id, false);
+  }
+
+  // Fecha uma aba de projeto
+  async function closeProject(projectId: string) {
+    const idx = openProjects.findIndex((p) => p.id === projectId);
+    if (idx === -1) return;
+
+    const closingActive = projectId === activeProjectId;
+    openProjects = openProjects.filter((p) => p.id !== projectId);
+
+    if (closingActive) {
+      if (openProjects.length > 0) {
+        const nextIdx = Math.min(idx, openProjects.length - 1);
+        await switchToProject(openProjects[nextIdx].id, false);
+      } else {
+        activeProjectId = null;
+        currentFolderPath = '';
+        fileTree = [];
+        const welcomeTab: TabItem = {
+          id: 'tab-welcome',
+          title: 'Boas-vindas.md',
+          path: '',
+          content: defaultWelcomeDoc,
+          isDirty: false,
+          isMarkdown: true
+        };
+        tabs = [welcomeTab];
+        activeTabId = welcomeTab.id;
+        saveProjectsToStorage();
+        statusNotification = 'Todos os projetos foram fechados.';
+        setTimeout(() => (statusNotification = ''), 3000);
+      }
+    } else {
+      saveProjectsToStorage();
+    }
+  }
+
+  function cycleProject(direction: 'next' | 'prev') {
+    if (openProjects.length <= 1) return;
+    const currentIndex = openProjects.findIndex((p) => p.id === activeProjectId);
+    if (currentIndex === -1) return;
+    const nextIndex =
+      direction === 'next'
+        ? (currentIndex + 1) % openProjects.length
+        : (currentIndex - 1 + openProjects.length) % openProjects.length;
+    switchToProject(openProjects[nextIndex].id);
+  }
+
+  function handleSelectRecent(recent: RecentProject) {
+    openProjectByPath(recent.folderPath);
+  }
+
   onMount(async () => {
     initTheme();
 
-    // Restaura a última pasta aberta salva
-    const savedFolder = localStorage.getItem('veu_last_opened_folder');
-    if (savedFolder) {
+    // 1. Carrega projetos recentes
+    const savedRecents = localStorage.getItem('veu_recent_projects');
+    if (savedRecents) {
       try {
-        const tree: FileNode[] = await invoke('read_dir_tree', { path: savedFolder });
-        if (tree) {
-          currentFolderPath = savedFolder;
-          fileTree = tree;
-        }
-      } catch (err) {
-        console.warn('Última pasta salva não pôde ser aberta:', err);
-        localStorage.removeItem('veu_last_opened_folder');
+        const parsed = JSON.parse(savedRecents);
+        if (Array.isArray(parsed)) recentProjects = parsed;
+      } catch (e) {
+        console.warn('Erro ao carregar recentes:', e);
       }
     }
 
-    // Restaura abas salvas da sessão anterior
-    let sessionRestored = false;
-    const savedTabsJson = localStorage.getItem('veu_saved_tabs');
-    const savedActivePath = localStorage.getItem('veu_active_tab_path');
-    if (savedTabsJson) {
+    // 2. Carrega lista de projetos abertos
+    const savedOpenProjects = localStorage.getItem('veu_open_projects');
+    const savedActiveProjId = localStorage.getItem('veu_active_project_id');
+    let projectsLoaded = false;
+
+    if (savedOpenProjects) {
       try {
-        const parsed = JSON.parse(savedTabsJson);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const loadedTabs: TabItem[] = [];
-          for (const item of parsed) {
-            try {
-              const content: string = await invoke('read_text_file', { path: item.path });
-              loadedTabs.push({
-                id: `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                title: item.title,
-                path: item.path,
-                content,
-                isDirty: false,
-                isMarkdown: item.isMarkdown
-              });
-            } catch {
-              // arquivo não acessível, ignora
-            }
-          }
-          if (loadedTabs.length > 0) {
-            tabs = loadedTabs;
-            const matchedActive = loadedTabs.find((t) => t.path === savedActivePath);
-            activeTabId = matchedActive ? matchedActive.id : loadedTabs[0].id;
-            sessionRestored = true;
-          }
+        const parsedProjects = JSON.parse(savedOpenProjects);
+        if (Array.isArray(parsedProjects) && parsedProjects.length > 0) {
+          openProjects = parsedProjects;
+          projectsLoaded = true;
+          const target = openProjects.find((p) => p.id === savedActiveProjId) || openProjects[0];
+          await switchToProject(target.id, false);
         }
       } catch (err) {
-        console.warn('Erro ao restaurar abas salvas:', err);
+        console.warn('Erro ao restaurar projetos abertos:', err);
       }
     }
 
-    if (!sessionRestored) {
+    // 3. Fallback de migração para versão anterior
+    if (!projectsLoaded) {
+      const legacyFolder = localStorage.getItem('veu_last_opened_folder');
+      if (legacyFolder) {
+        try {
+          await openProjectByPath(legacyFolder);
+          projectsLoaded = true;
+        } catch (err) {
+          console.warn('Erro ao migrar pasta legada:', err);
+        }
+      }
+    }
+
+    if (!projectsLoaded) {
       // Cria a aba inicial de boas-vindas
       const welcomeTab: TabItem = {
         id: 'tab-welcome',
@@ -129,6 +365,17 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       tabs = [welcomeTab];
       activeTabId = welcomeTab.id;
     }
+
+    // Escuta alterações de temas em tempo real e associa ao projeto ativo
+    unsubscribeTheme = subscribeTheme((newTheme) => {
+      if (activeProjectId) {
+        const p = openProjects.find((x) => x.id === activeProjectId);
+        if (p) {
+          p.theme = newTheme;
+          saveProjectsToStorage();
+        }
+      }
+    });
 
     // Escuta notificações de alterações externas de arquivo (File Watcher nativo)
     const unlistenWatcher = await listen('file-changed-externally', async (event: any) => {
@@ -188,10 +435,21 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         e.preventDefault();
         window.print();
       }
+      // Ctrl + Alt + ] ou Ctrl + Alt + Seta Direita (Próximo Projeto)
+      if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === ']' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        cycleProject('next');
+      }
+      // Ctrl + Alt + [ ou Ctrl + Alt + Seta Esquerda (Projeto Anterior)
+      if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === '[' || e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        cycleProject('prev');
+      }
     });
   });
 
   onDestroy(() => {
+    if (unsubscribeTheme) unsubscribeTheme();
     invoke('unwatch_file').catch(() => {});
   });
 
@@ -207,20 +465,16 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     invoke('unwatch_file').catch(() => {});
   }
 
-  // Persiste sessão das abas abertas no localStorage
-  $: {
-    const realTabs = tabs.filter((t) => t.path);
-    if (realTabs.length > 0) {
-      localStorage.setItem(
-        'veu_saved_tabs',
-        JSON.stringify(realTabs.map((t) => ({ path: t.path, title: t.title, isMarkdown: t.isMarkdown })))
-      );
-      if (activeTab?.path) {
-        localStorage.setItem('veu_active_tab_path', activeTab.path);
-      }
-    } else {
-      localStorage.removeItem('veu_saved_tabs');
-      localStorage.removeItem('veu_active_tab_path');
+  // Sincroniza estado de abas e terminal no projeto ativo
+  $: if (activeProjectId) {
+    const p = openProjects.find((x) => x.id === activeProjectId);
+    if (p) {
+      p.terminalOrientation = terminalOrientation;
+      p.terminalOpen = terminalOpen;
+      p.terminalMaximized = terminalMaximized;
+      p.activeTabId = activeTabId;
+      p.tabs = tabs;
+      saveProjectsToStorage();
     }
   }
 
@@ -233,11 +487,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         multiple: false
       });
       if (selected && typeof selected === 'string') {
-        currentFolderPath = selected;
-        localStorage.setItem('veu_last_opened_folder', selected);
-        await refreshFileTree();
-        statusNotification = `Pasta aberta: ${selected.split(/[\\/]/).pop()}`;
-        setTimeout(() => (statusNotification = ''), 3000);
+        await openProjectByPath(selected);
       }
     } catch (err) {
       console.error('Erro ao selecionar pasta:', err);
@@ -245,23 +495,9 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   }
 
   function closeFolder() {
-    currentFolderPath = '';
-    fileTree = [];
-    localStorage.removeItem('veu_last_opened_folder');
-
-    // Volta para o documento de boas-vindas sem permissão de criar ou salvar
-    const welcomeTab: TabItem = {
-      id: 'tab-welcome',
-      title: 'Boas-vindas.md',
-      path: '',
-      content: defaultWelcomeDoc,
-      isDirty: false,
-      isMarkdown: true
-    };
-    tabs = [welcomeTab];
-    activeTabId = welcomeTab.id;
-    statusNotification = 'Pasta fechada. Selecione uma pasta para começar.';
-    setTimeout(() => (statusNotification = ''), 4000);
+    if (activeProjectId) {
+      closeProject(activeProjectId);
+    }
   }
 
   async function refreshFileTree() {
@@ -534,8 +770,21 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     onToggleTerminal={() => (terminalOpen = !terminalOpen)}
   />
 
-  <!-- Corpo Principal: Sidebar + Abas + Editor -->
+  <!-- Corpo Principal: ActivityBar de Projetos + Sidebar + Abas + Editor -->
   <div class="workspace">
+    <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes) -->
+    <ProjectSidebar
+      projects={openProjects}
+      {activeProjectId}
+      {recentProjects}
+      onSelectProject={switchToProject}
+      onCloseProject={closeProject}
+      onOpenNewProject={openFolderDialog}
+      onSelectRecent={handleSelectRecent}
+      onRemoveRecent={removeRecent}
+      onClearRecent={clearRecent}
+    />
+
     {#if sidebarOpen}
       <Sidebar
         {fileTree}
@@ -602,15 +851,17 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           {/if}
         </div>
 
-        <!-- Terminal Integrado -->
-        <TerminalPanel
-          visible={terminalOpen}
-          {currentFolderPath}
-          hasActiveFile={!!activeTab}
-          bind:orientation={terminalOrientation}
-          bind:isMaximized={terminalMaximized}
-          onClose={() => (terminalOpen = false)}
-        />
+        <!-- Terminal Integrado Contextualizado no Projeto -->
+        {#key currentFolderPath}
+          <TerminalPanel
+            visible={terminalOpen}
+            {currentFolderPath}
+            hasActiveFile={!!activeTab}
+            bind:orientation={terminalOrientation}
+            bind:isMaximized={terminalMaximized}
+            onClose={() => (terminalOpen = false)}
+          />
+        {/key}
       </div>
     </main>
 

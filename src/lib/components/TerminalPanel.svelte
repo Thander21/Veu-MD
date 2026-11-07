@@ -256,6 +256,7 @@
     tabs.forEach((t) => {
       if (t.unlisten) t.unlisten();
       if (t.termInstance) t.termInstance.dispose();
+      invoke('kill_terminal', { termId: t.id }).catch(() => {});
     });
   });
 </script>
