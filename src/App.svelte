@@ -716,6 +716,18 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     terminalOpen = true;
   }
 
+  function handleInsertTerminalText(text: string) {
+    if (!text) return;
+    if (activeEditorView) {
+      const { state, dispatch } = activeEditorView;
+      const { from, to } = state.selection;
+      dispatch(state.tr.replaceWith(from, to, state.schema.text(text)));
+      activeEditorView.focus();
+      statusNotification = 'Texto do terminal inserido no documento.';
+      setTimeout(() => (statusNotification = ''), 3000);
+    }
+  }
+
   async function handlePasteImage(base64Data: string) {
     if (!currentFolderPath) {
       statusNotification = 'Selecione uma pasta antes de colar imagens.';
@@ -866,6 +878,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           hasActiveFile={!!activeTab}
           bind:orientation={terminalOrientation}
           bind:isMaximized={terminalMaximized}
+          onInsertText={handleInsertTerminalText}
           onClose={() => (terminalOpen = false)}
         />
       </div>

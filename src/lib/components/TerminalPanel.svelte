@@ -3,7 +3,7 @@
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import '@xterm/xterm/css/xterm.css';
-  import { Plus, X, TerminalSquare, Minimize2, Maximize2, Columns, Rows } from 'lucide-svelte';
+  import { Plus, X, TerminalSquare, Minimize2, Maximize2, Columns, Rows, Copy, Check, Eraser, CornerDownLeft } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { subscribeTheme, getTheme } from '../theme/themeStore';
@@ -16,6 +16,7 @@
   export let orientation: 'horizontal' | 'vertical' = 'horizontal';
   export let isMaximized: boolean = false;
   export let onClose: () => void;
+  export let onInsertText: ((text: string) => void) | undefined = undefined;
 
   interface TermTab {
     id: string;
@@ -44,6 +45,71 @@
   let panelHeight = 240;
   let panelWidth = 460;
   let isResizing = false;
+
+  let copiedFeedback = false;
+  let insertedFeedback = false;
+  let copyTimeout: any = null;
+  let insertTimeout: any = null;
+
+  function getActiveTab(): TermTab | undefined {
+    return currentTabs.find((t) => t.id === activeTermId);
+  }
+
+  function getTerminalSelectionOrBuffer(tab?: TermTab): string {
+    const t = tab || getActiveTab();
+    if (!t || !t.termInstance) return '';
+
+    if (t.termInstance.hasSelection()) {
+      return t.termInstance.getSelection();
+    }
+
+    const buffer = t.termInstance.buffer.active;
+    const lines: string[] = [];
+    const startLine = Math.max(0, buffer.length - 30);
+    for (let i = startLine; i < buffer.length; i++) {
+      const line = buffer.getLine(i);
+      if (line) {
+        const text = line.translateToString(true);
+        if (text.trim().length > 0) {
+          lines.push(text);
+        }
+      }
+    }
+    return lines.join('\n');
+  }
+
+  async function handleCopySelection() {
+    const text = getTerminalSelectionOrBuffer();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      copiedFeedback = true;
+      if (copyTimeout) clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => {
+        copiedFeedback = false;
+      }, 1500);
+    } catch {
+      // fallback
+    }
+  }
+
+  function handleInsertToEditor() {
+    const text = getTerminalSelectionOrBuffer();
+    if (!text || !onInsertText) return;
+    onInsertText(text);
+    insertedFeedback = true;
+    if (insertTimeout) clearTimeout(insertTimeout);
+    insertTimeout = setTimeout(() => {
+      insertedFeedback = false;
+    }, 1500);
+  }
+
+  function handleClearTerminal() {
+    const tab = getActiveTab();
+    if (!tab || !tab.termInstance) return;
+    tab.termInstance.clear();
+    invoke('write_terminal', { termId: tab.id, data: '\x0c' }).catch(() => {});
+  }
 
   // Monitora alterações na presença de arquivo aberto:
   // Se não houver arquivo aberto, expande o terminal automaticamente.
@@ -147,7 +213,10 @@
         fontSize: 13,
         lineHeight: 1.25,
         cursorBlink: true,
-        theme: termTheme
+        theme: termTheme,
+        allowProposedApi: true,
+        rightClickSelectsWord: true,
+        convertEol: true
       });
 
       const fit = new FitAddon();
@@ -371,6 +440,45 @@
       </div>
 
       <div class="term-actions">
+        <!-- Ações Rápidas de Usabilidade e Seleção (T02) -->
+        <button
+          class="action-btn"
+          class:feedback-active={copiedFeedback}
+          title={copiedFeedback ? 'Copiado para área de transferência!' : 'Copiar seleção ou texto do terminal'}
+          on:click={handleCopySelection}
+        >
+          {#if copiedFeedback}
+            <Check size={13} style="color: var(--veu-h2-color, #22c55e);" />
+          {:else}
+            <Copy size={13} />
+          {/if}
+        </button>
+
+        {#if onInsertText}
+          <button
+            class="action-btn"
+            class:feedback-active={insertedFeedback}
+            title={insertedFeedback ? 'Inserido no documento!' : 'Inserir saída do terminal no cursor do editor'}
+            on:click={handleInsertToEditor}
+          >
+            {#if insertedFeedback}
+              <Check size={13} style="color: var(--veu-h2-color, #22c55e);" />
+            {:else}
+              <CornerDownLeft size={13} />
+            {/if}
+          </button>
+        {/if}
+
+        <button
+          class="action-btn"
+          title="Limpar tela do terminal"
+          on:click={handleClearTerminal}
+        >
+          <Eraser size={13} />
+        </button>
+
+        <div class="action-divider"></div>
+
         <!-- Alternar Divisão (Lateral / Horizontal) -->
         <button
           class="action-btn"
@@ -570,6 +678,19 @@
     opacity: 1;
     color: var(--veu-h2-color);
     background-color: var(--veu-active-item-bg);
+  }
+
+  .action-btn.feedback-active {
+    background-color: var(--veu-active-item-bg);
+    opacity: 1;
+  }
+
+  .action-divider {
+    width: 1px;
+    height: 14px;
+    background-color: var(--veu-border-color);
+    margin: 0 3px;
+    opacity: 0.5;
   }
 
   .action-btn.close-btn:hover {
