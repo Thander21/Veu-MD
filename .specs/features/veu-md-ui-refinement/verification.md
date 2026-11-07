@@ -1,7 +1,7 @@
 # Veu MD Phase 2 (Refinamento de Layout, Identidade Visual & Ergonomia) - verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at ce35102
+**Proofs**: `proofs.md` at cd595e0
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
