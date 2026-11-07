@@ -27,7 +27,7 @@ assert(projectSidebar.includes('toggle-sidebar-btn') || projectSidebar.includes(
 // 4. Testa Sidebar.svelte
 const sidebar = fs.readFileSync(path.join(rootDir, 'src', 'lib', 'components', 'Sidebar.svelte'), 'utf-8');
 assert(sidebar.includes('sidebar-top-header') || sidebar.includes('Trocar Projeto'), 'Sidebar deve conter cabeçalho superior com Trocar Projeto');
-assert(sidebar.includes('wizard-btn') || sidebar.includes('Wand2'), 'Sidebar deve conter ícone de Wizard');
+assert(!sidebar.includes('wizard-btn') && !sidebar.includes('Wand2'), 'Sidebar não deve mais conter o botão de Wizard');
 assert(sidebar.includes('resizer') || sidebar.includes('handleMouseDown') || sidebar.includes('resize'), 'Sidebar deve possuir alça interativa de redimensionamento');
 
 // 5. Testa TopBar.svelte

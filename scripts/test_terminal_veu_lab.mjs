@@ -31,12 +31,8 @@ assert(
   'TerminalPanel deve carregar e montar TerminalVeuPanel'
 );
 assert(
-  !termPanelContent.includes('switchEngine'),
-  'TerminalPanel não deve mais conter botões de chaveamento de motor switchEngine xterm/veu'
-);
-assert(
-  !termPanelContent.includes('terminalEngine === \'xterm\''),
-  'TerminalPanel não deve renderizar visualização xterm clássica no modo Veu Lab'
+  termPanelContent.includes('switchEngine'),
+  'TerminalPanel deve conter switchEngine para alternar entre xterm e VeuLab'
 );
 
 // 3. Testa TerminalVeuPanel.svelte: cold start imediato e ciclo de vida

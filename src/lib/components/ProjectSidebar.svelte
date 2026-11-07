@@ -8,7 +8,6 @@
     Check,
     Trash2,
     ExternalLink,
-    Sparkles,
     PanelLeft
   } from 'lucide-svelte';
   import type { ProjectWorkspace, RecentProject } from '../types';
@@ -16,7 +15,6 @@
   export let projects: ProjectWorkspace[] = [];
   export let activeProjectId: string | null = null;
   export let recentProjects: RecentProject[] = [];
-  export let aiAssistantOpen: boolean = false;
   export let sidebarOpen: boolean = true;
   export let onSelectProject: (id: string) => void;
   export let onCloseProject: (id: string) => void;
@@ -24,7 +22,6 @@
   export let onSelectRecent: (recent: RecentProject) => void;
   export let onRemoveRecent: (folderPath: string) => void;
   export let onClearRecent: () => void = () => {};
-  export let onToggleAiAssistant: () => void = () => {};
   export let onToggleSidebar: () => void = () => {};
 
   let recentMenuOpen = false;
@@ -125,24 +122,8 @@
     </button>
   </div>
 
-  <!-- Base: Projetos Recentes & Assistente IA -->
+  <!-- Base: Projetos Recentes -->
   <div class="bottom-actions">
-    <!-- Botão da Aba Lateral de IA (Antigravity agy) -->
-    <div class="ai-anchor">
-      <button
-        class="action-btn ai-sidebar-btn"
-        class:active={aiAssistantOpen}
-        title="Assistente IA • Antigravity / agy (Ctrl+L)"
-        on:click={onToggleAiAssistant}
-        aria-label="Abrir Assistente IA"
-      >
-        <Sparkles size={18} />
-        {#if aiAssistantOpen}
-          <span class="ai-active-glow"></span>
-        {/if}
-      </button>
-    </div>
-
     <div class="recent-anchor">
       <button
         class="action-btn recent-btn"
@@ -393,46 +374,6 @@
     align-items: center;
     gap: 8px;
     width: 100%;
-  }
-
-  .ai-anchor {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .ai-sidebar-btn {
-    border: 1px solid transparent;
-    position: relative;
-    color: var(--veu-h2-color);
-  }
-
-  .ai-sidebar-btn:hover {
-    background-color: var(--veu-active-item-bg);
-    border-color: var(--veu-h1-color);
-    color: var(--veu-h1-color);
-    opacity: 1;
-    transform: scale(1.05);
-  }
-
-  .ai-sidebar-btn.active {
-    background: rgba(244, 114, 182, 0.15);
-    border-color: var(--veu-h1-color);
-    color: var(--veu-h1-color);
-    opacity: 1;
-    box-shadow: 0 0 10px rgba(244, 114, 182, 0.3);
-  }
-
-  .ai-active-glow {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: var(--veu-h1-color);
-    box-shadow: 0 0 6px var(--veu-h1-color);
   }
 
   .recent-anchor {

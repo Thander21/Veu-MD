@@ -89,7 +89,8 @@
     Check,
     Eraser,
     CornerDownLeft,
-    Square
+    Square,
+    FlaskConical
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
@@ -104,6 +105,8 @@
   export let onClose: () => void;
   export let onInsertText: ((text: string) => void) | undefined = undefined;
   export let onOpenAiAssistant: ((command?: string) => void) | undefined = undefined;
+  export let terminalEngine: 'xterm' | 'veu' = 'veu';
+  export let onSwitchEngine: ((engine: 'xterm' | 'veu') => void) | undefined = undefined;
 
   // Monitora presença de arquivo ativo
   let prevHasActiveFile = hasActiveFile;
@@ -178,11 +181,33 @@
     });
   }
 
-  function syncPtySize(termId: string) {
-    if (!termId) return;
-    const cols = Math.max(40, Math.min(240, Math.floor((panelWidth || 600) / 8.5)));
-    const rows = Math.max(10, Math.min(100, Math.floor((panelHeight || 260) / 20)));
-    invoke('resize_terminal', { termId, cols, rows }).catch(() => {});
+  let panelEl: HTMLDivElement | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+
+  function syncPtySize(termId?: string) {
+    const id = termId || activeTermId;
+    if (!id) return;
+
+    let w = 800;
+    let h = 260;
+    if (panelEl) {
+      const rect = panelEl.getBoundingClientRect();
+      w = rect.width || panelEl.clientWidth || w;
+      h = rect.height || panelEl.clientHeight || h;
+    } else if (orientation === 'vertical') {
+      w = panelWidth;
+      h = 500;
+    } else {
+      w = window.innerWidth;
+      h = panelHeight;
+    }
+
+    const usableW = Math.max(160, w - 28);
+    const usableH = Math.max(60, h - 36);
+
+    const cols = Math.max(40, Math.min(320, Math.floor(usableW / 8.2)));
+    const rows = Math.max(8, Math.min(160, Math.floor(usableH / 19)));
+    invoke('resize_terminal', { termId: id, cols, rows }).catch(() => {});
   }
 
   export async function createTerminalSession(
@@ -764,34 +789,53 @@
   }
 
   $: if (visible) {
-    focusActiveInput();
+    tick().then(() => {
+      syncPtySize();
+      focusActiveInput();
+    });
   }
 
+  onMount(() => {
+    if (panelEl) {
+      resizeObserver = new ResizeObserver(() => {
+        syncPtySize();
+      });
+      resizeObserver.observe(panelEl);
+    }
+    syncPtySize();
+  });
+
   onDestroy(() => {
-    // Abas permanecem em memória para manter continuidade de processos em background
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver = null;
+    }
   });
 </script>
 
 {#if visible}
   <!-- Alça de Redimensionamento -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="resize-handle handle-{orientation}"
-    on:mousedown={startResize}
-    role="separator"
-    aria-label="Redimensionar Terminal Veu"
-  ></div>
+  {#if !isMaximized && hasActiveFile}
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div
+      class="resize-handle handle-{orientation}"
+      on:mousedown={startResize}
+      role="separator"
+      aria-label="Redimensionar Terminal Veu"
+    ></div>
+  {/if}
 
   <!-- Painel do Terminal Veu -->
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
+    bind:this={panelEl}
     class="terminal-panel orientation-{orientation}"
-    class:maximized={isMaximized}
-    style={isMaximized
+    class:maximized={isMaximized || !hasActiveFile}
+    style={(isMaximized || !hasActiveFile)
       ? 'flex: 1; width: 100%; height: 100%;'
       : orientation === 'horizontal'
-        ? `height: ${panelHeight}px;`
-        : `width: ${panelWidth}px;`}
+        ? `height: ${panelHeight}px; width: 100%;`
+        : `width: ${panelWidth}px; height: 100%;`}
     on:keydown={handlePanelKeydown}
     role="region"
     aria-label="Terminal Veu Integrado"
@@ -838,6 +882,30 @@
 
       <!-- Ações da Barra -->
       <div class="term-actions">
+        {#if onSwitchEngine}
+          <div class="engine-switch" title="Alternar mecanismo de renderização do terminal">
+            <button
+              class="engine-btn"
+              class:active={terminalEngine === 'xterm'}
+              title="xterm.js padrão de terminal com seleção e mouse"
+              on:click={() => onSwitchEngine && onSwitchEngine('xterm')}
+            >
+              <span>xterm</span>
+            </button>
+            <button
+              class="engine-btn lab-btn"
+              class:active={terminalEngine === 'veu'}
+              title="Terminal Veu (VeuLab) — Leve, sequencial e editorial"
+              on:click={() => onSwitchEngine && onSwitchEngine('veu')}
+            >
+              <FlaskConical size={11} />
+              <span>VeuLab</span>
+            </button>
+          </div>
+
+          <div class="action-divider"></div>
+        {/if}
+
         <!-- Limpar Linha do Tempo -->
         <button
           class="action-btn"
@@ -1097,14 +1165,19 @@
 
   .terminal-panel.orientation-horizontal:not(.maximized) {
     border-top: 1px solid var(--veu-border-color);
+    width: 100%;
   }
 
   .terminal-panel.orientation-vertical:not(.maximized) {
     border-left: 1px solid var(--veu-border-color);
+    height: 100%;
   }
 
   .terminal-panel.maximized {
     border: none;
+    flex: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
   }
 
   .terminal-bar {
@@ -1216,6 +1289,47 @@
     display: flex;
     align-items: center;
     gap: 3px;
+  }
+
+  .engine-switch {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--veu-border-color);
+    border-radius: 4px;
+    padding: 1px;
+    margin-right: 4px;
+  }
+
+  .engine-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    color: var(--veu-text-color);
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0.65;
+    transition: all 0.15s ease;
+  }
+
+  .engine-btn:hover {
+    opacity: 1;
+    background-color: rgba(127, 127, 127, 0.15);
+  }
+
+  .engine-btn.active {
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h2-color);
+    opacity: 1;
+    font-weight: 600;
+  }
+
+  .engine-btn.lab-btn.active {
+    color: var(--veu-h1-color);
   }
 
   .action-btn {

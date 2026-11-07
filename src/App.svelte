@@ -841,12 +841,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 <div class="app-layout">
   <!-- Layout Principal: Barra de Projetos + Barra Lateral de Arquivos de Ponta a Ponta + Palco Central -->
   <div class="workspace">
-    <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes & IA & Botão Fixo de Alternância) -->
+    <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes & Botão Fixo de Alternância) -->
     <ProjectSidebar
       projects={openProjects}
       {activeProjectId}
       {recentProjects}
-      {aiAssistantOpen}
       {sidebarOpen}
       onSelectProject={switchToProject}
       onCloseProject={closeProject}
@@ -855,10 +854,6 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       onRemoveRecent={removeRecent}
       onClearRecent={clearRecent}
       onToggleSidebar={() => (sidebarOpen = !sidebarOpen)}
-      onToggleAiAssistant={() => {
-        aiAssistantOpen = !aiAssistantOpen;
-        if (aiAssistantOpen) themeSettingsOpen = false;
-      }}
     />
 
     {#if sidebarOpen}
@@ -877,11 +872,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         onDeleteEntry={handleDeleteEntry}
         onRenameEntry={handleRenameEntry}
         onCreateInFolder={handleCreateInFolder}
-        onCollapse={() => (sidebarOpen = false)}
         onQuickOpen={() => (quickOpenVisible = true)}
-        onWizard={() => {
-          // Reservado para funcionalidade futura do Wizard
-        }}
       />
     {/if}
 
@@ -970,20 +961,22 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       </div>
     </main>
 
-    <!-- Painel Lateral Direito: Cores & Temas -->
+    <!-- Painel Lateral Direito: Assistente IA (Antigravity CLI / agy / Muse / Gemini) -->
+    {#if aiAssistantOpen}
+      <AiAssistantPanel
+        bind:this={aiPanelRef}
+        visible={aiAssistantOpen}
+        {currentFolderPath}
+        onInsertText={handleInsertTerminalText}
+        getEditorSelection={getEditorSelectedText}
+        onClose={() => (aiAssistantOpen = false)}
+      />
+    {/if}
+
+    <!-- Painel Lateral Direito: Cores & Temas (Gaveta Fixa) -->
     <ThemeSettings
       visible={themeSettingsOpen}
       onClose={() => (themeSettingsOpen = false)}
-    />
-
-    <!-- Painel Lateral Direito: Assistente IA (Antigravity CLI / agy / Muse / Gemini) -->
-    <AiAssistantPanel
-      bind:this={aiPanelRef}
-      visible={aiAssistantOpen}
-      {currentFolderPath}
-      onInsertText={handleInsertTerminalText}
-      getEditorSelection={getEditorSelectedText}
-      onClose={() => (aiAssistantOpen = false)}
     />
   </div>
 

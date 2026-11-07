@@ -15,9 +15,7 @@
     Search,
     ListTree,
     FolderX,
-    PanelLeftClose,
-    X,
-    Wand2
+    X
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
   import type { FileNode, HeadingItem } from '../types';
@@ -36,9 +34,7 @@
   export let onDeleteEntry: (path: string, name: string, isDir: boolean) => void = () => {};
   export let onRenameEntry: (path: string, currentName: string) => void = () => {};
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
-  export let onCollapse: (() => void) | undefined = undefined;
   export let onQuickOpen: (() => void) | undefined = undefined;
-  export let onWizard: () => void = () => {};
 
   let activeTab: 'explorer' | 'outline' = 'explorer';
   let searchQuery = '';
@@ -132,19 +128,6 @@
   <!-- Cabeçalho de Ponta a Ponta do Sidebar -->
   <div class="sidebar-top-header">
     <div class="header-left">
-      {#if onCollapse}
-        <button
-          class="header-action-btn collapse-header-btn"
-          title="Recolher Barra Lateral (Alternar)"
-          on:click={onCollapse}
-          aria-label="Recolher Barra Lateral"
-        >
-          <PanelLeftClose size={16} />
-        </button>
-      {/if}
-    </div>
-
-    <div class="header-right">
       <button
         class="header-action-btn switch-project-btn"
         title={currentFolderPath ? "Trocar Projeto Aberto" : "Abrir Projeto"}
@@ -154,16 +137,9 @@
         <FolderOpen size={14} />
         <span class="btn-text">Trocar Projeto</span>
       </button>
+    </div>
 
-      <button
-        class="header-action-btn wizard-btn"
-        title="Assistente Wizard (Criação guiada)"
-        on:click={onWizard}
-        aria-label="Assistente Wizard"
-      >
-        <Wand2 size={14} />
-      </button>
-
+    <div class="header-right">
       {#if onQuickOpen}
         <button
           class="header-action-btn search-quick-btn"
@@ -390,12 +366,6 @@
   .header-action-btn .btn-text {
     font-size: 11.5px;
     white-space: nowrap;
-  }
-
-  .collapse-header-btn {
-    width: 28px;
-    height: 28px;
-    padding: 0;
   }
 
   .sidebar-tabs {

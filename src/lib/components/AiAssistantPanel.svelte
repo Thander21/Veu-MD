@@ -234,6 +234,44 @@
     prevVisible = false;
   }
 
+  let panelWidth = 360;
+  let isResizing = false;
+
+  onMount(() => {
+    const saved = localStorage.getItem('veu_ai_sidebar_width');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 260 && parsed <= 800) {
+        panelWidth = parsed;
+      }
+    }
+  });
+
+  function startResizing(e: MouseEvent) {
+    e.preventDefault();
+    isResizing = true;
+    const startX = e.clientX;
+    const startW = panelWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizing) return;
+      const delta = startX - moveEvent.clientX;
+      panelWidth = Math.min(800, Math.max(260, startW + delta));
+    };
+
+    const onMouseUp = () => {
+      if (isResizing) {
+        isResizing = false;
+        localStorage.setItem('veu_ai_sidebar_width', String(panelWidth));
+      }
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
   function handleWindowKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && visible) {
       e.preventDefault();
@@ -252,7 +290,15 @@
 <svelte:window on:keydown={handleWindowKeydown} />
 
 {#if visible}
-  <aside class="ai-drawer" aria-label="Chat IA Veu">
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    class="sidebar-resize-handle"
+    on:mousedown={startResizing}
+    role="separator"
+    aria-label="Redimensionar Chat IA"
+  ></div>
+
+  <aside class="ai-drawer" style="width: {panelWidth}px;" aria-label="Chat IA Veu">
     <!-- Cabeçalho do Assistente -->
     <div class="drawer-header">
       <div class="drawer-title">
@@ -427,29 +473,32 @@
 {/if}
 
 <style>
+  .sidebar-resize-handle {
+    width: 4px;
+    height: 100%;
+    cursor: col-resize;
+    background-color: transparent;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    z-index: 30;
+  }
+
+  .sidebar-resize-handle:hover {
+    background-color: var(--veu-h1-color);
+  }
+
   .ai-drawer {
-    position: fixed;
-    right: 0;
-    top: 44px;
-    bottom: 24px;
-    width: 360px;
+    position: relative;
+    height: 100%;
     max-width: 90vw;
     background-color: var(--veu-bg-sidebar);
     border-left: 1px solid var(--veu-border-color);
     display: flex;
     flex-direction: column;
-    z-index: 40;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.35);
-    animation: slideInRight 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-    }
-    to {
-      transform: translateX(0);
-    }
+    z-index: 30;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .drawer-header {
