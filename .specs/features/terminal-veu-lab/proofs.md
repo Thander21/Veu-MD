@@ -1,6 +1,6 @@
 # terminal-veu-lab proofs
 
-**HEAD**: 89904f1
+**HEAD**: 039f81b
 **Tree**: clean
 **Shell**: C:/Program Files/Git\bin\bash.exe
 **Result**: 7 pass, 0 fail
@@ -42,5 +42,5 @@ svelte-check found 0 errors and 0 warnings
 > veu-md@0.1.0 check:rust
 > %USERPROFILE%\.cargo\bin\cargo.exe check --manifest-path src-tauri/Cargo.toml
 
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.89s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.04s
 ```

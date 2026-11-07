@@ -1,7 +1,7 @@
 # Terminal Veu Lab — Terminal Editorial Exclusivo, Inicialização Imediata e Parser Limpo - verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 89904f1
+**Proofs**: `proofs.md` at 039f81b
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
