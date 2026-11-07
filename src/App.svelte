@@ -866,6 +866,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         {fileTree}
         {currentFolderPath}
         {headings}
+        {aiAssistantOpen}
         onOpenFile={openFile}
         onOpenFolder={openFolderDialog}
         onCloseFolder={closeFolder}
@@ -879,6 +880,10 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         onCreateInFolder={handleCreateInFolder}
         onCollapse={() => (sidebarOpen = false)}
         onQuickOpen={() => (quickOpenVisible = true)}
+        onWizard={() => {
+          aiAssistantOpen = !aiAssistantOpen;
+          if (aiAssistantOpen) themeSettingsOpen = false;
+        }}
       />
     {/if}
 
@@ -887,11 +892,16 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       <TopBar
         editorView={activeEditorView}
         {themeSettingsOpen}
+        {aiAssistantOpen}
         {terminalOpen}
         hasFolder={!!currentFolderPath}
         onSave={saveCurrentFile}
         onPrint={() => window.print()}
         onCopyHtml={handleCopyAsHtml}
+        onToggleAiAssistant={() => {
+          aiAssistantOpen = !aiAssistantOpen;
+          if (aiAssistantOpen) themeSettingsOpen = false;
+        }}
         onToggleThemeSettings={() => {
           themeSettingsOpen = !themeSettingsOpen;
           if (themeSettingsOpen) aiAssistantOpen = false;

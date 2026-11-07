@@ -21,7 +21,8 @@
     Save,
     Printer,
     Copy,
-    Check
+    Check,
+    Wand2
   } from 'lucide-svelte';
   import type { EditorView } from 'prosemirror-view';
   import { toggleMark, setBlockType } from 'prosemirror-commands';
@@ -43,6 +44,8 @@
   export let onCopyHtml: (() => void) | undefined = undefined;
   export let onToggleThemeSettings: () => void;
   export let onToggleTerminal: () => void;
+  export let onToggleAiAssistant: () => void = () => {};
+  export let aiAssistantOpen: boolean = false;
   export let themeSettingsOpen: boolean = false;
   export let terminalOpen: boolean = false;
   export let hasFolder: boolean = false;
@@ -330,8 +333,18 @@
     {/if}
   </div>
 
-  <!-- Grupo Direito: Temas & Terminal -->
+  <!-- Grupo Direito: IA, Temas & Terminal -->
   <div class="group right-group">
+    <button
+      class="btn icon-btn"
+      class:active={aiAssistantOpen}
+      title="Assistente IA • Antigravity / agy (Ctrl+L)"
+      on:click={onToggleAiAssistant}
+    >
+      <Wand2 size={16} />
+      <span>Assistente IA</span>
+    </button>
+
     <button
       class="btn icon-btn"
       class:active={themeSettingsOpen}

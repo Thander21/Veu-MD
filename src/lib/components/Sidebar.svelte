@@ -38,6 +38,8 @@
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
   export let onCollapse: (() => void) | undefined = undefined;
   export let onQuickOpen: (() => void) | undefined = undefined;
+  export let onWizard: () => void = () => {};
+  export let aiAssistantOpen: boolean = false;
 
   let activeTab: 'explorer' | 'outline' = 'explorer';
   let searchQuery = '';
@@ -155,10 +157,11 @@
       </button>
 
       <button
-        class="header-action-btn wizard-btn disabled"
-        disabled
-        title="Assistente de Criação (Em breve)"
-        aria-label="Assistente Wizard (Desativado)"
+        class="header-action-btn wizard-btn"
+        class:btn-active={aiAssistantOpen}
+        title="Assistente IA • Antigravity / agy (Ctrl+L)"
+        on:click={onWizard}
+        aria-label="Abrir Assistente IA"
       >
         <Wand2 size={14} />
       </button>
@@ -381,7 +384,12 @@
     color: var(--veu-h1-color);
   }
 
-  .header-action-btn.disabled,
+  .header-action-btn.wizard-btn.btn-active {
+    color: var(--veu-h1-color);
+    background-color: rgba(244, 114, 182, 0.15);
+    opacity: 1;
+  }
+
   .header-action-btn:disabled {
     opacity: 0.35;
     cursor: not-allowed;
