@@ -1,7 +1,7 @@
 # Sidebar Layout de Ponta a Ponta, Redimensionamento e Splash Screen - verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 9411c01
+**Proofs**: `proofs.md` at 9bde3ed
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
