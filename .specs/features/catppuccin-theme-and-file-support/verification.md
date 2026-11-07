@@ -1,7 +1,7 @@
 # Catppuccin Mocha Official Theme, IDE Fonts and Multi-Format File Support - verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 313269c
+**Proofs**: `proofs.md` at 507952b
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks
