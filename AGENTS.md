@@ -28,6 +28,16 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Performance de Temas via GPU:**
   - Todas as cores de elementos semânticos (H1..H6, negrito, itálico, citações, inline code, blocos de código, tabelas, links) e espaçamentos são aplicados estritamente via CSS Custom Properties no `:root`.
   - A troca de tema ocorre sem recálculo de árvore DOM no JavaScript (custo zero de CPU / re-render pela GPU).
+  - O tema canônico de primeiro uso é **"Veu MD (Oficial)"** (`veumd`) com a paleta Crepúsculo Obsidian (`#0e0b16`, `#f472b6`, `#c084fc`, `#7c3aed`).
+  - O drawer de temas deve disponibilizar seleção via Dropdown; qualquer ajuste manual feito pelo usuário em cores, medidas ou fontes deve comutar automaticamente o seletor para **"Personalizado"** (`custom`).
+- **Ergonomia e Invariantes da Barra de Projetos:**
+  - **NUNCA** sobreponha botões flutuantes de fechar (`X`) no topo dos avatares de projetos na barra de atividades, evitando cliques acidentais e poluição visual.
+  - A ação de fechar projeto deve ter destaque visual em vermelho vivo (`#ef4444`), localizada após o nome da pasta no cabeçalho do Explorer ou acionada via clique com botão direito no avatar.
+- **Segregação Semântica da Barra Superior (TopBar) e Zero Duplicidades:**
+  - As ações que operam diretamente sobre o documento em edição (*Salvar*, *Exportar PDF/Imprimir*, *Copiar HTML*) pertencem ao grupo de formatação do editor ProseMirror, posicionadas ao final após *Desfazer/Refazer*.
+  - O grupo esquerdo da TopBar reserva-se a ações de contexto (*Alternar Barra Lateral*, *Abrir/Trocar Pasta*, *Assistente IA Wizard* e *Localizador Rápido Ctrl+P*).
+  - Ações de criação de arquivos e pastas pertencem exclusivamente à barra de ferramentas do Explorer, evitando duplicações desnecessárias no topo.
+  - O terminal integrado possui seus pontos de acesso canônicos no topo direito e na barra de status; nunca o duplique dentro da barra de ferramentas do Explorer.
 
 ---
 
