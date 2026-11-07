@@ -8,12 +8,21 @@
   export let onClose: () => void;
 
   let theme = getTheme();
-  let selectedPreset = theme.id;
+  let selectedPreset = defaultThemes[theme.id] ? theme.id : 'custom';
   let customThemeName = '';
   let showSaveNotice = false;
 
+  $: if (visible) {
+    theme = getTheme();
+    selectedPreset = defaultThemes[theme.id] ? theme.id : 'custom';
+  }
+
   function handlePresetChange(presetKey: string) {
-    if (defaultThemes[presetKey]) {
+    if (presetKey === 'custom') {
+      selectedPreset = 'custom';
+      theme = { ...theme, id: 'custom' };
+      setTheme(theme);
+    } else if (defaultThemes[presetKey]) {
       selectedPreset = presetKey;
       theme = { ...defaultThemes[presetKey] };
       setTheme(theme);
@@ -27,12 +36,16 @@
         ...current,
         [subKey]: value
       };
+      selectedPreset = 'custom';
+      theme.id = 'custom';
       setTheme({ ...theme });
     }
   }
 
   function handleDirectChange(key: keyof ThemeConfig, value: string) {
     (theme as any)[key] = value;
+    selectedPreset = 'custom';
+    theme.id = 'custom';
     setTheme({ ...theme });
   }
 
@@ -77,19 +90,20 @@
     </div>
 
     <div class="drawer-body">
-      <!-- Seletor de Temas Base -->
+      <!-- Seletor de Temas Base (Dropdown) -->
       <section class="section">
-        <div class="section-label">Tema de Leitura Predefinido</div>
-        <div class="preset-buttons">
-          {#each Object.entries(defaultThemes) as [key, t]}
-            <button
-              class="preset-btn"
-              class:active={selectedPreset === key}
-              on:click={() => handlePresetChange(key)}
-            >
-              {t.name}
-            </button>
-          {/each}
+        <div class="section-label">Tema de Leitura</div>
+        <div class="theme-select-container">
+          <select
+            class="theme-dropdown"
+            bind:value={selectedPreset}
+            on:change={() => handlePresetChange(selectedPreset)}
+          >
+            {#each Object.entries(defaultThemes) as [key, t]}
+              <option value={key}>{t.name}</option>
+            {/each}
+            <option value="custom">Personalizado</option>
+          </select>
         </div>
       </section>
 
@@ -369,29 +383,28 @@
     opacity: 0.7;
   }
 
-  .preset-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
+  .theme-select-container {
+    width: 100%;
   }
 
-  .preset-btn {
-    flex: 1;
-    padding: 6px;
-    font-size: 11px;
+  .theme-dropdown {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
     font-weight: 500;
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: var(--veu-bg-app);
     color: var(--veu-text-color);
     border: 1px solid var(--veu-border-color);
+    outline: none;
     cursor: pointer;
-    white-space: nowrap;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .preset-btn.active {
+  .theme-dropdown:hover,
+  .theme-dropdown:focus {
     border-color: var(--veu-h1-color);
-    background-color: var(--veu-active-item-bg);
-    color: var(--veu-h1-color);
+    box-shadow: 0 0 0 1px var(--veu-h1-color);
   }
 
   .field {
