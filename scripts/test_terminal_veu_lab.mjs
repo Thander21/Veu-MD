@@ -67,3 +67,4 @@ assert(
 
 console.log('SUCCESS: Todos os contratos do Terminal Veu Lab passaram!');
 process.exit(0);
+

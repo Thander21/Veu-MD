@@ -12,9 +12,18 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - O editor ProseMirror **NUNCA** deve exibir caracteres brutos de formatação Markdown (`#`, `**`, `*`, `>`, ````) no corpo do texto durante leitura ou digitação.
   - A experiência visual deve ser fluida e direta, idêntica a processadores de texto ricos (Word/Pages).
 - **Terminal Veu — Sequencial, Editorial e Interativo (Anti-CRT):**
-  - O terminal não utiliza a matriz CRT rígida de caracteres do xterm clássico. Adota o **Terminal Veu** com fluxo sequencial de blocos, tipografia editorial e parser ANSI semântico nativo (`ansiParser.ts`).
+  - O terminal adota **exclusivamente o Terminal Veu** com fluxo sequencial de blocos, tipografia editorial e parser ANSI semântico nativo (`ansiParser.ts`). O motor xterm legado não deve ser reintroduzido.
+  - **Normalização de ConPTY no Windows**: Retornos de carro (`\r`) e sequências de controle de cursor devem ser processados via `resolveCarriageReturns` para evitar texto sobreposto e ecos duplicados de comandos.
+  - **Cold Start Imediato**: A inicialização do shell e seu banner inicial nunca devem ser descartados quando a lista de blocos estiver vazia; ao abrir o painel, a sessão deve estar pronta e o prompt imediatamente focado.
   - O prompt de entrada é interativo e editável com seleção nativa por mouse, navegação por histórico com setas (`ArrowUp`/`ArrowDown`) e clique livre para mover o cursor, posicionado ao final da linha do tempo quando a sessão está ociosa.
-  - Durante a execução de um comando, o prompt de nova digitação é bloqueado para evitar concorrência e confusão operacional, exibindo streaming contínuo da saída com status e botão **Parar (`Ctrl+C`)**.
+  - Durante a execução de um comando, a interface exibe streaming contínuo da saída com status, botão **Parar (`Ctrl+C`)** e ação de escape para liberar o prompt caso o processo silencie sem retorno padronizado.
+- **Posicionamento Fixo de Gavetas Laterais (Drawers):**
+  - Painéis laterais como `ThemeSettings` e `AiAssistantPanel` **DEVEM** ser posicionados como gavetas fixas (`position: fixed; right: 0; top: 44px; bottom: 24px; z-index: 40;`).
+  - **NUNCA** os insira como filhos de fluxo direto (estáticos) em `.workspace`, evitando reflow do palco central (`.center-stage`) e disparo em cascata do `ResizeObserver` do terminal.
+- **Anti-Loop Reativo em Svelte 5:**
+  - **NUNCA** altere propriedades diretas de nós DOM capturados por `bind:this` (ex: `inputEl.style.height = ...`) dentro de blocos reativos `$:` ou `$effect`.
+  - Isso dispara `mutate()` recursivamente a cada microtask no Svelte 5 e congela a thread da UI a 100% de CPU. Use sentinelas pontuais de transição de estado (`let prevVisible = false; $: if (visible && !prevVisible) ...`) desacopladas com `setTimeout(..., 60)` e estilize tamanhos padrão via CSS (`min-height`).
+  - Tags `<svelte:window>` devem permanecer obrigatoriamente no nível superior do markup, nunca aninhadas em blocos condicionais como `{#if}`.
 - **Persistência e Continuidade do Terminal Multi-Projeto:**
   - **NUNCA** destrua o `<TerminalPanel>` usando blocos de re-renderização reativa como `{#key currentFolderPath}`.
   - Cada projeto aberto mantém suas sessões e buffers de PTY ativos em background (ocultos via CSS `.hidden`), preservando compilações, servidores locais e histórico de comandos ao alternar entre abas de projetos.
