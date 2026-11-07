@@ -13,19 +13,26 @@
     RefreshCw,
     Search,
     ListTree,
-    TerminalSquare
+    TerminalSquare,
+    FolderX
   } from 'lucide-svelte';
+  import FileTreeNode from './FileTreeNode.svelte';
   import type { FileNode, HeadingItem } from '../types';
 
   export let fileTree: FileNode[] = [];
   export let currentFolderPath: string = '';
   export let headings: HeadingItem[] = [];
   export let onOpenFile: (path: string, name: string) => void;
+  export let onOpenFolder: () => void = () => {};
+  export let onCloseFolder: () => void = () => {};
   export let onCreateFile: () => void;
   export let onCreateFolder: () => void;
   export let onRefreshTree: () => void;
   export let onOpenTerminalInFolder: (path: string) => void;
   export let onJumpToHeading: (pos: number) => void;
+  export let onDeleteEntry: (path: string, name: string, isDir: boolean) => void = () => {};
+  export let onRenameEntry: (path: string, currentName: string) => void = () => {};
+  export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
 
   let activeTab: 'explorer' | 'outline' = 'explorer';
   let searchQuery = '';
@@ -96,114 +103,77 @@
   {#if activeTab === 'explorer'}
     <!-- Barra de Ferramentas do Explorer -->
     <div class="toolbar">
-      <div class="folder-title" title={currentFolderPath}>
+      <div class="folder-title" title={currentFolderPath || 'Nenhuma Pasta Aberta'}>
         <span>{currentFolderPath ? currentFolderPath.split(/[\\/]/).pop() : 'Nenhuma Pasta'}</span>
       </div>
       <div class="actions">
-        <button class="action-btn" title="Novo Arquivo (.md)" on:click={onCreateFile}>
-          <FilePlus size={14} />
-        </button>
-        <button class="action-btn" title="Nova Pasta" on:click={onCreateFolder}>
-          <FolderPlus size={14} />
-        </button>
-        <button class="action-btn" title="Atualizar Árvore" on:click={onRefreshTree}>
-          <RefreshCw size={13} />
-        </button>
         {#if currentFolderPath}
+          <button class="action-btn" title="Novo Arquivo (.md)" on:click={onCreateFile}>
+            <FilePlus size={14} />
+          </button>
+          <button class="action-btn" title="Nova Pasta" on:click={onCreateFolder}>
+            <FolderPlus size={14} />
+          </button>
+          <button class="action-btn" title="Atualizar Árvore" on:click={onRefreshTree}>
+            <RefreshCw size={13} />
+          </button>
           <button class="action-btn" title="Abrir no Terminal" on:click={() => onOpenTerminalInFolder(currentFolderPath)}>
             <TerminalSquare size={14} />
+          </button>
+          <button class="action-btn close-folder-btn" title="Fechar Pasta" on:click={onCloseFolder}>
+            <FolderX size={14} />
           </button>
         {/if}
       </div>
     </div>
 
-    <!-- Campo de Busca -->
-    <div class="search-box">
-      <Search size={13} />
-      <input type="text" placeholder="Filtrar arquivos..." bind:value={searchQuery} />
-    </div>
-
-    <!-- Lista em Árvore -->
-    <div class="tree-container">
-      {#if displayedTree.length === 0}
-        <div class="empty-state">
-          <span>Nenhum arquivo encontrado</span>
+    {#if !currentFolderPath}
+      <!-- Estado quando nenhuma pasta está aberta -->
+      <div class="no-folder-panel">
+        <div class="no-folder-icon-wrapper">
+          <FolderOpen size={36} />
         </div>
-      {:else}
-        {#each displayedTree as item}
-          <div class="tree-item-wrapper">
-            {#if item.is_dir}
-              <div
-                class="node folder"
-                role="button"
-                tabindex="0"
-                on:click={() => toggleFolder(item.path)}
-                on:keydown={(e) => e.key === 'Enter' && toggleFolder(item.path)}
-              >
-                <span class="chevron">
-                  {#if expandedFolders[item.path]}
-                    <ChevronDown size={14} />
-                  {:else}
-                    <ChevronRight size={14} />
-                  {/if}
-                </span>
-                <span class="folder-icon">
-                  {#if expandedFolders[item.path]}
-                    <FolderOpen size={15} color="#eab308" />
-                  {:else}
-                    <Folder size={15} color="#eab308" />
-                  {/if}
-                </span>
-                <span class="node-name">{item.name}</span>
-              </div>
+        <div class="no-folder-title">Nenhuma pasta aberta</div>
+        <p class="no-folder-desc">
+          Para começar, selecione uma pasta para ler o diretório e criar ou editar documentos.
+        </p>
+        <button class="open-folder-cta" on:click={onOpenFolder}>
+          <FolderOpen size={14} />
+          <span>Selecionar Pasta</span>
+        </button>
+      </div>
+    {:else}
+      <!-- Campo de Busca -->
+      <div class="search-box">
+        <Search size={13} />
+        <input type="text" placeholder="Filtrar arquivos..." bind:value={searchQuery} />
+      </div>
 
-              {#if expandedFolders[item.path] && item.children}
-                <div class="nested-tree">
-                  {#each item.children as child}
-                    <div
-                      class="node file"
-                      class:disabled={!child.is_dir && !isEditable(child.extension)}
-                      role="button"
-                      tabindex="0"
-                      on:click={() => {
-                        if (child.is_dir) toggleFolder(child.path);
-                        else if (isEditable(child.extension)) onOpenFile(child.path, child.name);
-                      }}
-                      on:keydown={(e) => e.key === 'Enter' && isEditable(child.extension) && onOpenFile(child.path, child.name)}
-                    >
-                      <svelte:component
-                        this={getFileIcon(child.extension)}
-                        size={14}
-                        color={child.extension === 'md' ? '#60a5fa' : '#94a3b8'}
-                      />
-                      <span class="node-name">{child.name}</span>
-                    </div>
-                  {/each}
-                </div>
-              {/if}
-            {:else}
-              <div
-                class="node file"
-                class:disabled={!isEditable(item.extension)}
-                role="button"
-                tabindex="0"
-                on:click={() => isEditable(item.extension) && onOpenFile(item.path, item.name)}
-                on:keydown={(e) => e.key === 'Enter' && isEditable(item.extension) && onOpenFile(item.path, item.name)}
-              >
-                <svelte:component
-                  this={getFileIcon(item.extension)}
-                  size={14}
-                  color={item.extension === 'md' ? '#60a5fa' : '#94a3b8'}
-                />
-                <span class="node-name">{item.name}</span>
-              </div>
-            {/if}
+      <!-- Lista em Árvore -->
+      <div class="tree-container">
+        {#if displayedTree.length === 0}
+          <div class="empty-state">
+            <span>Nenhum arquivo encontrado</span>
           </div>
-        {/each}
-      {/if}
-    </div>
-  {:else}
-    <!-- Sumário do Documento Aberto -->
+        {:else}
+          {#each displayedTree as item (item.path)}
+            <FileTreeNode
+              node={item}
+              level={0}
+              {expandedFolders}
+              onToggleFolder={toggleFolder}
+              {onOpenFile}
+              {onDeleteEntry}
+              {onRenameEntry}
+              {onCreateInFolder}
+              {onOpenTerminalInFolder}
+            />
+          {/each}
+        {/if}
+      </div>
+  {/if}
+{:else}
+  <!-- Sumário do Documento Aberto -->
     <div class="outline-container">
       <div class="outline-header">Índice do Documento</div>
       {#if headings.length === 0}
@@ -253,7 +223,8 @@
     height: 34px;
     background: transparent;
     border: none;
-    color: rgba(200, 210, 230, 0.6);
+    color: var(--veu-text-color);
+    opacity: 0.65;
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
@@ -261,8 +232,9 @@
 
   .tab-btn.active {
     color: var(--veu-h1-color);
+    opacity: 1;
     border-bottom: 2px solid var(--veu-h1-color);
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: var(--veu-active-item-bg);
   }
 
   .toolbar {
@@ -277,7 +249,8 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(200, 210, 230, 0.75);
+    color: var(--veu-text-color);
+    opacity: 0.85;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -308,6 +281,61 @@
     opacity: 1;
   }
 
+  .action-btn.close-folder-btn:hover {
+    color: #ef4444;
+  }
+
+  .no-folder-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 16px;
+    text-align: center;
+    gap: 10px;
+    flex: 1;
+  }
+
+  .no-folder-icon-wrapper {
+    color: var(--veu-text-color);
+    opacity: 0.45;
+    margin-bottom: 2px;
+  }
+
+  .no-folder-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--veu-text-color);
+  }
+
+  .no-folder-desc {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--veu-text-color);
+    opacity: 0.75;
+    margin: 0;
+  }
+
+  .open-folder-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    background-color: var(--veu-h1-color);
+    color: #ffffff;
+    border: none;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: opacity 0.15s;
+  }
+
+  .open-folder-cta:hover {
+    opacity: 0.9;
+  }
+
   .search-box {
     display: flex;
     align-items: center;
@@ -334,45 +362,11 @@
     padding: 4px 0;
   }
 
-  .node {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    cursor: pointer;
-    color: rgba(220, 230, 245, 0.85);
-  }
-
-  .node:hover {
-    background-color: var(--veu-active-item-bg);
-    color: var(--veu-text-color);
-  }
-
-  .node.disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .node-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .nested-tree {
-    padding-left: 16px;
-  }
-
-  .chevron {
-    display: flex;
-    align-items: center;
-    color: rgba(200, 210, 230, 0.5);
-  }
-
   .empty-state {
     padding: 24px 16px;
     text-align: center;
-    color: rgba(200, 210, 230, 0.4);
+    color: var(--veu-text-color);
+    opacity: 0.5;
     font-size: 12px;
   }
 
@@ -382,7 +376,8 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(200, 210, 230, 0.6);
+    color: var(--veu-text-color);
+    opacity: 0.7;
   }
 
   .outline-item {
@@ -392,7 +387,7 @@
     padding: 6px 12px;
     cursor: pointer;
     font-size: 12px;
-    color: rgba(220, 230, 245, 0.85);
+    color: var(--veu-text-color);
   }
 
   .outline-item:hover {
@@ -404,7 +399,7 @@
     font-size: 10px;
     font-weight: 700;
     color: var(--veu-h1-color);
-    background: rgba(96, 165, 250, 0.15);
+    background: var(--veu-active-item-bg);
     padding: 1px 4px;
     border-radius: 3px;
   }

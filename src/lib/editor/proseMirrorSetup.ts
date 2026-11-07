@@ -2,9 +2,20 @@ import { Schema } from 'prosemirror-model';
 import { defaultMarkdownParser, defaultMarkdownSerializer, MarkdownParser, MarkdownSerializer } from 'prosemirror-markdown';
 import { schema as baseSchema } from 'prosemirror-schema-basic';
 import { addListNodes, splitListItem, liftListItem, sinkListItem } from 'prosemirror-schema-list';
-import { tableNodes, tableEditing, columnResizing, goToNextCell } from 'prosemirror-tables';
+import {
+  tableNodes,
+  tableEditing,
+  columnResizing,
+  goToNextCell,
+  addRowAfter,
+  addColumnAfter,
+  deleteRow,
+  deleteColumn,
+  deleteTable,
+  isInTable
+} from 'prosemirror-tables';
 import { EditorState, Plugin, PluginKey } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
+import { EditorView, Decoration, DecorationSet } from 'prosemirror-view';
 import { history, undo, redo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
@@ -89,6 +100,18 @@ export const veuMarkdownSerializer = new MarkdownSerializer(
       state.write(' ');
       state.renderInline(node);
       state.write(' ');
+    },
+    image(state, node) {
+      const src = node.attrs.title && node.attrs.title.startsWith('./assets/')
+        ? node.attrs.title
+        : node.attrs.src;
+      state.write(
+        "![" +
+          state.esc(node.attrs.alt || "") +
+          "](" +
+          state.esc(src) +
+          ")"
+      );
     }
   },
   {
@@ -162,7 +185,54 @@ export function createSelectionPlugin(onSelectionChange: (view: EditorView) => v
   });
 }
 
-// 6. Inicializador do Editor
+// 6. Plugin de Checklists Interativas (renderiza checkbox clicável no estilo Word sem perder sintaxe GFM)
+export const taskListPlugin = new Plugin({
+  props: {
+    decorations(state) {
+      const decos: Decoration[] = [];
+      state.doc.descendants((node, pos) => {
+        if (node.isText && node.text) {
+          const match = node.text.match(/^\[([ xX])\] /);
+          if (match) {
+            const checked = match[1].toLowerCase() === 'x';
+            const widget = document.createElement('input');
+            widget.type = 'checkbox';
+            widget.checked = checked;
+            widget.className = 'veu-task-checkbox';
+            widget.onmousedown = (e) => e.preventDefault();
+            widget.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const view = (window as any).__veuActiveEditorView as EditorView | undefined;
+              if (view) {
+                const newChar = checked ? ' ' : 'x';
+                const tr = view.state.tr.replaceWith(
+                  pos,
+                  pos + 4,
+                  state.schema.text(`[${newChar}] `)
+                );
+                view.dispatch(tr);
+              }
+            };
+
+            decos.push(
+              Decoration.widget(pos, widget, { side: -1 }),
+              Decoration.inline(pos, pos + 4, {
+                class: 'veu-hidden-task-syntax'
+              })
+            );
+          }
+        }
+      });
+      return DecorationSet.create(state.doc, decos);
+    }
+  }
+});
+
+// Exporta comandos de tabela para a barra superior e menus
+export { addRowAfter, addColumnAfter, deleteRow, deleteColumn, deleteTable, isInTable };
+
+// 7. Inicializador do Editor
 export function createEditorState(
   initialMarkdown: string,
   onSelectionChange: (view: EditorView) => void
@@ -185,6 +255,10 @@ export function createEditorState(
     'Enter': splitListItem(veuSchema.nodes.list_item),
     'Tab': (state: EditorState, dispatch?: any) => {
       if (goToNextCell(1)(state, dispatch)) return true;
+      if (isInTable(state) && addRowAfter(state, dispatch)) {
+        goToNextCell(1)(state, dispatch);
+        return true;
+      }
       if (sinkListItem(veuSchema.nodes.list_item)(state, dispatch)) return true;
       return false;
     },
@@ -205,7 +279,8 @@ export function createEditorState(
       keymap(customKeymap),
       keymap(baseKeymap),
       buildInputRules(veuSchema),
-      createSelectionPlugin(onSelectionChange)
+      createSelectionPlugin(onSelectionChange),
+      taskListPlugin
     ]
   });
 }

@@ -21,26 +21,48 @@
     Palette,
     TerminalSquare,
     PanelLeft,
-    Save
+    Save,
+    Printer,
+    FolderX
   } from 'lucide-svelte';
   import type { EditorView } from 'prosemirror-view';
   import { toggleMark, setBlockType } from 'prosemirror-commands';
   import { wrapInList } from 'prosemirror-schema-list';
   import { undo, redo } from 'prosemirror-history';
-  import { veuSchema } from '../editor/proseMirrorSetup';
+  import {
+    veuSchema,
+    addRowAfter,
+    addColumnAfter,
+    deleteRow,
+    deleteColumn,
+    deleteTable,
+    isInTable
+  } from '../editor/proseMirrorSetup';
 
   export let editorView: EditorView | null = null;
   export let onOpenFolder: () => void;
+  export let onCloseFolder: () => void = () => {};
   export let onNewFile: () => void;
   export let onSave: () => void;
+  export let onPrint: () => void = () => {};
   export let onToggleSidebar: () => void;
   export let onToggleThemeSettings: () => void;
   export let onToggleTerminal: () => void;
   export let sidebarOpen: boolean = true;
   export let themeSettingsOpen: boolean = false;
   export let terminalOpen: boolean = false;
+  export let hasFolder: boolean = false;
 
   let currentHeading = 'p';
+
+  let inTable = false;
+  $: if (editorView) {
+    try {
+      inTable = isInTable(editorView.state);
+    } catch {
+      inTable = false;
+    }
+  }
 
   function applyMark(markType: any) {
     if (!editorView) return;
@@ -82,6 +104,13 @@
     editorView.focus();
   }
 
+  function applyTaskList() {
+    if (!editorView) return;
+    wrapInList(veuSchema.nodes.bullet_list)(editorView.state, editorView.dispatch);
+    editorView.dispatch(editorView.state.tr.insertText('[ ] '));
+    editorView.focus();
+  }
+
   function insertTable() {
     if (!editorView) return;
     const { schema } = editorView.state;
@@ -96,6 +125,41 @@
     const table = schema.nodes.table.create(null, [headerRow, bodyRow]);
     editorView.dispatch(editorView.state.tr.replaceSelectionWith(table));
     editorView.focus();
+  }
+
+  function handleAddRow() {
+    if (editorView) {
+      addRowAfter(editorView.state, editorView.dispatch);
+      editorView.focus();
+    }
+  }
+
+  function handleAddColumn() {
+    if (editorView) {
+      addColumnAfter(editorView.state, editorView.dispatch);
+      editorView.focus();
+    }
+  }
+
+  function handleDeleteRow() {
+    if (editorView) {
+      deleteRow(editorView.state, editorView.dispatch);
+      editorView.focus();
+    }
+  }
+
+  function handleDeleteColumn() {
+    if (editorView) {
+      deleteColumn(editorView.state, editorView.dispatch);
+      editorView.focus();
+    }
+  }
+
+  function handleDeleteTable() {
+    if (editorView) {
+      deleteTable(editorView.state, editorView.dispatch);
+      editorView.focus();
+    }
   }
 
   function insertHorizontalRule() {
@@ -124,15 +188,39 @@
     <button class="btn icon-btn" class:active={sidebarOpen} title="Alternar Painel Lateral (Pastas / Sumário)" on:click={onToggleSidebar}>
       <PanelLeft size={17} />
     </button>
-    <button class="btn" title="Abrir Pasta no Computador" on:click={onOpenFolder}>
+    <button class="btn" title={hasFolder ? "Trocar Pasta Aberta" : "Abrir Pasta no Computador"} on:click={onOpenFolder}>
       <FolderOpen size={16} />
-      <span>Abrir Pasta</span>
+      <span>{hasFolder ? 'Trocar Pasta' : 'Abrir Pasta'}</span>
     </button>
-    <button class="btn icon-btn" title="Novo Arquivo (.md)" on:click={onNewFile}>
+    {#if hasFolder}
+      <button class="btn icon-btn close-btn" title="Fechar Pasta Atual" on:click={onCloseFolder}>
+        <FolderX size={16} />
+      </button>
+    {/if}
+    <button
+      class="btn icon-btn"
+      class:disabled={!hasFolder}
+      disabled={!hasFolder}
+      title={hasFolder ? "Novo Arquivo (.md)" : "Selecione uma pasta para criar arquivos"}
+      on:click={onNewFile}
+    >
       <FilePlus size={16} />
     </button>
-    <button class="btn icon-btn" title="Salvar Arquivo (Ctrl+S)" on:click={onSave}>
+    <button
+      class="btn icon-btn"
+      class:disabled={!hasFolder}
+      disabled={!hasFolder}
+      title={hasFolder ? "Salvar Arquivo (Ctrl+S)" : "Selecione uma pasta para salvar arquivos"}
+      on:click={onSave}
+    >
       <Save size={16} />
+    </button>
+    <button
+      class="btn icon-btn"
+      title="Exportar PDF / Imprimir (Ctrl+P)"
+      on:click={onPrint}
+    >
+      <Printer size={16} />
     </button>
   </div>
 
@@ -188,9 +276,38 @@
     <button class="btn icon-btn" title="Lista Numerada" on:click={applyOrderedList}>
       <ListOrdered size={16} />
     </button>
-    <button class="btn icon-btn" title="Inserir Tabela" on:click={insertTable}>
+    <button class="btn icon-btn" title="Lista de Tarefas (Checklist)" on:click={applyTaskList}>
+      <ListTodo size={16} />
+    </button>
+    <button
+      class="btn icon-btn"
+      class:active={inTable}
+      title={inTable ? "Ações da Tabela" : "Inserir Tabela"}
+      on:click={insertTable}
+    >
       <Table size={16} />
     </button>
+
+    {#if inTable}
+      <div class="table-actions-inline">
+        <button class="table-mini-btn" title="Adicionar Linha Abaixo" on:click={handleAddRow}>
+          + Linha
+        </button>
+        <button class="table-mini-btn" title="Adicionar Coluna à Direita" on:click={handleAddColumn}>
+          + Coluna
+        </button>
+        <button class="table-mini-btn" title="Excluir Linha" on:click={handleDeleteRow}>
+          - Linha
+        </button>
+        <button class="table-mini-btn" title="Excluir Coluna" on:click={handleDeleteColumn}>
+          - Coluna
+        </button>
+        <button class="table-mini-btn danger" title="Remover Tabela Inteira" on:click={handleDeleteTable}>
+          Excluir
+        </button>
+      </div>
+    {/if}
+
     <button class="btn icon-btn" title="Linha Divisória" on:click={insertHorizontalRule}>
       <Minus size={16} />
     </button>
@@ -291,9 +408,58 @@
     background-color: var(--veu-active-item-bg);
   }
 
+  .btn:disabled,
+  .btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .btn:disabled:hover,
+  .btn.disabled:hover {
+    background-color: transparent;
+  }
+
+  .btn.close-btn:hover {
+    color: #ef4444;
+  }
+
   .btn.active {
     background-color: var(--veu-active-item-bg);
     color: var(--veu-h1-color);
+  }
+
+  .table-actions-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background-color: var(--veu-active-item-bg);
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid var(--veu-border-color);
+  }
+
+  .table-mini-btn {
+    background: transparent;
+    border: none;
+    color: var(--veu-text-color);
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.8;
+    transition: opacity 0.12s, background-color 0.12s, color 0.12s;
+  }
+
+  .table-mini-btn:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: var(--veu-h2-color);
+  }
+
+  .table-mini-btn.danger:hover {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.15);
   }
 
   .icon-btn {

@@ -202,10 +202,19 @@ body {
   align-items: flex-start;
   gap: 0.6em;
 }
-.ProseMirror input[type="checkbox"] {
-  margin-top: 0.35em;
+.ProseMirror input[type="checkbox"],
+.veu-task-checkbox {
+  margin-top: 0.25em;
+  margin-right: 7px;
   cursor: pointer;
   accent-color: var(--veu-h1-color);
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
+}
+
+.veu-hidden-task-syntax {
+  display: none !important;
 }
 
 /* Tabelas */
@@ -240,5 +249,68 @@ body {
   float: left;
   pointer-events: none;
   height: 0;
+}
+
+/* Estilos para Exportação PDF e Impressão (Ctrl + P) */
+@media print {
+  body,
+  .app-layout {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .topbar,
+  .sidebar,
+  .tabbar,
+  .terminal-panel,
+  .statusbar,
+  .theme-settings,
+  .find-replace-container,
+  .floating-menu,
+  .slash-menu,
+  .resize-handle {
+    display: none !important;
+  }
+
+  .workspace,
+  .center-stage,
+  .stage-body,
+  .editor-pane,
+  .editor-scroll-area {
+    overflow: visible !important;
+    height: auto !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    display: block !important;
+  }
+
+  .editor-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 15mm 20mm !important;
+  }
+
+  .ProseMirror {
+    color: #111827 !important;
+  }
+
+  .ProseMirror h1,
+  .ProseMirror h2,
+  .ProseMirror h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .ProseMirror pre,
+  .ProseMirror table,
+  .ProseMirror blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
 }
 

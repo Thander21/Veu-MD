@@ -20,9 +20,9 @@
     >
       <span class="icon">
         {#if tab.isMarkdown}
-          <FileText size={14} color="#60a5fa" />
+          <FileText size={14} color="var(--veu-h1-color)" />
         {:else}
-          <FileCode2 size={14} color="#94a3b8" />
+          <FileCode2 size={14} color="var(--veu-text-color)" />
         {/if}
       </span>
       <span class="title" title={tab.path}>{tab.title}</span>
@@ -60,23 +60,26 @@
     padding: 0 12px;
     height: 100%;
     background-color: transparent;
-    color: rgba(200, 210, 230, 0.65);
+    color: var(--veu-text-color);
+    opacity: 0.7;
     border-right: 1px solid var(--veu-border-color);
     font-size: 13px;
     cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
+    transition: background-color 0.15s, color 0.15s, opacity 0.15s;
     white-space: nowrap;
     max-width: 220px;
   }
 
   .tab:hover {
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: var(--veu-active-item-bg);
+    opacity: 1;
     color: var(--veu-text-color);
   }
 
   .tab.active {
     background-color: var(--veu-bg-editor);
     color: var(--veu-text-color);
+    opacity: 1;
     border-top: 2px solid var(--veu-h1-color);
   }
 
@@ -114,7 +117,7 @@
   }
 
   .close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--veu-active-item-bg);
     opacity: 1;
   }
 </style>

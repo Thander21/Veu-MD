@@ -1,3 +1,4 @@
+use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -22,8 +23,15 @@ pub struct TerminalSession {
 }
 
 #[derive(Default)]
+pub struct WatcherState {
+    watcher: Option<RecommendedWatcher>,
+    current_path: Option<String>,
+}
+
+#[derive(Default)]
 pub struct AppState {
     terminals: Arc<Mutex<HashMap<String, TerminalSession>>>,
+    file_watcher: Arc<Mutex<WatcherState>>,
 }
 
 #[tauri::command]
@@ -133,6 +141,43 @@ fn delete_entry(path: String) -> Result<(), String> {
     }
 }
 
+fn decode_base64(input: &str) -> Result<Vec<u8>, String> {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut decode_table = [255u8; 256];
+    for (i, &b) in TABLE.iter().enumerate() {
+        decode_table[b as usize] = i as u8;
+    }
+
+    let clean: Vec<u8> = input
+        .bytes()
+        .filter(|&b| b != b'=' && b != b'\r' && b != b'\n' && b != b' ')
+        .collect();
+    let mut out = Vec::with_capacity((clean.len() * 3) / 4);
+
+    for chunk in clean.chunks(4) {
+        let mut buf = [0u8; 4];
+        for (i, &b) in chunk.iter().enumerate() {
+            let val = decode_table[b as usize];
+            if val == 255 {
+                return Err("Caractere Base64 inválido".to_string());
+            }
+            buf[i] = val;
+        }
+
+        if chunk.len() >= 2 {
+            out.push((buf[0] << 2) | (buf[1] >> 4));
+        }
+        if chunk.len() >= 3 {
+            out.push(((buf[1] & 0x0f) << 4) | (buf[2] >> 2));
+        }
+        if chunk.len() == 4 {
+            out.push(((buf[2] & 0x03) << 6) | buf[3]);
+        }
+    }
+
+    Ok(out)
+}
+
 #[tauri::command]
 fn save_image_asset(base_dir: String, filename: String, base64_data: String) -> Result<String, String> {
     let assets_dir = Path::new(&base_dir).join("assets");
@@ -141,14 +186,57 @@ fn save_image_asset(base_dir: String, filename: String, base64_data: String) -> 
     }
 
     let target_path = assets_dir.join(&filename);
-    let raw_bytes = base64_data.trim_start_matches("data:image/png;base64,")
-        .trim_start_matches("data:image/jpeg;base64,")
-        .trim_start_matches("data:image/webp;base64,");
+    let comma_idx = base64_data.find(',').map(|i| i + 1).unwrap_or(0);
+    let raw_payload = &base64_data[comma_idx..];
 
-    // Para simplificar, gravamos direto
-    fs::write(&target_path, raw_bytes).map_err(|e| e.to_string())?;
+    let bytes = decode_base64(raw_payload)?;
+    fs::write(&target_path, bytes).map_err(|e| format!("Erro ao salvar imagem binária: {}", e))?;
 
     Ok(format!("./assets/{}", filename))
+}
+
+#[tauri::command]
+fn watch_file(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<(), String> {
+    let mut watcher_guard = state.file_watcher.lock().map_err(|e| e.to_string())?;
+    watcher_guard.watcher = None;
+    watcher_guard.current_path = Some(path.clone());
+
+    let target_path = PathBuf::from(&path);
+    if !target_path.exists() {
+        return Ok(());
+    }
+
+    let watched_path = path.clone();
+    let app_handle = app.clone();
+
+    let mut watcher = RecommendedWatcher::new(
+        move |res: Result<Event, notify::Error>| {
+            if let Ok(event) = res {
+                match event.kind {
+                    EventKind::Modify(_) | EventKind::Create(_) => {
+                        let _ = app_handle.emit("file-changed-externally", watched_path.clone());
+                    }
+                    _ => {}
+                }
+            }
+        },
+        Config::default(),
+    ).map_err(|e| e.to_string())?;
+
+    watcher
+        .watch(&target_path, RecursiveMode::NonRecursive)
+        .map_err(|e| e.to_string())?;
+
+    watcher_guard.watcher = Some(watcher);
+    Ok(())
+}
+
+#[tauri::command]
+fn unwatch_file(state: State<'_, AppState>) -> Result<(), String> {
+    let mut watcher_guard = state.file_watcher.lock().map_err(|e| e.to_string())?;
+    watcher_guard.watcher = None;
+    watcher_guard.current_path = None;
+    Ok(())
 }
 
 // ==================== TERMINAL PTY ====================
@@ -320,6 +408,8 @@ pub fn run() {
             write_terminal,
             resize_terminal,
             kill_terminal,
+            watch_file,
+            unwatch_file,
             save_custom_theme,
             load_custom_themes
         ])

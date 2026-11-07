@@ -47,9 +47,16 @@
     border-top: 1px solid var(--veu-border-color);
     padding: 0 12px;
     font-size: 11px;
-    color: rgba(200, 210, 230, 0.6);
+    color: var(--veu-text-color);
+    opacity: 0.8;
     user-select: none;
     z-index: 10;
+  }
+
+  .stat-item.notification {
+    color: var(--veu-h1-color);
+    font-weight: 500;
+    opacity: 1;
   }
 
   .stats-group, .right-group {

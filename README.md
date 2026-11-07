@@ -4,25 +4,45 @@
 
 ---
 
+## 🚦 Status das Plataformas
+
+| Plataforma | Status | Descrição |
+| --- | --- | --- |
+| 🌐 **Web** | ✅ **100% Funcional** | Execução completa via Vite + Svelte 5 no navegador. |
+| 💻 **Desktop (Windows)** | ✅ **100% Funcional** | Executável nativo compilado com Tauri v2, terminal PTY contextual e watcher. |
+| 📱 **Mobile (Android / APK)** | ⏳ **Em Validação** | Scaffold Android (`gen/android`) e alvos Rust configurados; validação do APK e testes no dispositivo em andamento. |
+
+---
+
 ## 🌟 Principais Recursos
 
-- **Edição 100% WYSIWYG Estilo Word:** Digitação limpa e sem ruído visual. Os caracteres de sintaxe (`#`, `**`, `*`, `>`, ````) **nunca** aparecem no documento durante a escrita ou leitura.
-- **Fidelidade GFM no Disco:** O arquivo salvo em disco é `.md` puro padrão, perfeitamente legível no GitHub, VS Code, Obsidian ou qualquer outro leitor.
-- **Barra Superior Completa + Barra Flutuante:** Formatação rica ao alcance de um clique ou seleção de texto (Títulos H1–H6, Negrito, Itálico, Sublinhado, Tachado, Marca-texto, Código inline, Blocos de código, Listas numeradas e com marcadores, Checklists interativas, Tabelas, Citações, Links e Imagens).
-- **Atalhos Rápidos de Digitação (`#` e `/`):** Digitar `#` abre um seletor instantâneo de níveis de título; digitar `/` abre o menu completo de blocos.
-- **Gerenciador de Abas & Auto-Save:** Suporte a múltiplos arquivos abertos simultaneamente, atalho clássico `Ctrl + S`, salvamento automático inteligente com debounce de 1000ms e restauração de sessão.
-- **Explorer Lateral com Foco em Conteúdo:** Árvore de arquivos completa com ícones contextuais; foca a abertura e edição em arquivos de texto (`.md` e `.txt`). Inclui pesquisa em tempo real, criação e exclusão rápida de arquivos.
-- **Sumário Dinâmico (Outline):** Painel com os títulos do documento aberto para navegação veloz.
-- **Motor de Temas Acelerado por GPU:** Controle cirúrgico de cores e tipografia por tag via CSS Custom Properties no `:root`. Zero custo de re-renderização de CPU ao trocar de tema. Suporta presets claros/escuros e importação/exportação de temas em formato JSON.
-- **Terminal Contextual Integrado (`Ctrl + '`):** Painel inferior retrátil com terminal PTY real (PowerShell, CMD, Git Bash), iniciando automaticamente no diretório aberto no Explorer.
-- **Sincronização com o Disco (Watcher):** Detecção automática de alterações externas no sistema de arquivos.
-- **Colar Imagens Inteligente (`Ctrl + V`):** Imagens do clipboard são gravadas automaticamente em pasta de assets e linkadas no documento.
+* **Edição 100% WYSIWYG Estilo Word:** Digitação limpa e sem ruído visual. Os caracteres de sintaxe (`#`, `**`, `*`, `>`, \`\`\`\`) **nunca** aparecem no documento durante a escrita ou leitura.
+
+* **Fidelidade GFM no Disco:** O arquivo salvo em disco é `.md` puro padrão, perfeitamente legível no GitHub, VS Code, Obsidian ou qualquer outro leitor.
+
+* **Barra Superior Completa + Barra Flutuante:** Formatação rica ao alcance de um clique ou seleção de texto (Títulos H1–H6, Negrito, Itálico, Sublinhado, Tachado, Marca-texto, Código inline, Blocos de código, Listas numeradas e com marcadores, Checklists interativas, Tabelas, Citações, Links e Imagens).
+
+* **Atalhos Rápidos de Digitação (`#` e `/`):** Digitar `#` abre um seletor instantâneo de níveis de título; digitar `/` abre o menu completo de blocos.
+
+* **Gerenciador de Abas & Auto-Save:** Suporte a múltiplos arquivos abertos simultaneamente, atalho clássico `Ctrl + S`, salvamento automático inteligente com debounce de 1000ms e restauração de sessão.
+
+* **Explorer Lateral com Foco em Conteúdo:** Árvore de arquivos completa com ícones contextuais; foca a abertura e edição em arquivos de texto (`.md` e `.txt`). Inclui pesquisa em tempo real, criação e exclusão rápida de arquivos.
+
+* **Sumário Dinâmico (Outline):** Painel com os títulos do documento aberto para navegação veloz.
+
+* **Motor de Temas Acelerado por GPU:** Controle cirúrgico de cores e tipografia por tag via CSS Custom Properties no `:root`. Zero custo de re-renderização de CPU ao trocar de tema. Suporta presets claros/escuros e importação/exportação de temas em formato JSON.
+
+* **Terminal Contextual Integrado (`Ctrl + '`):** Painel inferior retrátil com terminal PTY real (PowerShell, CMD, Git Bash), iniciando automaticamente no diretório aberto no Explorer.
+
+* **Sincronização com o Disco (Watcher):** Detecção automática de alterações externas no sistema de arquivos.
+
+* **Colar Imagens Inteligente (`Ctrl + V`):** Imagens do clipboard são gravadas automaticamente em pasta de assets e linkadas no documento.
 
 ---
 
 ## 🏗️ Arquitetura e Tecnologias
 
-```mermaid
+```
 flowchart TD
     subgraph Frontend["Frontend (Svelte 5 + TypeScript + Vite) — Zero Virtual DOM"]
         UI["Abas, Sidebar, Menus e Painel de Temas"]
@@ -50,20 +70,26 @@ flowchart TD
 
 ### Requisitos Comuns:
 
-- **Node.js** (versão 18 ou superior) e **npm**
-- **Rust Toolchain** (versão 1.77 ou superior): [rustup.rs](https://rustup.rs/)
+* **Node.js** (versão 18 ou superior) e **npm**
+
+* **Rust Toolchain** (versão 1.77 ou superior): [rustup.rs](https://rustup.rs/) 
 
 ### Para compilação Desktop (Windows):
 
-- **C++ Build Tools:** Visual Studio C++ Build Tools ou Visual Studio Community (com carga de trabalho "Desenvolvimento para desktop com C++").
-- **Windows 10/11 SDK** (inclui `rc.exe` — o projeto conta com detecção automática de fallback no `build.rs`).
+* **C++ Build Tools:** Visual Studio C++ Build Tools ou Visual Studio Community (com carga de trabalho "Desenvolvimento para desktop com C++").
 
-### Para compilação Mobile (Android):
+* **Windows 10/11 SDK** (inclui `rc.exe` — o projeto conta com detecção automática de fallback no `build.rs`).
 
-- **Android Studio** com SDK Platform (API 24+), Command-line Tools e NDK instalados.
-- **Java JDK** (versão 17 ou 21).
-- Targets Rust Android adicionados via rustup:
-  ```powershell
+### Para compilação Mobile (Android) — \[Em Validação\]:
+
+* **Android Studio** com SDK Platform (API 24+), Command-line Tools e NDK instalados (ex: NDK 27.x).
+
+* **Java JDK / JBR** (JDK 17/21 ou o JBR embutido do Android Studio).
+
+* Targets Rust Android adicionados via rustup:
+
+  ```
+  $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
   rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
   ```
 
@@ -73,7 +99,7 @@ flowchart TD
 
 Clone o repositório e instale as dependências:
 
-```bash
+```
 git clone https://github.com/seu-usuario/veu-md.git
 cd veu-md
 npm install
@@ -87,7 +113,7 @@ npm install
 
 Ideal para prototipagem rápida de componentes, testes de estilização e validação de schema ProseMirror:
 
-```powershell
+```
 npm run dev
 ```
 
@@ -97,27 +123,38 @@ Acesse a URL exibida no terminal (por padrão `http://127.0.0.1:1420` ou `http:/
 
 Inicia o aplicativo com a janela nativa Tauri v2, terminal PTY real e acesso local a arquivos:
 
-```powershell
+```
 # No PowerShell (garantindo o caminho do Cargo):
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; npm run tauri dev
 ```
 
-_Caso seu ambiente já possua o Cargo no PATH global:_
+*Caso seu ambiente já possua o Cargo no PATH global:*
 
-```powershell
+```
 npm run tauri dev
 ```
 
-### 3. Versão Mobile (Android)
+### 3. Versão Mobile (Android) — \[Em Validação\]
 
-Execute no emulador Android ou em dispositivo físico conectado com Depuração USB ativada:
+> **Nota:** O suporte Android está em processo de validação de compatibilidade e estabilidade. O scaffold nativo já foi gerado em `src-tauri/gen/android`.
 
-```powershell
-# Inicialização na primeira vez (gera a pasta nativa Android):
-npx tauri android init
+Para executar em dispositivo físico conectado (com Depuração USB habilitada) ou no emulador Android Studio:
 
-# Executar com Hot-Reload:
+```
+# 1. Configurar variáveis de ambiente essenciais na sessão do PowerShell:
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
+
+# 2. Executar no emulador ou aparelho (valide se está visível com 'adb devices'):
 npx tauri android dev
+```
+
+*Para direcionar uma arquitetura específica:*
+
+```
+npx tauri android dev --target aarch64-linux-android
 ```
 
 ---
@@ -128,64 +165,73 @@ npx tauri android dev
 
 Gera os arquivos estáticos otimizados (HTML, CSS, JS minificados) prontos para deploy:
 
-```powershell
+```
 npm run build
 ```
 
-- **Saída:** pasta `dist/` na raiz do projeto.
-- **Teste local:** `npm run preview`.
+* **Saída:** pasta `dist/` na raiz do projeto.
+
+* **Teste local:** `npm run preview`.
 
 ### 2. Build da Versão Desktop (.exe / .msi)
 
 Compila o backend Rust em modo release e empacota o executável com instalador:
 
-```powershell
+```
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; npm run tauri build
 ```
 
-- **Saída:**
-  - Binário executável: `src-tauri/target/release/veu-md.exe`
-  - Instaladores (MSI / NSIS): `src-tauri/target/release/bundle/`
+* **Saída:**
 
-### 3. Build da Versão Android (APK / AAB)
+  * Binário executável: `src-tauri/target/release/veu-md.exe`
 
-Gera os pacotes para instalação direta ou publicação na Google Play Store:
+  * Instaladores (MSI / NSIS): `src-tauri/target/release/bundle/`
 
-> **Atenção:** Na primeira vez, certifique-se de executar `npx tauri android init` para criar a pasta do projeto nativo em `src-tauri/gen/android`. O Tauri v2 compila em modo **Release** por padrão no comando build.
+### 3. Build da Versão Android (APK / AAB) — \[Em Validação\]
 
-```powershell
-# Gerar APK (Instalação direta):
-npx tauri android build --apk --release
+Gera os pacotes para validação e testes em dispositivos Android:
+
+```
+# 1. Configurar variáveis na sessão do PowerShell:
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
+
+# 2. Gerar APK Debug (recomendado para testes locais e validação inicial):
+npx tauri android build --apk --debug
+
+# 3. Gerar APK Release (otimizado):
 npx tauri android build --apk
 
-# Gerar AAB (Android App Bundle para publicação na Google Play):
-npx tauri android build --aab --release
+# 4. Gerar AAB (Android App Bundle para Google Play Store):
 npx tauri android build --aab
-
-# Se desejar gerar versão Debug para testes:
-npx tauri android build --apk --debug
 ```
 
-- **Saída:**
-  - APK: `src-tauri/gen/android/app/build/outputs/apk/release/`
-  - AAB: `src-tauri/gen/android/app/build/outputs/bundle/release/`
+* **Saída dos pacotes:**
+
+  * APK Debug: `src-tauri/gen/android/app/build/outputs/apk/universal/debug/`
+
+  * APK Release: `src-tauri/gen/android/app/build/outputs/apk/universal/release/`
+
+  * AAB Release: `src-tauri/gen/android/app/build/outputs/bundle/release/`
 
 ---
 
 ## ⌨️ Principais Atalhos de Teclado
 
-| Atalho     | Ação                                                                         |
-| :--------- | :--------------------------------------------------------------------------- |
-| `Ctrl + S` | Salvar o arquivo aberto na aba ativa                                         |
-| `Ctrl + '` | Alternar exibição do terminal integrado                                      |
-| `Ctrl + B` | Alternar Negrito no texto selecionado                                        |
-| `Ctrl + I` | Alternar Itálico no texto selecionado                                        |
-| `Ctrl + U` | Alternar Sublinhado no texto selecionado                                     |
-| `Ctrl + K` | Inserir link Markdown                                                        |
-| `Ctrl + V` | Colar texto ou colar imagem (salvando asset automaticamente)                 |
-| `#`        | Abrir menu rápido de títulos (H1..H6)                                        |
-| `/`        | Abrir menu de comandos de blocos                                             |
-| `Tab`      | Navegar para próxima célula de tabela (ou criar nova linha na última célula) |
+| Atalho | Ação |
+| --- | --- |
+| `Ctrl + S` | Salvar o arquivo aberto na aba ativa |
+| `Ctrl + '` | Alternar exibição do terminal integrado |
+| `Ctrl + B` | Alternar Negrito no texto selecionado |
+| `Ctrl + I` | Alternar Itálico no texto selecionado |
+| `Ctrl + U` | Alternar Sublinhado no texto selecionado |
+| `Ctrl + K` | Inserir link Markdown |
+| `Ctrl + V` | Colar texto ou colar imagem (salvando asset automaticamente) |
+| `#` | Abrir menu rápido de títulos (H1..H6) |
+| `/` | Abrir menu de comandos de blocos |
+| `Tab` | Navegar para próxima célula de tabela (ou criar nova linha na última célula) |
 
 ---
 

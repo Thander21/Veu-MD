@@ -96,8 +96,13 @@
   - tasks.md (T01..T08 implementados com commits atômicos)
   - proofs.md (22 pass, 0 fail em HEAD 098cf7d)
   - verification.md (verificado com zero defeitos)
+  - Finalização completa dos Gaps da Spec e Plano de Produto:
+    - Task 1: Árvore recursiva infinita (FileTreeNode), Renomear e Excluir com confirmação, criação de arquivos em subpastas.
+    - Task 2: File Watcher nativo (notify em Rust) com evento 'file-changed-externally' e recarregamento automático no Svelte; decodificação binária de Base64 em save_image_asset e renderização instantânea de imagens no editor.
+    - Task 3: Localizar e Substituir (Ctrl+F / Ctrl+H) com contador, navegação, substituição e substituição global; Exportação PDF e impressão limpa (Ctrl+P) com @media print e botão na barra.
+    - Task 4: Checklists interativas (- [ ] e - [x]) com toggle em tempo real e preservação GFM; ações de tabela (+linha, +coluna, -linha, -coluna, excluir tabela e Tab na última célula); Restauração de sessão de abas e arquivo ativo no localStorage.
 - **In-progress**: none
-- **Next step**: Apresentar relatório final de conclusão do MVP ao usuário e planejar próximo ciclo
+- **Next step**: Sistema 100% finalizado e validado.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: main

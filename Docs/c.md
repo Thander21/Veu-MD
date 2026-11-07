@@ -4,23 +4,38 @@ Cheat-sheet com os comandos de execução, desenvolvimento, testes e geração d
 
 ---
 
+## 🚦 Status Atual das Plataformas
+
+| Plataforma                       | Status                | Observações                                                                          |
+| :------------------------------- | :-------------------- | :----------------------------------------------------------------------------------- |
+| 🌐 **Web (Vite + Svelte 5)**     | ✅ **100% Funcional** | Editor WYSIWYG, serialização GFM, temas e atalhos no navegador                       |
+| 💻 **Desktop (Tauri v2 + Rust)** | ✅ **100% Funcional** | Executável Windows `.exe`/`.msi`, terminal PTY nativo, watcher de disco              |
+| 📱 **Mobile (Android / APK)**    | ⏳ **Em Validação**   | Scaffold nativo gerado; ambiente configurado; validação de execução/APK em andamento |
+
+---
+
 ## 1. Comandos Gerais e Verificação de Integridade
 
 ### Instalação de Dependências
+
 ```powershell
 npm install
 ```
 
 ### Checagem de Tipos Svelte / TypeScript
+
 ```powershell
 npm run check
 ```
 
 ### Checagem de Tipos e Compilação Rust
+
 ```powershell
 npm run check:rust
 ```
-*Ou diretamente via cargo (com PATH ajustado):*
+
+_Ou diretamente via cargo (com PATH ajustado):_
+
 ```powershell
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo check --manifest-path src-tauri/Cargo.toml
 ```
@@ -32,16 +47,19 @@ $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo check --manifest-path
 Permite testar a interface do editor, formatações WYSIWYG, serialização GFM e temas diretamente no navegador.
 
 ### Desenvolvimento Web (Live Reload na porta :1420 ou :5173)
+
 ```powershell
 npm run dev
 ```
 
 ### Build Web de Produção (Gera os arquivos na pasta `dist/`)
+
 ```powershell
 npm run build
 ```
 
 ### Preview da Build Web Local
+
 ```powershell
 npm run preview
 ```
@@ -55,24 +73,29 @@ npm run preview
 Executável nativo com acesso completo ao sistema de arquivos, terminal PTY real contextual e watcher de mudanças externas.
 
 ### Desenvolvimento Desktop (Hot Reload Svelte + Recompilação Rust)
+
 ```powershell
 # No PowerShell (garantindo o PATH do cargo):
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; npm run tauri dev
 ```
 
-*Se o Rust já estiver no PATH padrão da sessão:*
+_Se o Rust já estiver no PATH padrão da sessão:_
+
 ```powershell
 npm run tauri dev
 ```
 
 ### Build de Produção Desktop (.exe / .msi no Windows)
+
 ```powershell
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; npm run tauri build
 ```
+
 Os instaladores e binários compilados são gerados em:
 `src-tauri/target/release/` e `src-tauri/target/release/bundle/`
 
 ### Limpeza e Recompilação Limpa (Clean Build)
+
 ```powershell
 cd src-tauri
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo clean
@@ -82,65 +105,97 @@ npm run tauri build
 
 ---
 
-## 4. Plataforma Mobile (Android)
+## 4. Plataforma Mobile (Android) — [EM VALIDAÇÃO]
 
-O Tauri v2 possui suporte oficial a alvos mobile Android.
+> **Status:** O scaffold nativo (`src-tauri/gen/android`) e os alvos Rust já foram inicializados. A validação de execução no dispositivo e estabilidade do APK está em andamento.
 
-### 4.1. Pré-requisitos de Ambiente Android
-1. **Android Studio** instalado com:
-   - Android SDK Platform (API 24+)
-   - Android SDK Build-Tools
-   - NDK (Side by side)
-   - Android SDK Command-line Tools
-2. **Java Development Kit (JDK 17 ou 21)**
-3. **Targets Rust para Android instalados:**
-   ```powershell
-   rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
-   ```
-4. **Variáveis de Ambiente Configuradas (PowerShell):**
-   ```powershell
-   $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr" # ou caminho do JDK
-   $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-   $env:NDK_HOME = "$env:ANDROID_HOME\ndk\<sua-versao-ndk>"
-   ```
+### 4.1. Configuração de Variáveis de Ambiente (PowerShell Obrigatório)
 
-### 4.2. Inicialização do Projeto Android (Primeira Vez)
-Cria o scaffold nativo do Android em `src-tauri/gen/android`:
+Para qualquer comando Android no PowerShell, execute primeiro o bloco abaixo para garantir que o Rust, o Java JBR do Android Studio, o SDK e o NDK estejam devidamente mapeados na sessão:
+
+```powershell
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
+```
+
+> **Dica para verificar versões de NDK instaladas:**
+>
+> ```powershell
+> Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\ndk" | Select-Object Name
+> ```
+
+### 4.2. Instalação dos Targets Rust para Android (Feito uma única vez)
+
+_(Já instalados no ambiente)_:
+
+```powershell
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+```
+
+### 4.3. Inicialização do Projeto Android
+
+_(Já executado — cria o scaffold em `src-tauri/gen/android`)_:
+
 ```powershell
 npx tauri android init
 ```
 
-### 4.3. Desenvolvimento Android (Emulador ou Dispositivo Físico)
-Com o emulador aberto ou dispositivo conectado via USB com Depuração USB ativada (`adb devices`):
+### 4.4. Desenvolvimento Android (Emulador ou Dispositivo Físico)
+
+Certifique-se de que um emulador esteja em execução no Android Studio ou um aparelho celular conectado via USB com a **Depuração USB** habilitada (valide com `adb devices`):
+
 ```powershell
+# Carregar variáveis de ambiente:
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
+
+# Iniciar em modo dev:
 npx tauri android dev
 ```
 
-*Para especificar um alvo de arquitetura:*
+_Para direcionar uma arquitetura específica:_
+
 ```powershell
 npx tauri android dev --target aarch64-linux-android
 ```
 
-### 4.4. Build de Distribuição Android (APK / AAB)
-> **Nota do Tauri v2:** O comando `tauri android build` gera compilações em modo **Release** por padrão. Para gerar versões de desenvolvimento/debug, use a flag `--debug`.
+### 4.5. Build de Distribuição Android (APK / AAB)
 
-#### Gerar APK (Instalação Direta):
+> **Nota do Tauri v2:** O comando `tauri android build` gera compilações em modo **Release** por padrão. Para gerar versões de desenvolvimento/debug (sem necessidade de assinatura com chave de produção), use a flag `--debug`.
+
+#### Gerar APK Debug (Recomendado para validação e testes rápidos):
+
 ```powershell
-# Build Otimizada de Release (Padrão):
-npx tauri android build --apk
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
 
-# Build Debug / Testes rápidos:
 npx tauri android build --apk --debug
 ```
 
-#### Gerar Android App Bundle (AAB para Google Play Store):
+#### Gerar APK Release (Produção otimizada):
+
 ```powershell
-# Build Otimizada de Release (Padrão):
+npx tauri android build --apk
+```
+
+#### Gerar Android App Bundle (AAB para Google Play Store):
+
+```powershell
 npx tauri android build --aab
 ```
 
 Os pacotes gerados ficam localizados em:
-`src-tauri/gen/android/app/build/outputs/apk/` e `.../bundle/`
+
+- **APK Debug:** `src-tauri/gen/android/app/build/outputs/apk/universal/debug/` (ou por arquitetura)
+- **APK Release:** `src-tauri/gen/android/app/build/outputs/apk/universal/release/`
+- **AAB Release:** `src-tauri/gen/android/app/build/outputs/bundle/release/`
 
 ---
 

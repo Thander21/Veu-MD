@@ -138,6 +138,7 @@
       }
     });
 
+    (window as any).__veuActiveEditorView = editorView;
     onEditorReady(editorView);
     handleSelection(editorView);
   }

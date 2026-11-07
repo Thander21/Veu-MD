@@ -332,7 +332,8 @@
   .close-btn {
     background: transparent;
     border: none;
-    color: rgba(200, 210, 230, 0.6);
+    color: var(--veu-text-color);
+    opacity: 0.7;
     cursor: pointer;
     border-radius: 4px;
     padding: 3px;
@@ -341,6 +342,7 @@
   .close-btn:hover {
     background-color: var(--veu-active-item-bg);
     color: var(--veu-text-color);
+    opacity: 1;
   }
 
   .drawer-body {
@@ -363,11 +365,13 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(200, 210, 230, 0.6);
+    color: var(--veu-text-color);
+    opacity: 0.7;
   }
 
   .preset-buttons {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
   }
 
