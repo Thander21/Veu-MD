@@ -103,20 +103,22 @@
 ## Handoff
 
 - **Feature**: veu-md-advanced / .specs/features/veu-md-advanced/
-- **Phase / Task**: Phase 4: Execute / T05: Exportação Fiel ao Tema Ativo (PDF & Copiar HTML)
+- **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
   - AD-001..AD-012
   - Backlog Técnico Anti-Bloat documentado em `Docs/BACKLOG_TECNICO.md`
   - context.md registrado com decisões 1 a 5 aprovadas
   - spec.md atualizado com requisitos EARS (18 critérios, 0 erros no validador)
   - tasks.md configurado com portões determinísticos e checks comprováveis (0 erros no validador)
-  - Portão `validate_tasks.py veu-md-advanced --execute` verificado com sucesso
   - T01: Terminal Multi-Projeto Persistente implementado e commitado (82db697)
   - T02: Ergonomia, Seleção com Mouse e Ações Rápidas no Terminal implementado e commitado (1c69092)
   - T03: Smart Paste de IA & Normalização Estrutural de Markdown implementado e commitado (833609e)
   - T04: Quick Open (Ctrl+P) Fuzzy Finder no Projeto Ativo implementado e commitado (68d8b04)
-- **In-progress**: T05: Exportação Fiel ao Tema Ativo (PDF Print & Copiar HTML)
-- **Next step**: Implementar botão e atalho de exportação para PDF via @media print estilizado e ação 'Copiar como HTML formatado'.
+  - T05: Exportação Fiel ao Tema Ativo (PDF Print & Copiar HTML) implementado e commitado (bcd9ad2)
+  - proofs.md gerado com 6 pass, 0 fail em HEAD clean tree
+  - verification.md verificado com 0 erros (validate_verification exits 0)
+- **In-progress**: none
+- **Next step**: Feature 100% entregue e pronta para uso.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master

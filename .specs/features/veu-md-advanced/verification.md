@@ -1,7 +1,7 @@
 # Veu MD Phase 2 (Terminal Multi-Projeto & Produtividade) - verification
 
 **Verdict**: PASS
-**Proofs**: `proofs.md` at 6eea714
+**Proofs**: `proofs.md` at dfcda58
 **Verifier**: independent sub-agent (author != verifier)
 
 ## Checks

@@ -1,7 +1,7 @@
 # veu-md-advanced proofs
 
-**HEAD**: f0d7ca9
-**Tree**: dirty - src/lib/components/ThemeSettings.svelte
+**HEAD**: dfcda58
+**Tree**: clean
 **Shell**: C:/Program Files/Git\bin\bash.exe
 **Result**: 6 pass, 0 fail
 
@@ -22,7 +22,7 @@
 > veu-md@0.1.0 check:rust
 > %USERPROFILE%\.cargo\bin\cargo.exe check --manifest-path src-tauri/Cargo.toml
 
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.98s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.13s
 ```
 
 `Run typecheck` - exit 0
