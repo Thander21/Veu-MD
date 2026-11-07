@@ -130,25 +130,33 @@
 - **Date**: 2026-11-07
 - **Status**: active
 
+### AD-017
+- **Decision**: Substituir a emulação CRT de xterm.js pelo Terminal Veu com fluxo sequencial, linha do tempo de blocos de comando/saída formatada com parser ANSI nativo e prompt interativo editável ao final do fluxo com bloqueio de concorrência.
+- **Reason**: Atende aos dois princípios centrais do produto (leveza e uso intuitivo) e elimina a rigidez de edição de texto do xterm, prevenindo confusão de comandos concorrentes e entregando leitura editorial limpa sem poluição de códigos ANSI.
+- **Trade-off**: Programas de tela cheia baseados em ncurses/TUI (como vim puro ou htop) não são suportados, priorizando desenvolvedores e redatores que executam comandos sequenciais de compilação, testes, git, scripts e IA.
+- **Scope**: TerminalPanel.svelte, ansiParser.ts, ergonomia de terminal.
+- **Date**: 2026-11-07
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: veu-md-ui-refinement / .specs/features/veu-md-ui-refinement/
+- **Feature**: terminal-veu / .specs/features/terminal-veu/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-001..AD-016
-  - spec.md com 14 critérios de aceitação EARS (0 erros no validador)
-  - tasks.md validado com portões determinísticos e checks comprováveis (0 erros no validador)
-  - T01: Reorganização da TopBar e Gatilho Wizard IA implementado
-  - T02: Limpeza do Terminal Duplicado na Barra do Explorer implementado
-  - T03: Logo Conceito e Ergonomia de Fechar Projetos implementado
-  - T04: Registro do Tema Oficial Veu MD implementado
-  - T05: Seletor Dropdown e Auto-Personalização no Drawer implementado
+  - AD-001..AD-017
+  - spec.md com 9 critérios de aceitação EARS (0 erros no validador)
+  - tasks.md validado com portões determinísticos e checks comprováveis (0 erros no validador com --execute)
+  - T01: Utilitário Parser ANSI Ultraleve e Tipografia Limpa implementado
+  - T02: Linha do Tempo Sequencial e Blocos de Terminal Veu implementado
+  - T03: Prompt de Entrada Editável ao Final do Fluxo com Histórico implementado
+  - T04: Gestão de Concorrência, Streaming em Tempo Real e Botão Parar implementado
+  - T05: Ações Rápidas por Bloco (Copiar/Inserir) e Limpeza de Sessão implementado
   - proofs.md gerado com 6 pass, 0 fail
   - verification.md verificado e aprovado com validate_verification
 - **In-progress**: none
-- **Next step**: Todas as melhorias solicitadas estão 100% integradas, testadas e validadas.
+- **Next step**: Terminal Veu 100% integrado, leve, sem xterm cru, rápido e intuitivo.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master

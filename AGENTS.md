@@ -11,11 +11,14 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Edição 100% WYSIWYG Estilo Word:**
   - O editor ProseMirror **NUNCA** deve exibir caracteres brutos de formatação Markdown (`#`, `**`, `*`, `>`, ````) no corpo do texto durante leitura ou digitação.
   - A experiência visual deve ser fluida e direta, idêntica a processadores de texto ricos (Word/Pages).
+- **Terminal Veu — Sequencial, Editorial e Interativo (Anti-CRT):**
+  - O terminal não utiliza a matriz CRT rígida de caracteres do xterm clássico. Adota o **Terminal Veu** com fluxo sequencial de blocos, tipografia editorial e parser ANSI semântico nativo (`ansiParser.ts`).
+  - O prompt de entrada é interativo e editável com seleção nativa por mouse, navegação por histórico com setas (`ArrowUp`/`ArrowDown`) e clique livre para mover o cursor, posicionado ao final da linha do tempo quando a sessão está ociosa.
+  - Durante a execução de um comando, o prompt de nova digitação é bloqueado para evitar concorrência e confusão operacional, exibindo streaming contínuo da saída com status e botão **Parar (`Ctrl+C`)**.
 - **Persistência e Continuidade do Terminal Multi-Projeto:**
   - **NUNCA** destrua o `<TerminalPanel>` usando blocos de re-renderização reativa como `{#key currentFolderPath}`.
   - Cada projeto aberto mantém suas sessões e buffers de PTY ativos em background (ocultos via CSS `.hidden`), preservando compilações, servidores locais e histórico de comandos ao alternar entre abas de projetos.
   - O comando `kill_terminal` no backend Rust só deve ser disparado quando a aba do projeto for **explicitamente fechada** pelo usuário (`closeProject`), nunca durante troca de foco.
-  - O redimensionamento do xterm (`fitAddon.fit()`) só pode ser invocado quando o contêiner possuir dimensões reais (`clientWidth > 0 && clientHeight > 0`) para evitar corrupção de colunas no PTY.
 - **Anti-Bloat & Filtro Inegociável de Leveza:**
   - O footprint do app deve permanecer em ~5 MB a repouso com cold start < 300 ms.
   - É estritamente proibido embutir runtimes pesados (Node.js/npm no host, modelos de IA embutidos como Whisper de 500MB, ou WebViews secundárias para login).
@@ -47,7 +50,7 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 | :--- | :--- | :--- |
 | **Frontend UI** | **Svelte 5 + TypeScript + Vite** | Interface cirúrgica reativa, sistema de abas, explorer e painéis com zero Virtual DOM |
 | **Editor Core** | **ProseMirror Core Puro** | Schema customizado, serializador bidirecional Markdown GFM, menus flutuantes e inline |
-| **Terminal** | **@xterm/xterm + WebGL** | Terminal integrado contextualizado na pasta ativa |
+| **Terminal** | **Terminal Veu + portable-pty Rust** | Terminal sequencial, editorial e leve contextualizado na pasta ativa |
 | **Desktop / Core**| **Tauri v2 + Rust 2021** | IPC seguro, manipulação de arquivos, PTY nativo (`portable-pty`), watcher (`notify`) |
 | **Mobile** | **Tauri v2 Mobile (Android)** | Wrapper nativo mobile para Android via NDK/Gradle |
 

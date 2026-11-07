@@ -101,12 +101,12 @@ O **Terminal Veu** redefine a experiência do terminal integrado, adotando um fl
 
 | Requirement ID | User Story | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| TERM-01 | Interface Sequencial e Leitura Editorial no Terminal Veu | P1 | Pending |
-| TERM-02 | Parser Ultraleve de ANSI e Tipografia Limpa | P1 | Pending |
-| TERM-03 | Ações de Copiar e Inserir no Editor por Bloco | P1 | Pending |
-| TERM-04 | Prompt de Entrada Editável e Sequencial ao Final do Fluxo | P1 | Pending |
-| TERM-05 | Navegação de Histórico com Setas Cima/Baixo | P1 | Pending |
-| TERM-06 | Controle de Concorrência e Bloqueio Durante Execução | P1 | Pending |
-| TERM-07 | Botão de Interrupção e Cancelamento (Ctrl+C / Parar) | P1 | Pending |
-| TERM-08 | Preservação de Sessões e Buffers Multi-Projeto | P1 | Pending |
-| TERM-09 | Limpeza do Histórico Visual Mantendo Sessão | P1 | Pending |
+| TERM-01 | Interface Sequencial e Leitura Editorial no Terminal Veu | P1 | Satisfied |
+| TERM-02 | Parser Ultraleve de ANSI e Tipografia Limpa | P1 | Satisfied |
+| TERM-03 | Ações de Copiar e Inserir no Editor por Bloco | P1 | Satisfied |
+| TERM-04 | Prompt de Entrada Editável e Sequencial ao Final do Fluxo | P1 | Satisfied |
+| TERM-05 | Navegação de Histórico com Setas Cima/Baixo | P1 | Satisfied |
+| TERM-06 | Controle de Concorrência e Bloqueio Durante Execução | P1 | Satisfied |
+| TERM-07 | Botão de Interrupção e Cancelamento (Ctrl+C / Parar) | P1 | Satisfied |
+| TERM-08 | Preservação de Sessões e Buffers Multi-Projeto | P1 | Satisfied |
+| TERM-09 | Limpeza do Histórico Visual Mantendo Sessão | P1 | Satisfied |
