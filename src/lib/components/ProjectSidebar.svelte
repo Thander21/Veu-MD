@@ -33,14 +33,6 @@
     return clean.slice(0, 2).toUpperCase() || 'PR';
   }
 
-  function getProjectColor(name: string): string {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = Math.abs(hash) % 360;
-    return `hsl(${hue}, 65%, 45%)`;
-  }
 
   function toggleRecentMenu() {
     recentMenuOpen = !recentMenuOpen;
@@ -245,6 +237,34 @@
     flex-shrink: 0;
   }
 
+  .brand-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 2px 0 6px 0;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .brand-logo:hover {
+    transform: scale(1.08);
+  }
+
+  .brand-divider {
+    width: 24px;
+    height: 1px;
+    background-color: var(--veu-border-color);
+    margin: 0 0 8px 0;
+    opacity: 0.7;
+  }
+
   .projects-list {
     display: flex;
     flex-direction: column;
@@ -291,8 +311,10 @@
   .avatar-badge {
     width: 32px;
     height: 32px;
-    border-radius: 7px;
-    color: #ffffff;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--veu-active-item-bg), var(--veu-bg-editor));
+    border: 1px solid var(--veu-border-color);
+    color: var(--veu-text-color);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -300,10 +322,17 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.15s ease;
   }
 
   .project-tab-item.active .avatar-badge {
-    box-shadow: 0 0 0 2px var(--veu-h1-color);
+    border-color: var(--veu-h1-color);
+    color: var(--veu-h1-color);
+    box-shadow: 0 0 0 1px var(--veu-h1-color), 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  .project-tab-item:hover .avatar-badge {
+    border-color: var(--veu-h2-color);
   }
 
   .active-indicator {
@@ -314,36 +343,6 @@
     width: 3px;
     border-radius: 0 3px 3px 0;
     background-color: var(--veu-h1-color);
-  }
-
-  .close-tab-btn {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: var(--veu-bg-editor);
-    border: 1px solid var(--veu-border-color);
-    color: var(--veu-text-color);
-    opacity: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
-  }
-
-  .project-tab-item:hover .close-tab-btn {
-    opacity: 0.85;
-  }
-
-  .close-tab-btn:hover {
-    opacity: 1 !important;
-    background-color: #ef4444;
-    color: #ffffff;
-    border-color: #ef4444;
   }
 
   .action-btn {

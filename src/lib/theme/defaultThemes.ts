@@ -1,6 +1,41 @@
 import type { ThemeConfig } from '../types';
 
 export const defaultThemes: Record<string, ThemeConfig> = {
+  veumd: {
+    id: 'veumd',
+    name: 'Veu MD (Oficial)',
+    isDark: true,
+    editorMaxWidth: '860px',
+    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+    fontSize: '16px',
+    lineHeight: '1.75',
+
+    bgApp: '#0e0b16',
+    bgSidebar: '#140d24',
+    bgEditor: '#1a122c',
+    textColor: '#f1f0f7',
+    borderColor: '#2b2144',
+    activeItemBg: '#32204c',
+
+    h1: { color: '#f472b6', fontSize: '2.1rem', fontWeight: '700', borderBottom: '1px solid #7c3aed' },
+    h2: { color: '#c084fc', fontSize: '1.7rem', fontWeight: '600', borderBottom: '1px solid #581c87' },
+    h3: { color: '#a78bfa', fontSize: '1.4rem', fontWeight: '600' },
+    h4: { color: '#818cf8', fontSize: '1.2rem', fontWeight: '600' },
+    h5: { color: '#60a5fa', fontSize: '1.05rem', fontWeight: '600' },
+    h6: { color: '#94a3b8', fontSize: '0.95rem', fontWeight: '600' },
+
+    bold: { color: '#ffffff', fontWeight: '700' },
+    italic: { color: '#e9d5ff' },
+    strikethrough: { color: '#71717a' },
+    highlight: { color: '#0e0b16', backgroundColor: '#f472b6' },
+    inlineCode: { color: '#f472b6', backgroundColor: '#2b173e' },
+    blockquote: { color: '#d8b4fe', backgroundColor: 'rgba(192, 132, 252, 0.08)', borderLeft: '4px solid #c084fc' },
+    codeBlock: { color: '#f5f3ff', backgroundColor: '#0a0612' },
+    link: { color: '#f472b6' },
+    listBullet: { color: '#c084fc' },
+    tableBorder: '#352554',
+    tableHeaderBg: '#221538'
+  },
   veu: {
     id: 'veu',
     name: 'V.E.U. Crepúsculo (Padrão)',
