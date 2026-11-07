@@ -13,7 +13,8 @@
     RefreshCw,
     Search,
     ListTree,
-    FolderX
+    FolderX,
+    X
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
   import type { FileNode, HeadingItem } from '../types';
@@ -116,8 +117,8 @@
           <button class="action-btn" title="Atualizar Árvore" on:click={onRefreshTree}>
             <RefreshCw size={13} />
           </button>
-          <button class="action-btn close-folder-btn" title="Fechar Pasta" on:click={onCloseFolder}>
-            <FolderX size={14} />
+          <button class="action-btn close-folder-btn" title="Fechar Projeto" on:click={onCloseFolder}>
+            <X size={14} />
           </button>
         {/if}
       </div>

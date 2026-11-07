@@ -75,24 +75,48 @@
 </script>
 
 <aside class="project-activity-bar" aria-label="Abas de Projetos">
+  <!-- Marca / Logo Conceito no Topo -->
+  <div class="brand-header" title="V.E.U. MD — Editor Markdown de Alta Performance">
+    <div class="brand-logo">
+      <svg viewBox="0 0 512 512" width="28" height="28" aria-hidden="true">
+        <defs>
+          <linearGradient id="brandLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f472b6"/>
+            <stop offset="50%" stop-color="#c084fc"/>
+            <stop offset="100%" stop-color="#7c3aed"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="112" ry="112" fill="#0e0b16"/>
+        <rect x="6" y="6" width="500" height="500" rx="106" ry="106" fill="none" stroke="#2b2144" stroke-width="8"/>
+        <g transform="translate(48, 40)">
+          <path d="M 50 80 L 190 320 L 225 320 L 115 80 Z" fill="#7c3aed" opacity="0.95"/>
+          <path d="M 120 80 L 208 340 L 296 80 L 260 80 L 208 280 L 156 80 Z" fill="#c084fc"/>
+          <path d="M 270 80 L 215 320 L 250 320 L 366 80 Z" fill="#f472b6"/>
+          <circle cx="208" cy="360" r="14" fill="#f472b6"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="brand-divider"></div>
+
   <!-- Topo: Lista de abas de projetos abertos -->
   <div class="projects-list">
     {#each projects as project (project.id)}
       {@const isActive = project.id === activeProjectId}
       {@const initials = getProjectInitials(project.name)}
-      {@const color = getProjectColor(project.name)}
       <div
         class="project-tab-item"
         class:active={isActive}
-        title="{project.name}&#10;{project.folderPath}"
+        title="{project.name}&#10;{project.folderPath}&#10;(Botão direito para fechar)"
       >
         <button
           class="project-avatar-btn"
           on:click={() => onSelectProject(project.id)}
+          on:contextmenu|preventDefault={() => onCloseProject(project.id)}
           aria-label="Alternar para o projeto {project.name}"
         >
-          <span class="avatar-badge" style="background-color: {color}">
-            {initials}
+          <span class="avatar-badge">
+            <span class="badge-text">{initials}</span>
           </span>
         </button>
 
@@ -100,16 +124,6 @@
         {#if isActive}
           <div class="active-indicator"></div>
         {/if}
-
-        <!-- Botão de fechar aba do projeto -->
-        <button
-          class="close-tab-btn"
-          title="Fechar projeto {project.name}"
-          on:click|stopPropagation={() => onCloseProject(project.id)}
-          aria-label="Fechar projeto"
-        >
-          <X size={12} />
-        </button>
       </div>
     {/each}
 
@@ -191,10 +205,10 @@
 
                   <button
                     class="remove-recent-btn"
-                    title="Remover do histórico"
+                    title="Fechar / Remover projeto do histórico"
                     on:click|stopPropagation={() => onRemoveRecent(item.folderPath)}
                   >
-                    <Trash2 size={13} />
+                    <X size={14} />
                   </button>
                 </div>
               {/each}
