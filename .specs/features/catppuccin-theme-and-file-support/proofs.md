@@ -1,6 +1,6 @@
 # catppuccin-theme-and-file-support proofs
 
-**HEAD**: f94612c
+**HEAD**: 313269c
 **Tree**: clean
 **Shell**: C:/Program Files/Git\bin\bash.exe
 **Result**: 5 pass, 0 fail
