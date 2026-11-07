@@ -13,6 +13,7 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from 'svelte';
   import {
+    BotMessageSquare,
     Wand2,
     X,
     Send,
@@ -239,15 +240,15 @@
 </script>
 
 {#if visible}
-  <aside class="ai-drawer" aria-label="Assistente IA Veu">
+  <aside class="ai-drawer" aria-label="Chat IA Veu">
     <!-- Cabeçalho do Assistente -->
     <div class="drawer-header">
       <div class="drawer-title">
         <div class="wand-icon-wrap">
-          <Wand2 size={15} class="icon-accent" />
+          <BotMessageSquare size={16} class="icon-accent" />
         </div>
         <div class="title-meta">
-          <span class="main-title">Assistente IA</span>
+          <span class="main-title">Chat IA</span>
           <span class="agent-badge" title="Agente CLI ativo">{activeCliTool.toUpperCase()}</span>
         </div>
       </div>
@@ -424,6 +425,7 @@
     flex-direction: column;
     flex-shrink: 0;
     z-index: 28;
+    box-shadow: -2px 0 16px rgba(0, 0, 0, 0.25);
     animation: slideInRight 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
 

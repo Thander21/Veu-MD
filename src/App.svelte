@@ -866,7 +866,6 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         {fileTree}
         {currentFolderPath}
         {headings}
-        {aiAssistantOpen}
         onOpenFile={openFile}
         onOpenFolder={openFolderDialog}
         onCloseFolder={closeFolder}
@@ -881,8 +880,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         onCollapse={() => (sidebarOpen = false)}
         onQuickOpen={() => (quickOpenVisible = true)}
         onWizard={() => {
-          aiAssistantOpen = !aiAssistantOpen;
-          if (aiAssistantOpen) themeSettingsOpen = false;
+          // Reservado para funcionalidade futura do Wizard
         }}
       />
     {/if}

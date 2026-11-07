@@ -22,7 +22,7 @@
     Printer,
     Copy,
     Check,
-    Wand2
+    BotMessageSquare
   } from 'lucide-svelte';
   import type { EditorView } from 'prosemirror-view';
   import { toggleMark, setBlockType } from 'prosemirror-commands';
@@ -333,18 +333,8 @@
     {/if}
   </div>
 
-  <!-- Grupo Direito: IA, Temas & Terminal -->
+  <!-- Grupo Direito: Temas, Terminal & Chat IA -->
   <div class="group right-group">
-    <button
-      class="btn icon-btn"
-      class:active={aiAssistantOpen}
-      title="Assistente IA • Antigravity / agy (Ctrl+L)"
-      on:click={onToggleAiAssistant}
-    >
-      <Wand2 size={16} />
-      <span>Assistente IA</span>
-    </button>
-
     <button
       class="btn icon-btn"
       class:active={themeSettingsOpen}
@@ -363,6 +353,16 @@
     >
       <TerminalSquare size={17} />
       <span>Terminal</span>
+    </button>
+
+    <button
+      class="btn icon-btn"
+      class:active={aiAssistantOpen}
+      title="Chat IA • Antigravity / agy (Ctrl+L)"
+      on:click={onToggleAiAssistant}
+    >
+      <BotMessageSquare size={17} />
+      <span>Chat IA</span>
     </button>
   </div>
 </header>

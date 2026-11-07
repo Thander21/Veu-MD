@@ -39,7 +39,6 @@
   export let onCollapse: (() => void) | undefined = undefined;
   export let onQuickOpen: (() => void) | undefined = undefined;
   export let onWizard: () => void = () => {};
-  export let aiAssistantOpen: boolean = false;
 
   let activeTab: 'explorer' | 'outline' = 'explorer';
   let searchQuery = '';
@@ -158,10 +157,9 @@
 
       <button
         class="header-action-btn wizard-btn"
-        class:btn-active={aiAssistantOpen}
-        title="Assistente IA • Antigravity / agy (Ctrl+L)"
+        title="Assistente Wizard (Criação guiada)"
         on:click={onWizard}
-        aria-label="Abrir Assistente IA"
+        aria-label="Assistente Wizard"
       >
         <Wand2 size={14} />
       </button>
@@ -382,12 +380,6 @@
     opacity: 1;
     background-color: var(--veu-active-item-bg);
     color: var(--veu-h1-color);
-  }
-
-  .header-action-btn.wizard-btn.btn-active {
-    color: var(--veu-h1-color);
-    background-color: rgba(244, 114, 182, 0.15);
-    opacity: 1;
   }
 
   .header-action-btn:disabled {

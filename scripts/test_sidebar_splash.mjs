@@ -34,6 +34,11 @@ assert(sidebar.includes('resizer') || sidebar.includes('handleMouseDown') || sid
 const topBar = fs.readFileSync(path.join(rootDir, 'src', 'lib', 'components', 'TopBar.svelte'), 'utf-8');
 assert(!topBar.includes('brand-logo-img'), 'TopBar não deve conter o logotipo da marca');
 assert(!topBar.includes('brand-title'), 'TopBar não deve conter o título V.E.U. MD');
+assert(topBar.includes('BotMessageSquare') && topBar.includes('Chat IA'), 'TopBar deve conter o botão de Chat IA com ícone BotMessageSquare ao lado do Terminal');
+
+// 6. Testa AiAssistantPanel.svelte
+const aiPanel = fs.readFileSync(path.join(rootDir, 'src', 'lib', 'components', 'AiAssistantPanel.svelte'), 'utf-8');
+assert(aiPanel.includes('BotMessageSquare') && aiPanel.includes('Chat IA'), 'AiAssistantPanel deve exibir título e ícone Chat IA');
 
 console.log('SUCCESS: Todos os contratos de layout, splash screen e barra lateral passaram!');
 process.exit(0);

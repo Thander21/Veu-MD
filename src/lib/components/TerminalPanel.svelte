@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
@@ -16,7 +16,7 @@
     Eraser,
     CornerDownLeft,
     FlaskConical,
-    Wand2
+    BotMessageSquare
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -589,10 +589,10 @@
           {#if onOpenAiAssistant}
             <button
               class="action-btn"
-              title="Enviar seleção ou comando ao Assistente IA (Ctrl+L)"
+              title="Enviar seleção ou comando ao Chat IA (Ctrl+L)"
               on:click={handleSendToAi}
             >
-              <Wand2 size={13} />
+              <BotMessageSquare size={13} />
             </button>
           {/if}
 
