@@ -10,7 +10,8 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:rust": "%USERPROFILE%\\.cargo\\bin\\cargo.exe check --manifest-path src-tauri/Cargo.toml",
     "test": "node scripts/test_project_manager.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:desktop:external": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process powershell -ArgumentList '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/build_desktop_external.ps1'\""
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.3",

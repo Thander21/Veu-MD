@@ -4,6 +4,8 @@ Cheat-sheet com os comandos de execução, desenvolvimento, testes e geração d
 
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'W:\\\_Projetos\\Veu MD'; npm run tauri build"
 
+npm run build:desktop:external
+
 ---
 
 ## 🚦 Status Atual das Plataformas
@@ -89,8 +91,16 @@ npm run tauri dev
 
 ### Build de Produção Desktop (.exe / .msi no Windows)
 
-```
+```powershell
 $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; npm run tauri build
+```
+
+#### Build em Janela Externa Separada (Ideal ao usar o Veu MD para desenvolver o próprio Veu MD)
+
+Abre uma janela dedicada e independente do PowerShell com o PATH do Cargo pré-configurado, sem travar a interface do editor e mantendo a janela aberta ao final:
+
+```powershell
+npm run build:desktop:external
 ```
 
 Os instaladores e binários compilados são gerados em: `src-tauri/target/release/` e `src-tauri/target/release/bundle/`
