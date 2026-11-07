@@ -98,27 +98,57 @@
 - **Date**: 2026-11-07
 - **Status**: active
 
+### AD-013
+- **Decision**: Reorganizar semântica da TopBar, movendo Salvar, Imprimir e Copiar HTML para o grupo de formatação do editor e dedicando o topo esquerdo para o assistente IA Wizard (`Wand2`) e busca rápida (`Ctrl+P`).
+- **Reason**: Desacopla ações de arquivo único do seletor de pastas de projetos e elimina botões redundantes com a barra lateral de arquivos.
+- **Trade-off**: Usuários acostumados com "Salvar" no canto esquerdo encontram agora a ação no fluxo de formatação junto a desfazer/refazer.
+- **Scope**: TopBar.svelte, App.svelte, ações do documento.
+- **Date**: 2026-11-07
+- **Status**: active
+
+### AD-014
+- **Decision**: Eliminar gatilho redundante de terminal da barra de ferramentas do Explorer (`Sidebar.svelte`).
+- **Reason**: O terminal já é acessível tanto no topo direito (`TopBar`) quanto no rodapé (`StatusBar`), evitando poluição visual nas ações de pasta/arquivo.
+- **Trade-off**: Usuários que preferiam clicar no terminal dentro da barra de arquivos usam os atalhos ou os botões dedicados de topo/rodapé.
+- **Scope**: Sidebar.svelte, Explorer toolbar.
+- **Date**: 2026-11-07
+- **Status**: active
+
+### AD-015
+- **Decision**: Remover o botão de fechar sobreposto (`X`) no topo dos avatares de projeto em `ProjectSidebar.svelte`, padronizando o fechamento via clique com botão direito ou pelo botão vermelho `X` pós-nome no Explorer.
+- **Reason**: O botão sobreposto anterior obstruía o clique no avatar e causava fechamentos acidentais de projetos ativos.
+- **Trade-off**: O fechamento na activity bar agora ocorre via menu de contexto / botão direito ou na barra de título do Explorer.
+- **Scope**: ProjectSidebar.svelte, Sidebar.svelte, ergonomia de projetos.
+- **Date**: 2026-11-07
+- **Status**: active
+
+### AD-016
+- **Decision**: Adotar o tema oficial "Veu MD" (`veumd`) inspirado na paleta Crepúsculo Editorial Obsidian (`#0e0b16`, `#f472b6`, `#c084fc`, `#7c3aed`), definindo-o como tema padrão e utilizando seletor dropdown com comutação automática para "Personalizado".
+- **Reason**: Estabelece a identidade visual canônica da marca com zero atrito de configuração manual para usuários que alteram qualquer valor de cor ou layout.
+- **Trade-off**: Altera o tema inicial de primeiro uso de `veu` para `veumd`.
+- **Scope**: defaultThemes.ts, themeStore.ts, ThemeSettings.svelte.
+- **Date**: 2026-11-07
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: veu-md-advanced / .specs/features/veu-md-advanced/
+- **Feature**: veu-md-ui-refinement / .specs/features/veu-md-ui-refinement/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-001..AD-012
-  - Backlog Técnico Anti-Bloat documentado em `Docs/BACKLOG_TECNICO.md`
-  - context.md registrado com decisões 1 a 5 aprovadas
-  - spec.md atualizado com requisitos EARS (18 critérios, 0 erros no validador)
-  - tasks.md configurado com portões determinísticos e checks comprováveis (0 erros no validador)
-  - T01: Terminal Multi-Projeto Persistente implementado e commitado (82db697)
-  - T02: Ergonomia, Seleção com Mouse e Ações Rápidas no Terminal implementado e commitado (1c69092)
-  - T03: Smart Paste de IA & Normalização Estrutural de Markdown implementado e commitado (833609e)
-  - T04: Quick Open (Ctrl+P) Fuzzy Finder no Projeto Ativo implementado e commitado (68d8b04)
-  - T05: Exportação Fiel ao Tema Ativo (PDF Print & Copiar HTML) implementado e commitado (bcd9ad2)
-  - proofs.md gerado com 6 pass, 0 fail em HEAD clean tree
-  - verification.md verificado com 0 erros (validate_verification exits 0)
+  - AD-001..AD-016
+  - spec.md com 14 critérios de aceitação EARS (0 erros no validador)
+  - tasks.md validado com portões determinísticos e checks comprováveis (0 erros no validador)
+  - T01: Reorganização da TopBar e Gatilho Wizard IA implementado
+  - T02: Limpeza do Terminal Duplicado na Barra do Explorer implementado
+  - T03: Logo Conceito e Ergonomia de Fechar Projetos implementado
+  - T04: Registro do Tema Oficial Veu MD implementado
+  - T05: Seletor Dropdown e Auto-Personalização no Drawer implementado
+  - proofs.md gerado com 6 pass, 0 fail
+  - verification.md verificado e aprovado com validate_verification
 - **In-progress**: none
-- **Next step**: Feature 100% entregue e pronta para uso.
+- **Next step**: Todas as melhorias solicitadas estão 100% integradas, testadas e validadas.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master
