@@ -11,6 +11,9 @@ fn get_themes_dir() -> PathBuf {
 
 #[tauri::command]
 pub fn save_custom_theme(theme_name: String, theme_json: String) -> Result<(), String> {
+    if !theme_name.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') || theme_name.is_empty() {
+        return Err("Nome de tema inválido: use apenas letras, números, hífen e underscore".to_string());
+    }
     let dir = get_themes_dir();
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join(format!("{}.json", theme_name));

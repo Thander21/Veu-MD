@@ -43,7 +43,7 @@ graph TD
 **Gate**: `npm run check:rust`
 **Done When**: A CSP em tauri.conf.json permite https://fonts.googleapis.com, https://fonts.gstatic.com, https:, blob: e asset.localhost em img-src, style-src e font-src sem violações.
 
-### T02: Sanitização contra Path Traversal em FS e Temas
+### T02: [x] Sanitização contra Path Traversal em FS e Temas
 **Where**: `src-tauri/src/commands/fs_cmd.rs`
 **Depends on**: T01
 **Tests**: `npm run check:rust`

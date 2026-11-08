@@ -139,12 +139,20 @@ pub fn save_image_asset(base_dir: String, filename: String, base64_data: String)
         fs::create_dir_all(&assets_dir).map_err(|e| e.to_string())?;
     }
 
-    let target_path = assets_dir.join(&filename);
+    let file_os_str = Path::new(&filename)
+        .file_name()
+        .ok_or_else(|| "Nome de arquivo inválido".to_string())?;
+    let safe_filename = file_os_str.to_string_lossy().to_string();
+    if safe_filename.is_empty() || safe_filename == "." || safe_filename == ".." {
+        return Err("Nome de arquivo inseguro ou inválido".to_string());
+    }
+
+    let target_path = assets_dir.join(&safe_filename);
     let comma_idx = base64_data.find(',').map(|i| i + 1).unwrap_or(0);
     let raw_payload = &base64_data[comma_idx..];
 
     let bytes = decode_base64(raw_payload)?;
     fs::write(&target_path, bytes).map_err(|e| format!("Erro ao salvar imagem binária: {}", e))?;
 
-    Ok(format!("./assets/{}", filename))
+    Ok(format!("./assets/{}", safe_filename))
 }
