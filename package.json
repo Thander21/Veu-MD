@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:rust": "%USERPROFILE%\\.cargo\\bin\\cargo.exe check --manifest-path src-tauri/Cargo.toml",
-    "test": "node scripts/test_project_manager.mjs",
+    "test": "node scripts/run_all_tests.mjs",
+    "test:e2e": "node scripts/test_chat_drawer.mjs",
     "tauri": "tauri",
     "build:desktop:external": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process powershell -ArgumentList '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', 'scripts/build_desktop_external.ps1'\""
   },

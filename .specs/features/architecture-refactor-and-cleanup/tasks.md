@@ -50,7 +50,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: O ativo redundante de 1.2 MB veu-app-icon.png é removido da pasta public, e o arquivo de teste texto.md é limpo da raiz sem afetar o build.
 
-### T03: Runner Unificado de Testes Automatizados com Modo Fail-Fast
+### T03: [x] Runner Unificado de Testes Automatizados com Modo Fail-Fast
 **Where**: `scripts/run_all_tests.mjs`
 **Depends on**: T02
 **Tests**: `npm test`
