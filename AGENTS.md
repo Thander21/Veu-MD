@@ -13,6 +13,7 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - A experiência visual deve ser fluida e direta, idêntica a processadores de texto ricos (Word/Pages).
 - **Terminal Veu — Sequencial, Editorial e Interativo (Anti-CRT):**
   - O terminal adota **exclusivamente o Terminal Veu** com fluxo sequencial de blocos, tipografia editorial e parser ANSI semântico nativo (`ansiParser.ts`). O motor xterm legado não deve ser reintroduzido.
+  - **Controle Total & Não-Interceptação de CLIs**: O Terminal Veu **NUNCA** deve interceptar, sequestrar ou redirecionar comandos de terminal (como `agy`, `claude`, `muse`, scripts ou subcomandos como `agy --add`) para gavetas de chat. O usuário possui controle total do PTY com streaming e parada via `Ctrl+C`.
   - **Normalização de ConPTY no Windows**: Retornos de carro (`\r`) e sequências de controle de cursor devem ser processados via `resolveCarriageReturns` para evitar texto sobreposto e ecos duplicados de comandos.
   - **Cold Start Imediato**: A inicialização do shell e seu banner inicial nunca devem ser descartados quando a lista de blocos estiver vazia; ao abrir o painel, a sessão deve estar pronta e o prompt imediatamente focado.
   - O prompt de entrada é interativo e editável com seleção nativa por mouse, navegação por histórico com setas (`ArrowUp`/`ArrowDown`) e clique livre para mover o cursor, posicionado ao final da linha do tempo quando a sessão está ociosa.
@@ -31,6 +32,7 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Anti-Bloat & Filtro Inegociável de Leveza:**
   - O footprint do app deve permanecer em ~5 MB a repouso com cold start < 300 ms.
   - É estritamente proibido embutir runtimes pesados (Node.js/npm no host, modelos de IA embutidos como Whisper de 500MB, ou WebViews secundárias para login).
+  - **Formatador de Código Embutido Leve (Zero-Bloat)**: A formatação de linguagens estruturadas (JSON, HTML, JS/TS/CSS, Markdown) é provida por formatadores puros em TypeScript (`codeFormatter.ts`), sem dependências pesadas externas (Prettier, Biome, Dprint) para preservar a integridade do binário leve.
 - **Fidelidade no Disco (.md Puro Padrão GFM):**
   - O documento em memória é serializado para Markdown padrão GitHub Flavored Markdown (GFM) com fidelidade total (tabelas, checklists, citações, código, imagens).
   - Qualquer outro editor de texto ou visualizador de repositório deve ler o arquivo normalmente com todas as tags canônicas.
@@ -133,6 +135,8 @@ O projeto adota a metodologia Spec-Driven Development através do framework `tlc
 - **Detecção Automática do `rc.exe` (Windows Resource Compiler):**
   - O arquivo `src-tauri/build.rs` contém busca de fallback para o compilador de recursos `rc.exe` no diretório canônico `C:\Program Files (x86)\Windows Kits\10\bin\*\x64\rc.exe`.
   - Nunca remova esta rotina para evitar quebras em terminais Windows padrão.
+- **Rastreamento de Recursos e Ícones Windows (`icon.ico`):**
+  - O arquivo `src-tauri/build.rs` deve conter obrigatoriamente `println!("cargo:rerun-if-changed=icons/icon.ico");` para garantir que alterações no logotipo e nos ícones invalidem o cache de compilação do recurso no Windows.
 - **Resolução de PATH Rust/Cargo no PowerShell:**
   - Caso o terminal não encontre `cargo` automaticamente, use o prefixo:
     ```powershell
