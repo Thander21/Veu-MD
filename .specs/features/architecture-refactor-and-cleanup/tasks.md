@@ -71,7 +71,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: A gestão de openProjects, activeProjectId, abas e persistência de storage é isolada em projectStore.ts e fsService.ts, reduzindo o acoplamento de App.svelte.
 
-### T06: Decomposição de AiAssistantPanel e AiSettingsView
+### T06: [x] Decomposição de AiAssistantPanel e AiSettingsView
 **Where**: `src/lib/components/AiSettingsView.svelte`
 **Depends on**: T05
 **Tests**: `npm run check`
