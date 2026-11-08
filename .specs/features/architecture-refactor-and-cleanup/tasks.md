@@ -78,7 +78,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: A tela de configurações do assistente de IA é extraída para o componente dedicado AiSettingsView.svelte, reduzindo a complexidade de AiAssistantPanel.svelte.
 
-### T07: Endurecimento de Segurança com CSP Estrita
+### T07: [x] Endurecimento de Segurança com CSP Estrita
 **Where**: `src-tauri/tauri.conf.json`
 **Depends on**: T06
 **Tests**: `npm run check && npm run check:rust && npm test`
