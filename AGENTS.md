@@ -46,7 +46,20 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - Qualquer outro editor de texto ou visualizador de repositório deve ler o arquivo normalmente com todas as tags canônicas.
 - **Abertura e Foco de Arquivos:**
   - Na árvore lateral (Explorer), apenas arquivos com extensão `.md` e `.txt` são abertos para edição no editor ProseMirror.
-  - Demais arquivos podem ser navegados ou gerenciados, mas não abertos para edição direta de texto.
+  - Arquivos de imagens (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) e vetores (`.svg`) são abertos como abas ativas dedicadas no componente `ImageViewer`.
+  - Demais arquivos podem ser navegados ou gerenciados no Explorer, mas não abertos para edição direta de texto.
+- **Visualização de Imagens e Vetores SVG (Dual-Mode):**
+  - O componente `ImageViewer` deve prover visualização gráfica centrada com controles de zoom e pan.
+  - Para arquivos SVG, a barra de ferramentas deve oferecer alternância fluida entre visualização gráfica renderizada e inspeção/cópia do código-fonte XML nativo.
+- **Padronização do Ícone Canônico de Markdown (.md):**
+  - Todos os nós de arquivos Markdown (`.md`, `.markdown`) na árvore lateral (`FileTreeNode`), na barra lateral (`Sidebar`) e na barra de abas (`TabBar`) **DEVEM** renderizar o componente canônico `VeuMdIcon`.
+  - O ícone segue a estética oficial do *Material Icon Theme* do VS Code (fundo roxo `#ab47bc` com cantos arredondados e os glifos brancos `M` e `↓`). É estritamente proibido substituir este ícone por logotipos com a letra "V" de Veu ou ícones genéricos de texto puro.
+- **Comportamento e Retração da Gaveta do Chat IA:**
+  - Ao abrir a gaveta lateral do Chat IA (`AiAssistantPanel`), o botão disparador externo na barra superior (`TopBar`) **DEVE** ser ocultado (`{#if !aiAssistantOpen}`).
+  - O ícone do assistente posicionado no canto superior esquerdo do cabeçalho da gaveta atua obrigatoriamente como ação direta de retração (`on:click={onClose}`), permitindo recolher a gaveta sem depender unicamente do botão `X`.
+- **Foco Editorial da Tela Inicial do Chat IA:**
+  - O estado vazio (`messages.length === 0`) do Chat IA deve exibir exclusivamente o cabeçalho editorial de boas-vindas e os chips de ação rápida focados na assistência à escrita (*Revisar clareza e estilo*, *Resumo em 3 tópicos*, *Estruturar novos tópicos*, *Introdução envolvente*).
+  - **NUNCA** insira cards intrusivos de execução de linha de comando ("Iniciar Normal" ou "Permissão Total") na tela inicial de chat; tais ações pertencem exclusivamente ao `TerminalPanel` ou às visões de Wizard/Configurações (`AiSettingsView`).
 - **Performance de Temas via GPU:**
   - Todas as cores de elementos semânticos (H1..H6, negrito, itálico, citações, inline code, blocos de código, tabelas, links) e espaçamentos são aplicados estritamente via CSS Custom Properties no `:root`.
   - A troca de tema ocorre sem recálculo de árvore DOM no JavaScript (custo zero de CPU / re-render pela GPU).
