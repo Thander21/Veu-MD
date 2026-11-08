@@ -22,6 +22,7 @@
     TerminalSquare
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
+  import VeuMdIcon from './VeuMdIcon.svelte';
   import type { FileNode, HeadingItem } from '../types';
 
   export let fileTree: FileNode[] = [];
@@ -110,7 +111,7 @@
   function getFileIcon(ext?: string) {
     if (!ext) return FileQuestion;
     const lower = ext.toLowerCase();
-    if (lower === 'md' || lower === 'markdown') return FileText;
+    if (lower === 'md' || lower === 'markdown') return VeuMdIcon;
     if (lower === 'html' || lower === 'htm') return FileCode;
     if (lower === 'json' || lower === 'jsonc') return FileJson;
     if (['css', 'scss', 'sass', 'less'].includes(lower)) return FileCode;

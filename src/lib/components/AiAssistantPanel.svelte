@@ -28,9 +28,7 @@
     Code2,
     Compass,
     Settings,
-    Terminal,
-    ArrowLeft,
-    Zap
+    ArrowLeft
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
@@ -305,18 +303,6 @@
     }
   }
 
-  function handleStartCli(fullPermissions: boolean) {
-    if (!onRunTerminalCommand) return;
-    const provider = AI_PROVIDERS[activeCliTool] || AI_PROVIDERS.agy;
-    const cmd = fullPermissions
-      ? `${provider.cli} --dangerously-skip-permissions`
-      : provider.cli;
-    const title = fullPermissions
-      ? `${provider.name} (Permissão Total)`
-      : `${provider.name}`;
-    onRunTerminalCommand(cmd, title);
-  }
-
   function handleFinishWizard() {
     localStorage.setItem('veu_ai_wizard_seen', 'true');
     activeView = 'chat';
@@ -474,48 +460,39 @@
             <div class="spark-circle">
               <Sparkles size={24} class="spark-icon" />
             </div>
-            <h3 class="empty-title">
-              {AI_PROVIDERS[activeCliTool]?.name || 'Agente de IA'}
-            </h3>
+            <h3 class="empty-title">Como posso acelerar sua escrita?</h3>
             <p class="empty-desc">
-              Inicie o CLI oficial diretamente no <strong>Terminal Veu</strong> ou envie sua solicitação no chat abaixo:
+              Comunique-se diretamente com o <strong>{AI_PROVIDERS[activeCliTool]?.name || 'Agente de IA'}</strong> ({activeCliTool}) para refinar, expandir e gerar conteúdo em Markdown puro.
             </p>
 
-            <div class="cli-launch-actions">
+            <div class="chips-grid">
               <button
-                class="cli-card-btn normal-btn"
-                on:click={() => handleStartCli(false)}
-                title="Iniciar {AI_PROVIDERS[activeCliTool]?.name || activeCliTool} no Terminal Veu"
+                class="chip-btn"
+                on:click={() => submitPrompt('Revise a pontuação, clareza e ritmo deste documento.')}
               >
-                <div class="cli-card-icon">
-                  <Terminal size={16} />
-                </div>
-                <div class="cli-card-content">
-                  <div class="cli-card-header">
-                    <span class="cli-card-title">Iniciar Normal</span>
-                    <span class="cli-badge default">Padrão</span>
-                  </div>
-                  <code class="cli-cmd">{activeCliTool}</code>
-                  <span class="cli-card-hint">Sessão interativa com confirmações padrão</span>
-                </div>
+                <CheckCheck size={13} />
+                <span>Revisar clareza e estilo</span>
               </button>
-
               <button
-                class="cli-card-btn full-perm-btn"
-                on:click={() => handleStartCli(true)}
-                title="Iniciar {AI_PROVIDERS[activeCliTool]?.name || activeCliTool} com Permissão Total no Terminal Veu"
+                class="chip-btn"
+                on:click={() => submitPrompt('Faça um resumo executivo em 3 tópicos do tema principal.')}
               >
-                <div class="cli-card-icon zap">
-                  <Zap size={16} />
-                </div>
-                <div class="cli-card-content">
-                  <div class="cli-card-header">
-                    <span class="cli-card-title">Permissão Total</span>
-                    <span class="cli-badge full">Auto-approve</span>
-                  </div>
-                  <code class="cli-cmd">{activeCliTool} --dangerously-skip-permissions</code>
-                  <span class="cli-card-hint">Execução autônoma com ferramentas auto-aprovadas</span>
-                </div>
+                <FileText size={13} />
+                <span>Resumo em 3 tópicos</span>
+              </button>
+              <button
+                class="chip-btn"
+                on:click={() => submitPrompt('Crie uma estrutura detalhada de tópicos para este artigo.')}
+              >
+                <Compass size={13} />
+                <span>Estruturar novos tópicos</span>
+              </button>
+              <button
+                class="chip-btn"
+                on:click={() => submitPrompt('Escreva uma introdução atraente e envolvente.')}
+              >
+                <Code2 size={13} />
+                <span>Introdução envolvente</span>
               </button>
             </div>
           </div>
@@ -835,116 +812,32 @@
     max-width: 280px;
   }
 
-  .cli-launch-actions {
+  .chips-grid {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
   }
 
-  .cli-card-btn {
+  .chip-btn {
     display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    background-color: rgba(127, 127, 127, 0.08);
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background-color: rgba(127, 127, 127, 0.07);
     border: 1px solid var(--veu-border-color);
     color: var(--veu-text-color);
+    font-size: 11.5px;
     text-align: left;
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
   }
 
-  .cli-card-btn:hover {
+  .chip-btn:hover {
     background-color: var(--veu-active-item-bg);
     border-color: var(--veu-h1-color);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-
-  .cli-card-btn.full-perm-btn:hover {
-    border-color: #f5c2e7;
-  }
-
-  .cli-card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background: rgba(116, 199, 236, 0.15);
-    color: #74c7ec;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .cli-card-icon.zap {
-    background: rgba(245, 194, 231, 0.15);
-    color: #f5c2e7;
-  }
-
-  .cli-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .cli-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-  }
-
-  .cli-card-title {
-    font-size: 12.5px;
-    font-weight: 600;
     color: var(--veu-text-color);
-  }
-
-  .cli-badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-
-  .cli-badge.default {
-    background: rgba(116, 199, 236, 0.2);
-    color: #74c7ec;
-  }
-
-  .cli-badge.full {
-    background: rgba(245, 194, 231, 0.2);
-    color: #f5c2e7;
-  }
-
-  .cli-cmd {
-    font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
-    font-size: 11px;
-    color: var(--veu-h1-color);
-    background: rgba(0, 0, 0, 0.25);
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .cli-card-hint {
-    font-size: 10.5px;
-    color: var(--veu-text-color);
-    opacity: 0.65;
-    line-height: 1.35;
   }
 
   /* Lista de Mensagens */
