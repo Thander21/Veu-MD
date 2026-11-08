@@ -58,13 +58,13 @@ Durante a auditoria arquitetural independente conduzida por dois juízes especia
 
 | ID | Requirement | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| CSP-01 | Permissão de Google Fonts na Content Security Policy | High | pending |
-| CSP-02 | Permissão de imagens remotas https e blob na CSP | High | pending |
-| SYNC-01 | Proteção atômica de troca de projeto contra race conditions | High | pending |
-| SYNC-02 | Debounce de 500ms na persistência de workspace no LocalStorage | Medium | pending |
-| DRAWER-01 | Posicionamento fixo de AiAssistantPanel conforme AGENTS.md | High | pending |
-| PTY-01 | Encerramento explícito de processos filhos PTY no Rust | High | pending |
-| PTY-02 | Persistência contínua do TerminalVeuPanel via classe CSS hidden | High | pending |
-| LOCK-01 | Granularidade individual de lock em write_terminal | Medium | pending |
-| SEC-01 | Sanitização contra Path Traversal em fs_cmd e theme_cmd | High | pending |
-| LEAK-01 | Desinscrição explícita de listeners IPC no onDestroy | Medium | pending |
+| CSP-01 | Permissão de Google Fonts na Content Security Policy | High | complete |
+| CSP-02 | Permissão de imagens remotas https e blob na CSP | High | complete |
+| SYNC-01 | Proteção atômica de troca de projeto contra race conditions | High | complete |
+| SYNC-02 | Debounce de 500ms na persistência de workspace no LocalStorage | Medium | complete |
+| DRAWER-01 | Posicionamento fixo de AiAssistantPanel conforme AGENTS.md | High | complete |
+| PTY-01 | Encerramento explícito de processos filhos PTY no Rust | High | complete |
+| PTY-02 | Persistência contínua do TerminalVeuPanel via classe CSS hidden | High | complete |
+| LOCK-01 | Granularidade individual de lock em write_terminal | Medium | complete |
+| SEC-01 | Sanitização contra Path Traversal em fs_cmd e theme_cmd | High | complete |
+| LEAK-01 | Desinscrição explícita de listeners IPC no onDestroy | Medium | complete |
