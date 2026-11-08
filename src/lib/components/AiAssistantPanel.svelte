@@ -365,15 +365,15 @@
 <svelte:window on:keydown={handleWindowKeydown} />
 
 {#if visible}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="sidebar-resize-handle"
-    on:mousedown={startResizing}
-    role="separator"
-    aria-label="Redimensionar Chat IA"
-  ></div>
-
   <aside class="ai-drawer" style="width: {panelWidth}px;" aria-label="Chat IA Veu">
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div
+      class="sidebar-resize-handle"
+      on:mousedown={startResizing}
+      role="separator"
+      aria-label="Redimensionar Chat IA"
+    ></div>
+
     <!-- Cabeçalho do Assistente -->
     <div class="drawer-header">
       {#if activeView === 'chat'}
@@ -628,13 +628,15 @@
 
 <style>
   .sidebar-resize-handle {
-    width: 4px;
-    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
     cursor: col-resize;
     background-color: transparent;
     transition: background-color 0.2s;
-    flex-shrink: 0;
-    z-index: 30;
+    z-index: 41;
   }
 
   .sidebar-resize-handle:hover {
@@ -642,15 +644,17 @@
   }
 
   .ai-drawer {
-    position: relative;
-    height: 100%;
+    position: fixed;
+    right: 0;
+    top: 44px;
+    bottom: 24px;
     max-width: 90vw;
     background-color: var(--veu-bg-sidebar);
     border-left: 1px solid var(--veu-border-color);
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.35);
     display: flex;
     flex-direction: column;
-    z-index: 30;
-    flex-shrink: 0;
+    z-index: 40;
     box-sizing: border-box;
     overflow: hidden;
   }

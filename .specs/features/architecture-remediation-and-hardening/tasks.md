@@ -71,7 +71,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: switchToProject utiliza sentinela de carregamento impedindo que reatribuições sobrescrevam abas de projetos anteriores e o salvamento em localStorage tem debounce de 500ms.
 
-### T06: Gaveta Fixa de AiAssistantPanel e Terminal Oculto via CSS
+### T06: [x] Gaveta Fixa de AiAssistantPanel e Terminal Oculto via CSS
 **Where**: `src/lib/components/AiAssistantPanel.svelte`
 **Depends on**: T05
 **Tests**: `npm run check`

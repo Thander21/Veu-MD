@@ -835,7 +835,7 @@
   });
 </script>
 
-{#if visible}
+<div class="terminal-veu-wrapper" class:hidden={!visible}>
   <!-- Alça de Redimensionamento -->
   {#if !isMaximized && hasActiveFile}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -1148,9 +1148,17 @@
       {/each}
     </div>
   </div>
-{/if}
+</div>
 
 <style>
+  .terminal-veu-wrapper {
+    display: contents;
+  }
+
+  .terminal-veu-wrapper.hidden {
+    display: none !important;
+  }
+
   .resize-handle {
     background-color: var(--veu-border-color);
     transition: background-color 0.2s;

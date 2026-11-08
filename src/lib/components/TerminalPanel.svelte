@@ -467,7 +467,7 @@
   });
 </script>
 
-{#if visible}
+<div class="terminal-root" class:hidden={!visible}>
   {#if terminalEngine === 'veu'}
     <TerminalVeuPanel
       bind:this={veuRef}
@@ -672,9 +672,17 @@
       </div>
     </div>
   {/if}
-{/if}
+</div>
 
 <style>
+  .terminal-root {
+    display: contents;
+  }
+
+  .terminal-root.hidden {
+    display: none !important;
+  }
+
   .resize-handle {
     background-color: var(--veu-border-color);
     transition: background-color 0.2s;
