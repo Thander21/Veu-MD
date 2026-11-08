@@ -43,7 +43,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: TerminalPanel.svelte mantém o motor xterm atualizado (v5.5.0) como alternativa de convivência ao lado do Terminal Veu padrão, sem vazamentos de memória ou erros de tipo.
 
-### T02: Higienização de Ativos e Arquivos Temporários
+### T02: [x] Higienização de Ativos e Arquivos Temporários
 **Where**: `public/`
 **Depends on**: T01
 **Tests**: `npm run check`
