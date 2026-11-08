@@ -36,7 +36,7 @@ graph TD
 
 ## Task Breakdown
 
-### T01: Correção de CSP para Google Fonts e Imagens Remotas
+### T01: [x] Correção de CSP para Google Fonts e Imagens Remotas
 **Where**: `src-tauri/tauri.conf.json`
 **Depends on**: none
 **Tests**: `npm run check:rust`
