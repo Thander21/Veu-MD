@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { open } from '@tauri-apps/plugin-dialog';
   import TopBar from './lib/components/TopBar.svelte';
@@ -18,6 +17,15 @@
   import { formatDocument } from './lib/utils/codeFormatter';
   import { serializeDocToHtml, copyFormattedHtml } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
+  import { fsService } from './lib/services/fsService';
+  import {
+    loadProjectsFromStorage,
+    saveProjectsToStorage as storeSaveProjects,
+    loadRecentProjectsFromStorage,
+    addOrUpdateRecent as storeAddRecent,
+    removeRecentProject as storeRemoveRecent,
+    clearRecentProjects as storeClearRecents
+  } from './lib/stores/projectStore';
   import type { FileNode, TabItem, HeadingItem, ProjectWorkspace, RecentProject } from './lib/types';
   import type { EditorView } from 'prosemirror-view';
 
@@ -82,70 +90,22 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 
   // Persistência no LocalStorage
   function saveProjectsToStorage() {
-    try {
-      const sanitized = openProjects.map((p) => ({
-        id: p.id,
-        name: p.name,
-        folderPath: p.folderPath,
-        theme: p.theme,
-        terminalOrientation: p.terminalOrientation,
-        terminalOpen: p.terminalOpen,
-        terminalMaximized: p.terminalMaximized,
-        activeTabId: p.activeTabId,
-        tabs: p.tabs.map((t) => ({
-          id: t.id,
-          title: t.title,
-          path: t.path,
-          isMarkdown: t.isMarkdown,
-          isImage: t.isImage
-        })),
-        lastOpenedAt: p.lastOpenedAt
-      }));
-      localStorage.setItem('veu_open_projects', JSON.stringify(sanitized));
-      if (activeProjectId) {
-        localStorage.setItem('veu_active_project_id', activeProjectId);
-      } else {
-        localStorage.removeItem('veu_active_project_id');
-      }
-    } catch (err) {
-      console.error('Erro ao salvar projetos no localStorage:', err);
-    }
-  }
-
-  function saveRecentProjectsToStorage() {
-    try {
-      localStorage.setItem('veu_recent_projects', JSON.stringify(recentProjects));
-    } catch (err) {
-      console.error('Erro ao salvar recentes no localStorage:', err);
-    }
+    storeSaveProjects(openProjects, activeProjectId);
   }
 
   function addOrUpdateRecent(folderPath: string, name: string) {
-    const existingIndex = recentProjects.findIndex(
-      (r) => r.folderPath.toLowerCase() === folderPath.toLowerCase()
-    );
-    const item: RecentProject = {
-      folderPath,
-      name,
-      lastOpenedAt: Date.now()
-    };
-    if (existingIndex >= 0) {
-      recentProjects.splice(existingIndex, 1);
-    }
-    recentProjects = [item, ...recentProjects].slice(0, 15);
-    saveRecentProjectsToStorage();
+    storeAddRecent(folderPath, name);
+    recentProjects = loadRecentProjectsFromStorage();
   }
 
   function removeRecent(folderPath: string) {
-    recentProjects = recentProjects.filter(
-      (r) => r.folderPath.toLowerCase() !== folderPath.toLowerCase()
-    );
-    saveRecentProjectsToStorage();
+    storeRemoveRecent(folderPath);
+    recentProjects = loadRecentProjectsFromStorage();
   }
 
   function clearRecent() {
+    storeClearRecents();
     recentProjects = [];
-    localStorage.removeItem('veu_recent_projects');
   }
 
   // Alterna o foco para outro projeto aberto
@@ -199,9 +159,9 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
             const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext);
             let content = '';
             if (isImg) {
-              content = await invoke('read_file_base64', { path: item.path });
+              content = await fsService.readFileBase64(item.path);
             } else {
-              content = await invoke('read_text_file', { path: item.path });
+              content = await fsService.readTextFile(item.path);
             }
             loadedTabs.push({
               id: item.id || `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -336,33 +296,16 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     initTheme();
 
     // 1. Carrega projetos recentes
-    const savedRecents = localStorage.getItem('veu_recent_projects');
-    if (savedRecents) {
-      try {
-        const parsed = JSON.parse(savedRecents);
-        if (Array.isArray(parsed)) recentProjects = parsed;
-      } catch (e) {
-        console.warn('Erro ao carregar recentes:', e);
-      }
-    }
+    recentProjects = loadRecentProjectsFromStorage();
 
     // 2. Carrega lista de projetos abertos
-    const savedOpenProjects = localStorage.getItem('veu_open_projects');
-    const savedActiveProjId = localStorage.getItem('veu_active_project_id');
+    const stored = loadProjectsFromStorage();
     let projectsLoaded = false;
-
-    if (savedOpenProjects) {
-      try {
-        const parsedProjects = JSON.parse(savedOpenProjects);
-        if (Array.isArray(parsedProjects) && parsedProjects.length > 0) {
-          openProjects = parsedProjects;
-          projectsLoaded = true;
-          const target = openProjects.find((p) => p.id === savedActiveProjId) || openProjects[0];
-          await switchToProject(target.id, false);
-        }
-      } catch (err) {
-        console.warn('Erro ao restaurar projetos abertos:', err);
-      }
+    if (stored.projects.length > 0) {
+      openProjects = stored.projects;
+      projectsLoaded = true;
+      const targetId = stored.activeId || openProjects[0].id;
+      await switchToProject(targetId, false);
     }
 
     // 3. Fallback de migração para versão anterior
@@ -419,7 +362,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       if (!targetTab) return;
 
       try {
-        const newContent: string = await invoke('read_text_file', { path: changedPath });
+        const newContent: string = await fsService.readTextFile(changedPath);
         if (newContent !== targetTab.content) {
           if (!targetTab.isDirty) {
             targetTab.content = newContent;
@@ -504,7 +447,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 
   onDestroy(() => {
     if (unsubscribeTheme) unsubscribeTheme();
-    invoke('unwatch_file').catch(() => {});
+    fsService.unwatchFile().catch(() => {});
   });
 
   $: activeTab = tabs.find((t) => t.id === activeTabId) || null;
@@ -513,10 +456,10 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   let watchedPath: string = '';
   $: if (activeTab?.path && activeTab.path !== watchedPath) {
     watchedPath = activeTab.path;
-    invoke('watch_file', { path: watchedPath }).catch(() => {});
+    fsService.watchFile(watchedPath).catch(() => {});
   } else if (!activeTab?.path && watchedPath) {
     watchedPath = '';
-    invoke('unwatch_file').catch(() => {});
+    fsService.unwatchFile().catch(() => {});
   }
 
   // Sincroniza estado de abas e terminal no projeto ativo
@@ -557,7 +500,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   async function refreshFileTree() {
     if (!currentFolderPath) return;
     try {
-      const tree: FileNode[] = await invoke('read_dir_tree', { path: currentFolderPath });
+      const tree: FileNode[] = await fsService.readDirTree(currentFolderPath);
       fileTree = tree;
     } catch (err) {
       console.error('Erro ao ler árvore de diretórios:', err);
@@ -579,9 +522,9 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 
       let content = '';
       if (isImg) {
-        content = await invoke('read_file_base64', { path: filePath });
+        content = await fsService.readFileBase64(filePath);
       } else {
-        content = await invoke('read_text_file', { path: filePath });
+        content = await fsService.readTextFile(filePath);
       }
 
       const newTab: TabItem = {
@@ -620,7 +563,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     const separator = currentFolderPath.includes('/') ? '/' : '\\';
     const fullPath = `${currentFolderPath}${separator}${fileName}`;
     try {
-      await invoke('create_entry', { path: fullPath, isDir: false });
+      await fsService.createEntry(fullPath, false);
       await refreshFileTree();
       await openFile(fullPath, fileName);
     } catch (err) {
@@ -640,7 +583,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     const separator = currentFolderPath.includes('/') ? '/' : '\\';
     const fullPath = `${currentFolderPath}${separator}${folderName}`;
     try {
-      await invoke('create_entry', { path: fullPath, isDir: true });
+      await fsService.createEntry(fullPath, true);
       await refreshFileTree();
     } catch (err) {
       alert(`Erro ao criar pasta: ${err}`);
@@ -653,7 +596,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     if (!confirmed) return;
 
     try {
-      await invoke('delete_entry', { path });
+      await fsService.deleteEntry(path);
       const openTab = tabs.find((t) => t.path === path);
       if (openTab) {
         closeTab(openTab.id);
@@ -676,7 +619,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     const newPath = `${parentDir}${sep}${trimmedName}`;
 
     try {
-      await invoke('rename_entry', { oldPath, newPath });
+      await fsService.renameEntry(oldPath, newPath);
       const openTab = tabs.find((t) => t.path === oldPath);
       if (openTab) {
         openTab.path = newPath;
@@ -705,7 +648,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     const sep = folderPath.includes('/') ? '/' : '\\';
     const fullPath = `${folderPath}${sep}${name}`;
     try {
-      await invoke('create_entry', { path: fullPath, isDir });
+      await fsService.createEntry(fullPath, isDir);
       await refreshFileTree();
       if (!isDir && (name.endsWith('.md') || name.endsWith('.txt') || name.endsWith('.log'))) {
         await openFile(fullPath, name);
@@ -731,10 +674,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     if (!activeTab.path) return;
 
     try {
-      await invoke('write_text_file', {
-        path: activeTab.path,
-        content: activeTab.content
-      });
+      await fsService.writeTextFile(activeTab.path, activeTab.content);
       activeTab.isDirty = false;
       tabs = [...tabs];
     } catch (err) {
@@ -868,11 +808,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     const filename = `img_${Date.now()}.png`;
 
     try {
-      const relPath: string = await invoke('save_image_asset', {
-        baseDir,
-        filename,
-        base64Data
-      });
+      const relPath: string = await fsService.saveImageAsset(baseDir, filename, base64Data);
 
       if (activeEditorView) {
         const { schema, tr } = activeEditorView.state;

@@ -64,7 +64,7 @@ graph TD
 **Gate**: `npm run check:rust`
 **Done When**: src-tauri/src/lib.rs é decomposto em submódulos commands/ (fs_cmd, pty_cmd, ai_cmd, theme_cmd, watcher_cmd) e state.rs, compilando com sucesso via check:rust.
 
-### T05: Extração de projectStore e fsService no Frontend
+### T05: [x] Extração de projectStore e fsService no Frontend
 **Where**: `src/lib/stores/projectStore.ts`
 **Depends on**: T04
 **Tests**: `npm run check`
