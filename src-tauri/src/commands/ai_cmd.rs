@@ -90,6 +90,12 @@ pub fn run_ai_prompt(
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
 
+    let mut child = cmd.spawn().map_err(|e| format!("Falha ao iniciar processo de IA: {}", e))?;
+    let pid = child.id();
+    if let Ok(mut map) = state.ai_processes.lock() {
+        map.insert(req_id.clone(), pid);
+    }
+
     let app_handle = app.clone();
     let stream_event = format!("ai-stream-{}", req_id);
     let done_event = format!("ai-done-{}", req_id);
@@ -97,64 +103,50 @@ pub fn run_ai_prompt(
     let ai_procs = Arc::clone(&state.ai_processes);
 
     std::thread::spawn(move || {
-        match cmd.spawn() {
-            Ok(mut child) => {
-                let pid = child.id();
-                if let Ok(mut map) = ai_procs.lock() {
-                    map.insert(req_id_clone.clone(), pid);
-                }
-
-                // Drena stderr concorrentemente em thread separada para prevenir deadlock
-                let app_handle_err = app_handle.clone();
-                let stream_event_err = stream_event.clone();
-                let err_thread = if let Some(stderr) = child.stderr.take() {
-                    Some(std::thread::spawn(move || {
-                        let mut reader = std::io::BufReader::new(stderr);
-                        let mut buffer = [0u8; 1024];
-                        while let Ok(n) = reader.read(&mut buffer) {
-                            if n == 0 {
-                                break;
-                            }
-                            let text = String::from_utf8_lossy(&buffer[..n]).to_string();
-                            let _ = app_handle_err.emit(&stream_event_err, text);
-                        }
-                    }))
-                } else {
-                    None
-                };
-
-                // Drena stdout concorrentemente
-                if let Some(stdout) = child.stdout.take() {
-                    let mut reader = std::io::BufReader::new(stdout);
-                    let mut buffer = [0u8; 1024];
-                    while let Ok(n) = reader.read(&mut buffer) {
-                        if n == 0 {
-                            break;
-                        }
-                        let text = String::from_utf8_lossy(&buffer[..n]).to_string();
-                        let _ = app_handle.emit(&stream_event, text);
+        // Drena stderr concorrentemente em thread separada para prevenir deadlock
+        let app_handle_err = app_handle.clone();
+        let stream_event_err = stream_event.clone();
+        let err_thread = if let Some(stderr) = child.stderr.take() {
+            Some(std::thread::spawn(move || {
+                let mut reader = std::io::BufReader::new(stderr);
+                let mut buffer = [0u8; 1024];
+                while let Ok(n) = reader.read(&mut buffer) {
+                    if n == 0 {
+                        break;
                     }
+                    let text = String::from_utf8_lossy(&buffer[..n]).to_string();
+                    let _ = app_handle_err.emit(&stream_event_err, text);
                 }
+            }))
+        } else {
+            None
+        };
 
-                if let Some(th) = err_thread {
-                    let _ = th.join();
+        // Drena stdout concorrentemente
+        if let Some(stdout) = child.stdout.take() {
+            let mut reader = std::io::BufReader::new(stdout);
+            let mut buffer = [0u8; 1024];
+            while let Ok(n) = reader.read(&mut buffer) {
+                if n == 0 {
+                    break;
                 }
-
-                let status = child.wait();
-                let exit_code = status.map(|s| s.code().unwrap_or(0)).unwrap_or(-1);
-
-                if let Ok(mut map) = ai_procs.lock() {
-                    map.remove(&req_id_clone);
-                }
-
-                let _ = app_handle.emit(&done_event, exit_code);
-            }
-            Err(e) => {
-                let err_msg = format!("Erro ao executar CLI '{}': {}. Verifique se o executável existe e está configurado.", raw_tool, e);
-                let _ = app_handle.emit(&stream_event, err_msg);
-                let _ = app_handle.emit(&done_event, -1);
+                let text = String::from_utf8_lossy(&buffer[..n]).to_string();
+                let _ = app_handle.emit(&stream_event, text);
             }
         }
+
+        if let Some(th) = err_thread {
+            let _ = th.join();
+        }
+
+        let status = child.wait();
+        let exit_code = status.map(|s| s.code().unwrap_or(0)).unwrap_or(-1);
+
+        if let Ok(mut map) = ai_procs.lock() {
+            map.remove(&req_id_clone);
+        }
+
+        let _ = app_handle.emit(&done_event, exit_code);
     });
 
     Ok(())

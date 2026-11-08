@@ -57,7 +57,7 @@ graph TD
 **Gate**: `npm run check:rust`
 **Done When**: TerminalSession retém o handle child do PTY e kill_terminal invoca explicitamente o encerramento do processo filho no Windows.
 
-### T04: Granularidade de Lock em write_terminal e Correção em AI
+### T04: [x] Granularidade de Lock em write_terminal e Correção em AI
 **Where**: `src-tauri/src/commands/pty_cmd.rs`
 **Depends on**: T03
 **Tests**: `npm run check:rust`
