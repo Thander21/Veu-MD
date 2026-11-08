@@ -87,10 +87,23 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 `;
 
   let unsubscribeTheme: (() => void) | null = null;
+  let isSwitchingProject: boolean = false;
+  let storageSaveTimeout: any = null;
 
-  // Persistência no LocalStorage
+  // Persistência no LocalStorage com debounce
   function saveProjectsToStorage() {
+    if (storageSaveTimeout) {
+      clearTimeout(storageSaveTimeout);
+      storageSaveTimeout = null;
+    }
     storeSaveProjects(openProjects, activeProjectId);
+  }
+
+  function debouncedSaveProjects() {
+    if (storageSaveTimeout) clearTimeout(storageSaveTimeout);
+    storageSaveTimeout = setTimeout(() => {
+      saveProjectsToStorage();
+    }, 500);
   }
 
   function addOrUpdateRecent(folderPath: string, name: string) {
@@ -129,68 +142,73 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     const target = openProjects.find((p) => p.id === targetId);
     if (!target) return;
 
-    target.lastOpenedAt = Date.now();
-    activeProjectId = target.id;
-    sidebarOpen = true;
-    currentFolderPath = target.folderPath;
-    addOrUpdateRecent(target.folderPath, target.name);
+    isSwitchingProject = true;
+    try {
+      target.lastOpenedAt = Date.now();
+      activeProjectId = target.id;
+      sidebarOpen = true;
+      currentFolderPath = target.folderPath;
+      addOrUpdateRecent(target.folderPath, target.name);
 
-    // 1. Aplica o último tema escolhido deste projeto
-    if (target.theme) {
-      setTheme(target.theme);
-    }
+      // 1. Aplica o último tema escolhido deste projeto
+      if (target.theme) {
+        setTheme(target.theme);
+      }
 
-    // 2. Aplica orientação e estado do terminal do projeto
-    terminalOrientation = target.terminalOrientation || 'horizontal';
-    terminalOpen = target.terminalOpen || false;
-    terminalMaximized = target.terminalMaximized || false;
+      // 2. Aplica orientação e estado do terminal do projeto
+      terminalOrientation = target.terminalOrientation || 'horizontal';
+      terminalOpen = target.terminalOpen || false;
+      terminalMaximized = target.terminalMaximized || false;
 
-    // 3. Restaura as abas de arquivos do projeto
-    if (target.tabs && target.tabs.length > 0) {
-      const loadedTabs: TabItem[] = [];
-      for (const item of target.tabs) {
-        // Se a aba já existe na memória da sessão, preserva seu conteúdo e estado dirty
-        if (item.content !== undefined && item.content !== null && item.content !== '') {
-          loadedTabs.push(item);
-        } else if (item.path) {
-          try {
-            const lower = (item.title || '').toLowerCase();
-            const ext = lower.split('.').pop() || '';
-            const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext);
-            let content = '';
-            if (isImg) {
-              content = await fsService.readFileBase64(item.path);
-            } else {
-              content = await fsService.readTextFile(item.path);
+      // 3. Restaura as abas de arquivos do projeto
+      if (target.tabs && target.tabs.length > 0) {
+        const loadedTabs: TabItem[] = [];
+        for (const item of target.tabs) {
+          // Se a aba já existe na memória da sessão, preserva seu conteúdo e estado dirty
+          if (item.content !== undefined && item.content !== null && item.content !== '') {
+            loadedTabs.push(item);
+          } else if (item.path) {
+            try {
+              const lower = (item.title || '').toLowerCase();
+              const ext = lower.split('.').pop() || '';
+              const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext);
+              let content = '';
+              if (isImg) {
+                content = await fsService.readFileBase64(item.path);
+              } else {
+                content = await fsService.readTextFile(item.path);
+              }
+              loadedTabs.push({
+                id: item.id || `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                title: item.title,
+                path: item.path,
+                content,
+                isDirty: false,
+                isMarkdown: item.isMarkdown,
+                isImage: isImg
+              });
+            } catch {
+              // Arquivo movido ou inacessível, ignora
             }
-            loadedTabs.push({
-              id: item.id || `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-              title: item.title,
-              path: item.path,
-              content,
-              isDirty: false,
-              isMarkdown: item.isMarkdown,
-              isImage: isImg
-            });
-          } catch {
-            // Arquivo movido ou inacessível, ignora
           }
         }
+        tabs = loadedTabs;
+        activeTabId = target.activeTabId && tabs.some((t) => t.id === target.activeTabId)
+          ? target.activeTabId
+          : (tabs[0]?.id || null);
+      } else {
+        tabs = [];
+        activeTabId = null;
       }
-      tabs = loadedTabs;
-      activeTabId = target.activeTabId && tabs.some((t) => t.id === target.activeTabId)
-        ? target.activeTabId
-        : (tabs[0]?.id || null);
-    } else {
-      tabs = [];
-      activeTabId = null;
+
+      await refreshFileTree();
+      saveProjectsToStorage();
+
+      statusNotification = `Projeto ativo: ${target.name}`;
+      setTimeout(() => (statusNotification = ''), 3000);
+    } finally {
+      isSwitchingProject = false;
     }
-
-    await refreshFileTree();
-    saveProjectsToStorage();
-
-    statusNotification = `Projeto ativo: ${target.name}`;
-    setTimeout(() => (statusNotification = ''), 3000);
   }
 
   // Abre uma pasta como nova aba de projeto na barra ultra-slim
@@ -463,7 +481,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   }
 
   // Sincroniza estado de abas e terminal no projeto ativo
-  $: if (activeProjectId) {
+  $: if (activeProjectId && !isSwitchingProject) {
     const p = openProjects.find((x) => x.id === activeProjectId);
     if (p) {
       p.terminalOrientation = terminalOrientation;
@@ -471,7 +489,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       p.terminalMaximized = terminalMaximized;
       p.activeTabId = activeTabId;
       p.tabs = tabs;
-      saveProjectsToStorage();
+      debouncedSaveProjects();
     }
   }
 

@@ -64,7 +64,7 @@ graph TD
 **Gate**: `npm run check:rust`
 **Done When**: write_terminal clona o handle do writer liberando o lock global de state.terminals antes da escrita de I/O, e ai_cmd previne race condition no cancelamento.
 
-### T05: Guarda Atômica em switchToProject e Debounce de Storage
+### T05: [x] Guarda Atômica em switchToProject e Debounce de Storage
 **Where**: `src/App.svelte`
 **Depends on**: T04
 **Tests**: `npm run check`
