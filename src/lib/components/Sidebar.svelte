@@ -93,8 +93,12 @@
     expandedFolders[path] = !expandedFolders[path];
   }
 
+  const IMAGE_EXTENSIONS = new Set([
+    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'
+  ]);
+
   const BINARY_EXTENSIONS = new Set([
-    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'psd',
+    'tiff', 'psd',
     'zip', 'rar', '7z', 'tar', 'gz', 'bz2',
     'exe', 'dll', 'so', 'dylib', 'bin', 'iso', 'apk', 'msi',
     'pdf', 'docx', 'xlsx', 'pptx',
@@ -111,15 +115,16 @@
     if (lower === 'json' || lower === 'jsonc') return FileJson;
     if (['css', 'scss', 'sass', 'less'].includes(lower)) return FileCode;
     if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'mts', 'cts'].includes(lower)) return FileCode2;
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(lower)) return Image;
+    if (IMAGE_EXTENSIONS.has(lower)) return Image;
     if (lower === 'txt' || lower === 'log') return FileText;
     if (BINARY_EXTENSIONS.has(lower)) return File;
     return FileQuestion;
   }
 
-  function isEditable(ext?: string): boolean {
+  function isViewable(ext?: string): boolean {
     if (!ext) return true;
     const lower = ext.toLowerCase();
+    if (IMAGE_EXTENSIONS.has(lower)) return true;
     return !BINARY_EXTENSIONS.has(lower);
   }
 

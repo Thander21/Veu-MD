@@ -31,7 +31,8 @@
     RefreshCw,
     Download,
     Terminal,
-    ArrowLeft
+    ArrowLeft,
+    Zap
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
@@ -280,12 +281,6 @@
         ...p,
         isInstalled: !!res[p.cli] || !!res[p.id]
       }));
-
-      const anyInstalled = providers.some((p) => p.isInstalled);
-      const wizardSeen = localStorage.getItem('veu_ai_wizard_seen');
-      if (!anyInstalled && !wizardSeen) {
-        activeView = 'wizard';
-      }
     } catch (err) {
       console.error('Erro ao checar ferramentas de IA:', err);
     } finally {
@@ -309,6 +304,18 @@
     if (onRunTerminalCommand) {
       onRunTerminalCommand(provider.cli, provider.name);
     }
+  }
+
+  function handleStartCli(fullPermissions: boolean) {
+    if (!onRunTerminalCommand) return;
+    const provider = AI_PROVIDERS[activeCliTool] || AI_PROVIDERS.agy;
+    const cmd = fullPermissions
+      ? `${provider.cli} --dangerously-skip-permissions`
+      : provider.cli;
+    const title = fullPermissions
+      ? `${provider.name} (Permissão Total)`
+      : `${provider.name}`;
+    onRunTerminalCommand(cmd, title);
   }
 
   function handleFinishWizard() {
@@ -372,9 +379,15 @@
     <div class="drawer-header">
       {#if activeView === 'chat'}
         <div class="drawer-title">
-          <div class="wand-icon-wrap">
+          <button
+            type="button"
+            class="wand-icon-wrap retract-action-btn"
+            title="Recolher Chat IA (Ctrl+L)"
+            aria-label="Recolher Chat IA"
+            on:click={onClose}
+          >
             <BotMessageSquare size={16} class="icon-accent" />
-          </div>
+          </button>
           <div class="title-meta">
             <span class="main-title">Chat IA</span>
             <div class="provider-select-wrap">
@@ -539,39 +552,48 @@
             <div class="spark-circle">
               <Sparkles size={24} class="spark-icon" />
             </div>
-            <h3 class="empty-title">Como posso acelerar sua escrita?</h3>
+            <h3 class="empty-title">
+              {AI_PROVIDERS[activeCliTool]?.name || 'Agente de IA'}
+            </h3>
             <p class="empty-desc">
-              Comunique-se diretamente com o <strong>{AI_PROVIDERS[activeCliTool]?.name || 'Agente de IA'}</strong> ({activeCliTool}) para refinar, expandir e gerar conteúdo em Markdown puro.
+              Inicie o CLI oficial diretamente no <strong>Terminal Veu</strong> ou envie sua solicitação no chat abaixo:
             </p>
 
-            <div class="chips-grid">
+            <div class="cli-launch-actions">
               <button
-                class="chip-btn"
-                on:click={() => submitPrompt('Revise a pontuação, clareza e ritmo deste documento.')}
+                class="cli-card-btn normal-btn"
+                on:click={() => handleStartCli(false)}
+                title="Iniciar {AI_PROVIDERS[activeCliTool]?.name || activeCliTool} no Terminal Veu"
               >
-                <CheckCheck size={13} />
-                <span>Revisar clareza e estilo</span>
+                <div class="cli-card-icon">
+                  <Terminal size={16} />
+                </div>
+                <div class="cli-card-content">
+                  <div class="cli-card-header">
+                    <span class="cli-card-title">Iniciar Normal</span>
+                    <span class="cli-badge default">Padrão</span>
+                  </div>
+                  <code class="cli-cmd">{activeCliTool}</code>
+                  <span class="cli-card-hint">Sessão interativa com confirmações padrão</span>
+                </div>
               </button>
+
               <button
-                class="chip-btn"
-                on:click={() => submitPrompt('Faça um resumo executivo em 3 tópicos do tema principal.')}
+                class="cli-card-btn full-perm-btn"
+                on:click={() => handleStartCli(true)}
+                title="Iniciar {AI_PROVIDERS[activeCliTool]?.name || activeCliTool} com Permissão Total no Terminal Veu"
               >
-                <FileText size={13} />
-                <span>Resumo em 3 tópicos</span>
-              </button>
-              <button
-                class="chip-btn"
-                on:click={() => submitPrompt('Crie uma estrutura detalhada de tópicos para este artigo.')}
-              >
-                <Compass size={13} />
-                <span>Estruturar novos tópicos</span>
-              </button>
-              <button
-                class="chip-btn"
-                on:click={() => submitPrompt('Escreva uma introdução atraente e direta sobre o tema.')}
-              >
-                <Code2 size={13} />
-                <span>Introdução envolvente</span>
+                <div class="cli-card-icon zap">
+                  <Zap size={16} />
+                </div>
+                <div class="cli-card-content">
+                  <div class="cli-card-header">
+                    <span class="cli-card-title">Permissão Total</span>
+                    <span class="cli-badge full">Auto-approve</span>
+                  </div>
+                  <code class="cli-cmd">{activeCliTool} --dangerously-skip-permissions</code>
+                  <span class="cli-card-hint">Execução autônoma com ferramentas auto-aprovadas</span>
+                </div>
               </button>
             </div>
           </div>
@@ -735,6 +757,20 @@
     border-radius: 6px;
     background: rgba(244, 114, 182, 0.12);
     color: var(--veu-h1-color);
+    border: 1px solid rgba(244, 114, 182, 0.2);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s ease;
+  }
+
+  .wand-icon-wrap:hover {
+    background: rgba(244, 114, 182, 0.25);
+    border-color: rgba(244, 114, 182, 0.45);
+    transform: scale(1.06);
+  }
+
+  .wand-icon-wrap:active {
+    transform: scale(0.95);
   }
 
   .title-meta {
@@ -1075,32 +1111,116 @@
     max-width: 280px;
   }
 
-  .chips-grid {
+  .cli-launch-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
   }
 
-  .chip-btn {
+  .cli-card-btn {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    background-color: rgba(127, 127, 127, 0.07);
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: rgba(127, 127, 127, 0.08);
     border: 1px solid var(--veu-border-color);
     color: var(--veu-text-color);
-    font-size: 11.5px;
     text-align: left;
     cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    transition: all 0.18s ease;
   }
 
-  .chip-btn:hover {
+  .cli-card-btn:hover {
     background-color: var(--veu-active-item-bg);
     border-color: var(--veu-h1-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .cli-card-btn.full-perm-btn:hover {
+    border-color: #f5c2e7;
+  }
+
+  .cli-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: rgba(116, 199, 236, 0.15);
+    color: #74c7ec;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .cli-card-icon.zap {
+    background: rgba(245, 194, 231, 0.15);
+    color: #f5c2e7;
+  }
+
+  .cli-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cli-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .cli-card-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--veu-text-color);
+  }
+
+  .cli-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .cli-badge.default {
+    background: rgba(116, 199, 236, 0.2);
+    color: #74c7ec;
+  }
+
+  .cli-badge.full {
+    background: rgba(245, 194, 231, 0.2);
+    color: #f5c2e7;
+  }
+
+  .cli-cmd {
+    font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 11px;
     color: var(--veu-h1-color);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .cli-card-hint {
+    font-size: 10.5px;
+    color: var(--veu-text-color);
+    opacity: 0.65;
+    line-height: 1.35;
   }
 
   /* Lista de Mensagens */

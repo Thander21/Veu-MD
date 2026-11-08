@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X, FileText, FileCode, FileCode2, FileJson, FileQuestion } from 'lucide-svelte';
+  import { X, FileText, FileCode, FileCode2, FileJson, FileQuestion, Image } from 'lucide-svelte';
   import VeuMdIcon from './VeuMdIcon.svelte';
   import type { TabItem } from '../types';
 
@@ -12,6 +12,7 @@
     if (tab.isMarkdown) return VeuMdIcon;
     const lower = (tab.title || '').toLowerCase();
     const ext = lower.split('.').pop() || '';
+    if (tab.isImage || ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext)) return Image;
     if (ext === 'html' || ext === 'htm') return FileCode;
     if (ext === 'json' || ext === 'jsonc') return FileJson;
     if (['css', 'scss', 'sass', 'less'].includes(ext)) return FileCode;
@@ -21,14 +22,15 @@
   }
 
   function getTabIconColor(tab: TabItem): string {
-    if (tab.isMarkdown) return 'var(--veu-h1-color)';
+    if (tab.isMarkdown) return '#ab47bc';
     const lower = (tab.title || '').toLowerCase();
     const ext = lower.split('.').pop() || '';
+    if (tab.isImage || ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext)) return '#a78bfa';
     if (ext === 'html' || ext === 'htm') return '#f97316';
     if (ext === 'json' || ext === 'jsonc') return '#facc15';
     if (['css', 'scss', 'sass', 'less'].includes(ext)) return '#38bdf8';
-    if (['js', 'jsx', 'mjs', 'cjs'].includes(ext)) return '#fde047';
-    if (['ts', 'tsx', 'mts', 'cts'].includes(ext)) return '#60a5fa';
+    if (['js', 'jsx', 'mjs', 'cjs'].includes(lower)) return '#fde047';
+    if (['ts', 'tsx', 'mts', 'cts'].includes(lower)) return '#60a5fa';
     return 'var(--veu-text-color)';
   }
 </script>

@@ -8,6 +8,7 @@
   import ProjectSidebar from './lib/components/ProjectSidebar.svelte';
   import TabBar from './lib/components/TabBar.svelte';
   import Editor from './lib/components/Editor.svelte';
+  import ImageViewer from './lib/components/ImageViewer.svelte';
   import ThemeSettings from './lib/components/ThemeSettings.svelte';
   import AiAssistantPanel from './lib/components/AiAssistantPanel.svelte';
   import TerminalPanel from './lib/components/TerminalPanel.svelte';
@@ -95,7 +96,8 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           id: t.id,
           title: t.title,
           path: t.path,
-          isMarkdown: t.isMarkdown
+          isMarkdown: t.isMarkdown,
+          isImage: t.isImage
         })),
         lastOpenedAt: p.lastOpenedAt
       }));
@@ -192,14 +194,23 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           loadedTabs.push(item);
         } else if (item.path) {
           try {
-            const content: string = await invoke('read_text_file', { path: item.path });
+            const lower = (item.title || '').toLowerCase();
+            const ext = lower.split('.').pop() || '';
+            const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext);
+            let content = '';
+            if (isImg) {
+              content = await invoke('read_file_base64', { path: item.path });
+            } else {
+              content = await invoke('read_text_file', { path: item.path });
+            }
             loadedTabs.push({
               id: item.id || `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
               title: item.title,
               path: item.path,
               content,
               isDirty: false,
-              isMarkdown: item.isMarkdown
+              isMarkdown: item.isMarkdown,
+              isImage: isImg
             });
           } catch {
             // Arquivo movido ou inacessível, ignora
@@ -562,14 +573,25 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
 
     try {
-      const content: string = await invoke('read_text_file', { path: filePath });
+      const lower = fileName.toLowerCase();
+      const ext = lower.split('.').pop() || '';
+      const isImg = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext);
+
+      let content = '';
+      if (isImg) {
+        content = await invoke('read_file_base64', { path: filePath });
+      } else {
+        content = await invoke('read_text_file', { path: filePath });
+      }
+
       const newTab: TabItem = {
         id: `tab-${Date.now()}`,
         title: fileName,
         path: filePath,
         content,
         isDirty: false,
-        isMarkdown: fileName.endsWith('.md') || fileName.endsWith('.markdown')
+        isMarkdown: fileName.endsWith('.md') || fileName.endsWith('.markdown'),
+        isImage: isImg
       };
 
       tabs = [...tabs, newTab];
@@ -701,7 +723,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       setTimeout(() => (statusNotification = ''), 4000);
       return;
     }
-    if (!activeTab) return;
+    if (!activeTab || activeTab.isImage) return;
     if (!activeTab.path && currentFolderPath) {
       const sep = currentFolderPath.includes('/') ? '/' : '\\';
       activeTab.path = `${currentFolderPath}${sep}${activeTab.title}`;
@@ -967,19 +989,27 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           class:hidden={terminalOpen && (terminalMaximized || !activeTab)}
         >
           {#if activeTab}
-            {#key activeTab.id}
-              <Editor
-                bind:this={editorRef}
-                content={activeTab.content}
-                isMarkdown={activeTab.isMarkdown}
-                onChange={handleEditorContentChange}
-                onHeadingsChange={(h) => (headings = h)}
-                onStatsChange={(s) => (stats = s)}
-                onEditorReady={(view) => (activeEditorView = view)}
-                onPasteImage={handlePasteImage}
-                {smartPasteSanitizeAi}
+            {#if activeTab.isImage}
+              <ImageViewer
+                src={activeTab.content}
+                title={activeTab.title}
+                path={activeTab.path}
               />
-            {/key}
+            {:else}
+              {#key activeTab.id}
+                <Editor
+                  bind:this={editorRef}
+                  content={activeTab.content}
+                  isMarkdown={activeTab.isMarkdown}
+                  onChange={handleEditorContentChange}
+                  onHeadingsChange={(h) => (headings = h)}
+                  onStatsChange={(s) => (stats = s)}
+                  onEditorReady={(view) => (activeEditorView = view)}
+                  onPasteImage={handlePasteImage}
+                  {smartPasteSanitizeAi}
+                />
+              {/key}
+            {/if}
           {:else}
             <div class="no-tabs-state">
               <h2>Nenhum documento aberto</h2>

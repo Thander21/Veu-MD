@@ -339,15 +339,17 @@
       <span>Temas & Cores</span>
     </button>
 
-    <button
-      class="btn icon-btn"
-      class:active={aiAssistantOpen}
-      title="Chat IA • Antigravity / agy (Ctrl+L)"
-      on:click={onToggleAiAssistant}
-    >
-      <BotMessageSquare size={17} />
-      <span>Chat IA</span>
-    </button>
+    {#if !aiAssistantOpen}
+      <button
+        class="btn icon-btn"
+        class:active={aiAssistantOpen}
+        title="Chat IA • Antigravity / agy (Ctrl+L)"
+        on:click={onToggleAiAssistant}
+      >
+        <BotMessageSquare size={17} />
+        <span>Chat IA</span>
+      </button>
+    {/if}
   </div>
 </header>
 

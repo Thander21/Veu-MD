@@ -30,8 +30,12 @@
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void;
   export let onOpenTerminalInFolder: (path: string) => void;
 
+  const IMAGE_EXTENSIONS = new Set([
+    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'
+  ]);
+
   const BINARY_EXTENSIONS = new Set([
-    'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'psd',
+    'tiff', 'psd',
     'zip', 'rar', '7z', 'tar', 'gz', 'bz2',
     'exe', 'dll', 'so', 'dylib', 'bin', 'iso', 'apk', 'msi',
     'pdf', 'docx', 'xlsx', 'pptx',
@@ -44,7 +48,7 @@
     if (!ext) return FileQuestion;
     const lower = ext.toLowerCase();
 
-    // 1. Markdown (.md, .markdown) — Ícone oficial Veu MD
+    // 1. Markdown (.md, .markdown) — Ícone oficial Material Markdown
     if (lower === 'md' || lower === 'markdown') return VeuMdIcon;
 
     // 2. HTML
@@ -59,8 +63,8 @@
     // 5. Scripts (JS, TS, JSX, TSX, MJS, CJS)
     if (['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs', 'mts', 'cts'].includes(lower)) return FileCode2;
 
-    // 6. Imagens
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(lower)) return Image;
+    // 6. Imagens e Vetores SVG
+    if (IMAGE_EXTENSIONS.has(lower)) return Image;
 
     // 7. Texto comum
     if (lower === 'txt' || lower === 'log') return FileText;
@@ -75,20 +79,21 @@
   function getFileIconColor(ext?: string): string {
     if (!ext) return 'var(--veu-text-color)';
     const lower = ext.toLowerCase();
-    if (lower === 'md' || lower === 'markdown') return 'var(--veu-h1-color)';
+    if (lower === 'md' || lower === 'markdown') return '#ab47bc';
     if (lower === 'html' || lower === 'htm') return '#f97316';
     if (lower === 'json' || lower === 'jsonc') return '#facc15';
     if (['css', 'scss', 'sass', 'less'].includes(lower)) return '#38bdf8';
     if (['js', 'jsx', 'mjs', 'cjs'].includes(lower)) return '#fde047';
     if (['ts', 'tsx', 'mts', 'cts'].includes(lower)) return '#60a5fa';
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(lower)) return '#c084fc';
+    if (IMAGE_EXTENSIONS.has(lower)) return '#a78bfa';
     if (BINARY_EXTENSIONS.has(lower)) return 'rgba(127, 127, 127, 0.4)';
     return 'var(--veu-text-color)';
   }
 
-  function isEditable(ext?: string): boolean {
+  function isViewable(ext?: string): boolean {
     if (!ext) return true;
     const lower = ext.toLowerCase();
+    if (IMAGE_EXTENSIONS.has(lower)) return true;
     return !BINARY_EXTENSIONS.has(lower);
   }
 </script>
@@ -180,12 +185,12 @@
   {:else}
     <div
       class="node file"
-      class:disabled={!isEditable(node.extension)}
+      class:disabled={!isViewable(node.extension)}
       style="padding-left: {level * 14 + 22}px;"
       role="button"
       tabindex="0"
-      on:click={() => isEditable(node.extension) && onOpenFile(node.path, node.name)}
-      on:keydown={(e) => e.key === 'Enter' && isEditable(node.extension) && onOpenFile(node.path, node.name)}
+      on:click={() => isViewable(node.extension) && onOpenFile(node.path, node.name)}
+      on:keydown={(e) => e.key === 'Enter' && isViewable(node.extension) && onOpenFile(node.path, node.name)}
     >
       <svelte:component
         this={getFileIcon(node.extension)}

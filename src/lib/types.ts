@@ -13,6 +13,7 @@ export interface TabItem {
   content: string;
   isDirty: boolean;
   isMarkdown: boolean;
+  isImage?: boolean;
 }
 
 export interface HeadingItem {
