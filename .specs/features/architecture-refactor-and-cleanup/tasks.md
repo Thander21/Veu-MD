@@ -57,7 +57,7 @@ graph TD
 **Gate**: `npm test`
 **Done When**: scripts/run_all_tests.mjs executa todas as suítes de teste de scripts/ com comportamento Fail-Fast e npm test valida toda a suíte com 100% de sucesso.
 
-### T04: Modularização do Backend Rust em commands/
+### T04: [x] Modularização do Backend Rust em commands/
 **Where**: `src-tauri/src/commands/`
 **Depends on**: T03
 **Tests**: `npm run check:rust`
