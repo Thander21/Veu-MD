@@ -50,7 +50,7 @@ graph TD
 **Gate**: `npm run check:rust`
 **Done When**: save_image_asset utiliza Path::file_name() e save_custom_theme valida o nome com regex alfanumérica, impedindo subida de diretório arbitrária.
 
-### T03: Retenção de Child PTY e Eliminação de Processos Zumbis
+### T03: [x] Retenção de Child PTY e Eliminação de Processos Zumbis
 **Where**: `src-tauri/src/commands/pty_cmd.rs`
 **Depends on**: T02
 **Tests**: `npm run check:rust`

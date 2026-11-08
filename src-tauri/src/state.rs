@@ -14,8 +14,9 @@ pub struct FileNode {
 }
 
 pub struct TerminalSession {
-    pub writer: Box<dyn Write + Send>,
+    pub writer: Arc<Mutex<Box<dyn Write + Send>>>,
     pub master: Box<dyn portable_pty::MasterPty + Send>,
+    pub child: Arc<Mutex<Box<dyn portable_pty::Child + Send + Sync>>>,
 }
 
 #[derive(Default)]

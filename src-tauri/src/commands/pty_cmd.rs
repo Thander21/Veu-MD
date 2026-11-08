@@ -2,6 +2,7 @@ use crate::state::{AppState, TerminalSession};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, State};
 
 #[tauri::command]
@@ -37,10 +38,15 @@ pub fn spawn_terminal(
         }
     }
 
-    let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
+    let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave);
 
+    let child_arc = Arc::new(Mutex::new(child));
+    let child_for_thread = Arc::clone(&child_arc);
+
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+    let writer_arc = Arc::new(Mutex::new(writer));
+
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
 
     let event_id = format!("term-output-{}", term_id);
@@ -59,15 +65,18 @@ pub fn spawn_terminal(
                 Err(_) => break,
             }
         }
-        let _ = child.wait();
+        if let Ok(mut c) = child_for_thread.lock() {
+            let _ = c.wait();
+        }
     });
 
     let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
     map.insert(
         term_id,
         TerminalSession {
-            writer,
+            writer: writer_arc,
             master: pair.master,
+            child: child_arc,
         },
     );
 
@@ -80,10 +89,15 @@ pub fn write_terminal(
     term_id: String,
     data: String,
 ) -> Result<(), String> {
-    let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
-    if let Some(session) = map.get_mut(&term_id) {
-        session.writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
-        session.writer.flush().map_err(|e| e.to_string())?;
+    let writer_arc = {
+        let map = state.terminals.lock().map_err(|e| e.to_string())?;
+        map.get(&term_id).map(|s| Arc::clone(&s.writer))
+    };
+
+    if let Some(writer_lock) = writer_arc {
+        let mut writer = writer_lock.lock().map_err(|e| e.to_string())?;
+        writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+        writer.flush().map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -110,6 +124,10 @@ pub fn resize_terminal(
 #[tauri::command]
 pub fn kill_terminal(state: State<'_, AppState>, term_id: String) -> Result<(), String> {
     let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
-    map.remove(&term_id);
+    if let Some(session) = map.remove(&term_id) {
+        if let Ok(mut child) = session.child.lock() {
+            let _ = child.kill();
+        }
+    }
     Ok(())
 }
