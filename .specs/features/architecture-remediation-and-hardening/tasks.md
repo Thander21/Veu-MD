@@ -78,7 +78,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: AiAssistantPanel adota position: fixed conforme AGENTS.md e TerminalPanel utiliza classe .hidden em vez de destruição de componente ao alternar visibilidade.
 
-### T07: Saneamento de IPC Listener no onDestroy e Testes
+### T07: [x] Saneamento de IPC Listener no onDestroy e Testes
 **Where**: `src/App.svelte`
 **Depends on**: T06
 **Tests**: `npm run check && npm test`

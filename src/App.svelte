@@ -87,6 +87,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 `;
 
   let unsubscribeTheme: (() => void) | null = null;
+  let unlistenWatcher: UnlistenFn | null = null;
   let isSwitchingProject: boolean = false;
   let storageSaveTimeout: any = null;
 
@@ -374,7 +375,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     });
 
     // Escuta notificações de alterações externas de arquivo (File Watcher nativo)
-    const unlistenWatcher = await listen('file-changed-externally', async (event: any) => {
+    unlistenWatcher = await listen('file-changed-externally', async (event: any) => {
       const changedPath = event.payload as string;
       const targetTab = tabs.find((t) => t.path === changedPath);
       if (!targetTab) return;
@@ -465,6 +466,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 
   onDestroy(() => {
     if (unsubscribeTheme) unsubscribeTheme();
+    if (unlistenWatcher) unlistenWatcher();
     fsService.unwatchFile().catch(() => {});
   });
 
