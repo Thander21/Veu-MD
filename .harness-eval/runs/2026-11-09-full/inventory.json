@@ -1,0 +1,76 @@
+{
+  "root": "W:\\_Projetos\\Veu MD",
+  "generated_at": "2026-11-09T09:36:55.040763+00:00",
+  "t0": [
+    "AGENTS.md"
+  ],
+  "t1": [
+    ".agent/skills/best-practices/SKILL.md",
+    ".agent/skills/codenavi/SKILL.md",
+    ".agent/skills/harness-eval/SKILL.md",
+    ".agent/skills/tlc-implement/SKILL.md",
+    ".agent/skills/tlc-plan/SKILL.md",
+    ".agent/skills/tlc-spec-driven/SKILL.md",
+    ".agent/skills/web-design-guidelines/SKILL.md"
+  ],
+  "t2": [
+    ".agent/skills/codenavi/references/coding-principles.md",
+    ".agent/skills/codenavi/references/notebook-spec.md",
+    ".agent/skills/harness-eval/references/GLOSSARY.md",
+    ".agent/skills/harness-eval/references/PROTOCOL.md",
+    ".agent/skills/harness-eval/references/claims.schema.json",
+    ".agent/skills/harness-eval/references/judge-prompts.md",
+    ".agent/skills/tlc-implement/references/build.md",
+    ".agent/skills/tlc-implement/references/checks.md",
+    ".agent/skills/tlc-implement/references/memory.md",
+    ".agent/skills/tlc-implement/references/verify-screens.md",
+    ".agent/skills/tlc-implement/references/verify.md",
+    ".agent/skills/tlc-plan/references/plan.md",
+    ".agent/skills/tlc-spec-driven/references/coding-principles.md",
+    ".agent/skills/tlc-spec-driven/references/design.md",
+    ".agent/skills/tlc-spec-driven/references/discuss.md",
+    ".agent/skills/tlc-spec-driven/references/implement.md",
+    ".agent/skills/tlc-spec-driven/references/lessons.md",
+    ".agent/skills/tlc-spec-driven/references/memory.md",
+    ".agent/skills/tlc-spec-driven/references/specify.md",
+    ".agent/skills/tlc-spec-driven/references/sub-agents.md",
+    ".agent/skills/tlc-spec-driven/references/tasks.md",
+    ".agent/skills/tlc-spec-driven/references/validate.md",
+    ".agent/skills/tlc-spec-driven/references/verify-screens.md",
+    ".agent/skills/web-design-guidelines/references/guideline.md",
+    ".notebook/INDEX.md",
+    ".specs/STATE.md"
+  ],
+  "manifests": [
+    "package.json"
+  ],
+  "manifest_commands": [
+    "dev",
+    "build",
+    "preview",
+    "check",
+    "check:rust",
+    "check:clippy",
+    "test:rust",
+    "test:unit",
+    "test",
+    "test:e2e",
+    "tauri",
+    "build:desktop:external"
+  ],
+  "doc_scope": {
+    "included_optional_docs": [
+      ".notebook/INDEX.md",
+      ".specs/STATE.md"
+    ],
+    "included_doc_types": [
+      ".notebook",
+      ".specs"
+    ],
+    "excluded_decision_record_count": 0,
+    "optional_type_count": {
+      ".notebook": 1,
+      ".specs": 1
+    }
+  }
+}

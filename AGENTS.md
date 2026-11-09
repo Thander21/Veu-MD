@@ -197,14 +197,18 @@ Todos os scripts residem em `.agent/skills/tlc-spec-driven/scripts/` e devem ser
 | **Após a última tarefa implementada**     | `python .agent/skills/tlc-spec-driven/scripts/check_proofs.py <feature>`              | Executa a suíte de provas no `HEAD` e gera o documento `proofs.md`.                                                                    |
 | **Antes de declarar a feature concluída** | `python .agent/skills/tlc-spec-driven/scripts/validate_verification.py <feature>`     | Portão final: valida árvore limpa, provas passando no `HEAD`, aprovações documentadas e veredicto do Verificador em `verification.md`. |
 | **Gestão de Lições Aprendidas**           | `python .agent/skills/tlc-spec-driven/scripts/lessons.py list --status confirmed`     | Consulta e atualiza o repositório contínuo de lições aprendidas em `.specs/lessons.json`.                                              |
+| **Auditoria de Harness**                 | `python .agent/skills/harness-eval/scripts/inventory_extract.py --root . --run-id <id>` | Executa a auditoria de corretude, redundância e utilidade do harness de agentes via harness-eval.                                       |
 
 ---
 
 ## 5. Estrutura de Pastas e Ferramentas
 
 ```
-├── .agent/skills/         # Habilidades de agentes (instaladas via @tech-leads-club/agent-skills)
-├── .agents/               # Lockfile das skills (.skill-lock.json)
+├── .agent/
+│   └── skills/         # Habilidades canônicas do Antigravity (@tech-leads-club/agent-skills)
+├── .agents/
+│   ├── skills -> ../.agent/skills  # Junção de compatibilidade para ferramentas externas/harness-eval
+│   └── .skill-lock.json            # Lockfile das skills
 ├── .specs/features/       # Especificações SDD, tasks, proofs e verificações
 ├── .vscode/               # Configurações canônicas de extensões e settings para Rust, Svelte e Tauri
 ├── Docs/                  # Documentação técnica, especificações de produto e comandos rápidos

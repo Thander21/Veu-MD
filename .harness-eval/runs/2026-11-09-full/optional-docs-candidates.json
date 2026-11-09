@@ -1,0 +1,24 @@
+{
+  "policy": {
+    "agent_harness_refs": "always_include",
+    "adr_rfc_decision_records": "always_exclude",
+    "other_cited_docs": "opt_in_after_user_approval"
+  },
+  "excluded_decision_records": [],
+  "optional_by_type": {
+    ".notebook": [
+      ".notebook/INDEX.md"
+    ],
+    ".specs": [
+      ".specs/STATE.md"
+    ]
+  },
+  "included_optional_docs": [
+    ".notebook/INDEX.md",
+    ".specs/STATE.md"
+  ],
+  "included_doc_types": [
+    ".notebook",
+    ".specs"
+  ]
+}
