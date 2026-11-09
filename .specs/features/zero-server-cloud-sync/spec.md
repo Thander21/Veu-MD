@@ -45,3 +45,4 @@ Usuários que utilizam o Veu MD em múltiplos dispositivos (desktop e mobile) ne
 | SYNC-02 | Isolamento estrito de I/O de rede em relação ao auto-save local | High | pending |
 | SYNC-03 | Atualização remota com notificação na StatusBar e proteção de dirty tabs | Medium | pending |
 | SYNC-04 | Modo tolerante a desconexão com enfileiramento diferido de sincronização | Medium | pending |
+

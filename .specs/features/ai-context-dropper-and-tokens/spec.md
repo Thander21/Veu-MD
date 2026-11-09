@@ -44,3 +44,4 @@ Usuários que utilizam o Veu MD em fluxos de trabalho assistidos por inteligênc
 | TOK-02 | Tratamento de documento vazio com contagem zerada de tokens | Low | pending |
 | CTX-01 | Ação de copiar arquivo como bloco XML de contexto no menu do Explorer | High | pending |
 | CTX-02 | Coleta recursiva de arquivos texto/markdown ao copiar pasta como contexto | Medium | pending |
+

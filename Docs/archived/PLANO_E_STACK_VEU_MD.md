@@ -1,4 +1,10 @@
-# Veu MD — Especificação de Produto e Pesquisa de Arquitetura 
+# Veu MD — Especificação de Produto e Pesquisa de Arquitetura [ARQUIVADO]
+
+> **Status**: **CONCLUÍDO & ARQUIVADO (2026-11-09)**
+> Este documento fundacional definiu a arquitetura original, stack tecnológica e os 7 refinamentos essenciais do MVP.
+> 100% dos requisitos descritos nas 3 camadas de arquitetura (Svelte 5 + ProseMirror WYSIWYG + Tauri v2 / Rust PTY) e os 7 refinamentos essenciais foram implementados, testados deterministicamente e estão em produção.
+
+---
 
 ## 1. Visão Geral do Projeto
 
@@ -69,9 +75,9 @@ flowchart TD
 
 ### Detalhamento das 3 Camadas:
 
-1. **Camada 1A — Interface (UI): Svelte 5 ou SolidJS (Zero Virtual DOM)**
+1. **Camada 1A — Interface (UI): Svelte 5 (Zero Virtual DOM)**
 
-   * Ao contrário do React (que mantém um Virtual DOM pesado na memória recriando árvores inteiras), Svelte 5 e SolidJS compilam diretamente para manipulação cirúrgica do DOM nativo.
+   * Ao contrário do React (que mantém um Virtual DOM pesado na memória recriando árvores inteiras), o Svelte 5 compila diretamente para manipulação cirúrgica do DOM nativo.
 
    * Consumo de memória JS heap mínimo, inicialização instantânea e atualização de abas e árvores de arquivos sem engasgos.
 
@@ -93,7 +99,7 @@ flowchart TD
 
 4. **Camada 3 — Base Desktop e Terminal: Tauri v2 + Rust**
 
-   * Executável final minúsculo (\~10MB a 15MB) e consumo de RAM de apenas \~35MB a 50MB (contra 250MB+ do Electron).
+   * Executável final minúsculo (~10MB a 15MB) e consumo de RAM de apenas ~35MB a 50MB (contra 250MB+ do Electron).
 
    * Terminal integrado real com `portable-pty` e suporte a PowerShell, CMD e Git Bash contextualizado na pasta aberta.
 
@@ -113,7 +119,7 @@ flowchart TD
 
      * Se o arquivo na aba não tiver edições pendentes: recarrega silenciosamente.
 
-     * Se houver edições locais não salvas: exibe barra de alerta com opções de *Recarregar* ou *Manter Atual*.
+     * Se houver edições locais não salvas: exibe barra de alerta e preserva o buffer local sem descarte.
 
 3. **Localizar e Substituir (`Ctrl + F` / `Ctrl + H`):**
 
@@ -125,7 +131,7 @@ flowchart TD
 
 5. **Edição de Tabelas no Modo Word:**
 
-   * Tecla `Tab` na última célula cria automaticamente nova linha; menu de clique-direito na célula para inserir ou excluir linhas e colunas.
+   * Tecla `Tab` na última célula cria automaticamente nova linha; botões contextuais na TopBar para inserir ou excluir linhas e colunas.
 
 6. **Blocos de Código com Destaque de Sintaxe:**
 
@@ -133,4 +139,4 @@ flowchart TD
 
 7. **Exportação (PDF / HTML / Impressão):**
 
-   * Atalho `Ctrl + P` ou comando de exportação, permitindo salvar em PDF com o layout e as cores exatas do tema customizado.
+   * Atalho `Ctrl + Shift + P` ou comando de exportação, permitindo salvar em PDF via `@media print` com o layout e as cores exatas do tema ativo.

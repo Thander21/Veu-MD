@@ -45,3 +45,4 @@ Arquivos Markdown com metadados YAML no início delimitados por `---` (ex: Jekyl
 | YAML-02 | Visualizador discreto e colapsável de metadados no topo do editor | Medium | pending |
 | YAML-03 | Persistência e reanexação fiel do bloco YAML ao salvar no disco | High | pending |
 | YAML-04 | Preservação do fluxo padrão em arquivos sem frontmatter | High | pending |
+

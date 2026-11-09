@@ -1,4 +1,10 @@
-# V.E.U. MD — Identidade Narrativa, Conceito de Marca e Prompts de Ícone / Logo
+# V.E.U. MD — Identidade Narrativa, Conceito de Marca e Prompts de Ícone / Logo [ARQUIVADO]
+
+> **Status**: **CONCLUÍDO & ARQUIVADO (2026-11-09)**
+> Este documento consolidou as diretrizes fundacionais de marca, lore e conceitos visuais do V.E.U. MD.
+> Toda a identidade está integrada no aplicativo: tema padrão oficial (Catppuccin Mocha e Veu Crepúsculo), paletas de cores GPU no `:root`, assets gráficos oficiais (`public/icon.png`, `src-tauri/icons/`) e diretrizes de UX em `AGENTS.md`.
+
+---
 
 > **"O Véu que se abre. O texto que respira."**  
 > **"Ver, Editar e Usar — Sem a poluição das tags na tela, com a integridade pura do Markdown no disco."**

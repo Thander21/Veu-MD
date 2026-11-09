@@ -87,3 +87,4 @@ Anteriormente, no frontend (`src/App.svelte`), o componente de terminal era cond
 | **Consumo de Memória (Idle)** | < 15-25 MB (incluindo WebView nativo e processos PTY ativos) | Atendido |
 | **Custo de CPU na Troca de Temas** | Zero recalculo de layout JS (estritamente CSS Custom Properties) | Atendido |
 | **Operações de Disco** | Assíncronas e debounced para não travar o loop do editor | Atendido |
+
