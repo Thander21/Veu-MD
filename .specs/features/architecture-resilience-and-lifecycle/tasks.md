@@ -48,7 +48,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: A alternância entre Terminal Veu e xterm.js ocorre via CSS display sem desmontagem de componentes DOM nem perda de timeline.
 
-### T03: [ ] Encerramento Natural de PTY e Limpeza de Sessão
+### T03: [x] Encerramento Natural de PTY e Limpeza de Sessão
 **Where**: `src-tauri/src/commands/pty_cmd.rs`
 **Depends on**: T02
 **Tests**: `npm run check:rust`

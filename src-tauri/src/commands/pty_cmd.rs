@@ -50,7 +50,10 @@ pub fn spawn_terminal(
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
 
     let event_id = format!("term-output-{}", term_id);
+    let exit_event_id = format!("term-exit-{}", term_id);
     let app_handle = app.clone();
+    let terminals_state = Arc::clone(&state.terminals);
+    let term_id_clone = term_id.clone();
 
     // Thread para leitura contínua do PTY e emissão assíncrona para a interface
     std::thread::spawn(move || {
@@ -65,9 +68,18 @@ pub fn spawn_terminal(
                 Err(_) => break,
             }
         }
-        if let Ok(mut c) = child_for_thread.lock() {
-            let _ = c.wait();
+        let exit_code = if let Ok(mut c) = child_for_thread.lock() {
+            c.wait().map(|s| s.exit_code()).unwrap_or(0)
+        } else {
+            0
+        };
+
+        // Remove a sessão encerrada do mapa global de terminais
+        if let Ok(mut map) = terminals_state.lock() {
+            map.remove(&term_id_clone);
         }
+
+        let _ = app_handle.emit(&exit_event_id, exit_code);
     });
 
     let mut map = state.terminals.lock().map_err(|e| e.to_string())?;
