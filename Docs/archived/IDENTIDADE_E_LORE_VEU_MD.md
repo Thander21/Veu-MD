@@ -94,3 +94,4 @@ O tema **V.E.U. Crepúsculo (Padrão)** já está ativo e integrado:
 * **Arquivo:** `src/lib/theme/defaultThemes.ts` (posicionado como o primeiro tema da lista com as cores oficiais de títulos, citações, inline code e tabelas).
 * **Store Reativa:** `src/lib/theme/themeStore.ts` configurado para carregar o tema oficial por padrão.
 * **Verificação de Compilação:** `npm run check` executado com **0 erros e 0 warnings**.
+

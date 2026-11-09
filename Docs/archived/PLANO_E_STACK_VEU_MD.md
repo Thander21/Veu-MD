@@ -140,3 +140,4 @@ flowchart TD
 7. **Exportação (PDF / HTML / Impressão):**
 
    * Atalho `Ctrl + Shift + P` ou comando de exportação, permitindo salvar em PDF via `@media print` com o layout e as cores exatas do tema ativo.
+
