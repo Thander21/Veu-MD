@@ -26,6 +26,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: validate_tasks.py:--execute (sdd/orchestration)
 - last seen: 2026-11-07T13:32:02Z
 
+### L-003 - Sempre compilar o executavel de producao com 'npm run tauri build' (com Path do cargo carregado) para embutir assets dist, nunca via cargo build direto
+- signal: `gate_fail` · recurrence: 1 feature(s) · scope: `desktop-build` · harmful: 0
+- features: architecture-ipc-contracts-and-ringbuffer
+- evidence: Docs/c.md:110 (desktop-build)
+- last seen: 2026-11-09T01:33:38Z
+
+### L-004 - AiAssistantPanel deve ser flex-child acoplado em .workspace com position relative e 100% de altura, nunca fixed, evitando sobrepor texto do editor
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `ui-layout` · harmful: 0
+- features: ai-assistant-wizard-and-multi-cli
+- evidence: src/lib/components/AiAssistantPanel.svelte:620 (ui-layout)
+- last seen: 2026-11-09T01:33:43Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

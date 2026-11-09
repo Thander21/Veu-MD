@@ -105,7 +105,28 @@ npm run build:desktop:external
 
 Os instaladores e binários compilados são gerados em: `src-tauri/target/release/` e `src-tauri/target/release/bundle/`
 
-### Limpeza e Recompilação Limpa (Clean Build)
+### 3.2. Atualização e Geração de Ícones Multiplataforma (.ico, .png, Android)
+
+Ao alterar a identidade visual ou logotipo do aplicativo (`public/veu-logo.svg` ou `public/veu-logo.png` de alta resolução 512x512 ou superior), regenere todos os pacotes de ícones nativos executando:
+
+```powershell
+npx @tauri-apps/cli icon public/veu-logo.png
+```
+
+Isso atualiza automaticamente os seguintes arquivos gerados:
+- `src-tauri/icons/icon.ico` (Windows)
+- `src-tauri/icons/icon.png`, `32x32.png`, `128x128.png`, `128x128@2x.png`
+- `src-tauri/icons/Square*.png`
+- Ícones de mipmap para Android em `src-tauri/gen/android/`
+
+> [!WARNING]
+> **NUNCA use `cargo build --release` diretamente para gerar o executável final!**
+> O comando do Cargo puro não embute os assets do frontend (`dist/`), gerando um `.exe` que tenta se conectar a `http://127.0.0.1:1420` e resulta no erro `ERR_CONNECTION_REFUSED`. Para compilar o executável de produção standalone com os assets embutidos, utilize sempre:
+> ```powershell
+> $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; npm run tauri build
+> ```
+
+### 3.3. Limpeza e Recompilação Limpa (Clean Build)
 
 ```
 cd src-tauri

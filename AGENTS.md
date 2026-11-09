@@ -36,7 +36,7 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - Listeners IPC registrados em `onMount` (ex: `listen('file-changed-externally')`) devem armazenar o handle de `unlisten` e executá-lo obrigatoriamente no `onDestroy`.
 - **Segurança Operacional, CSP e Sanitização de Caminhos:**
   - A Content Security Policy (CSP) em `tauri.conf.json` deve permitir estritamente recursos locais (`'self'`, `asset:`, `asset.localhost`), com permissão explícita para Google Fonts (`https://fonts.googleapis.com`, `https://fonts.gstatic.com`) e imagens remotas em Markdown (`https:`, `blob:`).
-  - Comandos Rust de escrita (`save_image_asset`, `save_custom_theme`) devem aplicar extração estrita de nome base (`Path::file_name()`) e validação alfanumérica, neutralizando vulnerabilidades de *Path Traversal* (`../../`).
+  - Comandos Rust de escrita (`save_image_asset`, `save_custom_theme`) devem aplicar extração estrita de nome base (`Path::file_name()`) e validação alfanumérica, neutralizando vulnerabilidades de _Path Traversal_ (`../../`).
 - **Anti-Bloat & Filtro Inegociável de Leveza:**
   - O footprint do app deve permanecer em ~5 MB a repouso com cold start < 300 ms.
   - É estritamente proibido embutir runtimes pesados (Node.js/npm no host, modelos de IA embutidos como Whisper de 500MB, ou WebViews secundárias para login).
@@ -53,12 +53,12 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - Para arquivos SVG, a barra de ferramentas deve oferecer alternância fluida entre visualização gráfica renderizada e inspeção/cópia do código-fonte XML nativo.
 - **Padronização do Ícone Canônico de Markdown (.md):**
   - Todos os nós de arquivos Markdown (`.md`, `.markdown`) na árvore lateral (`FileTreeNode`), na barra lateral (`Sidebar`) e na barra de abas (`TabBar`) **DEVEM** renderizar o componente canônico `VeuMdIcon`.
-  - O ícone segue a estética oficial do *Material Icon Theme* do VS Code (fundo roxo `#ab47bc` com cantos arredondados e os glifos brancos `M` e `↓`). É estritamente proibido substituir este ícone por logotipos com a letra "V" de Veu ou ícones genéricos de texto puro.
+  - O ícone segue a estética oficial do _Material Icon Theme_ do VS Code (fundo roxo `#ab47bc` com cantos arredondados e os glifos brancos `M` e `↓`). É estritamente proibido substituir este ícone por logotipos com a letra "V" de Veu ou ícones genéricos de texto puro.
 - **Comportamento e Retração da Gaveta do Chat IA:**
   - Ao abrir a gaveta lateral do Chat IA (`AiAssistantPanel`), o botão disparador externo na barra superior (`TopBar`) **DEVE** ser ocultado (`{#if !aiAssistantOpen}`).
   - O ícone do assistente posicionado no canto superior esquerdo do cabeçalho da gaveta atua obrigatoriamente como ação direta de retração (`on:click={onClose}`), permitindo recolher a gaveta sem depender unicamente do botão `X`.
 - **Foco Editorial da Tela Inicial do Chat IA:**
-  - O estado vazio (`messages.length === 0`) do Chat IA deve exibir exclusivamente o cabeçalho editorial de boas-vindas e os chips de ação rápida focados na assistência à escrita (*Revisar clareza e estilo*, *Resumo em 3 tópicos*, *Estruturar novos tópicos*, *Introdução envolvente*).
+  - O estado vazio (`messages.length === 0`) do Chat IA deve exibir exclusivamente o cabeçalho editorial de boas-vindas e os chips de ação rápida focados na assistência à escrita (_Revisar clareza e estilo_, _Resumo em 3 tópicos_, _Estruturar novos tópicos_, _Introdução envolvente_).
   - **NUNCA** insira cards intrusivos de execução de linha de comando ("Iniciar Normal" ou "Permissão Total") na tela inicial de chat; tais ações pertencem exclusivamente ao `TerminalPanel` ou às visões de Wizard/Configurações (`AiSettingsView`).
 - **Performance de Temas via GPU:**
   - Todas as cores de elementos semânticos (H1..H6, negrito, itálico, citações, inline code, blocos de código, tabelas, links) e espaçamentos são aplicados estritamente via CSS Custom Properties no `:root`.
@@ -70,8 +70,8 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - **NUNCA** sobreponha botões flutuantes de fechar (`X`) no topo dos avatares de projetos na barra de atividades, evitando cliques acidentais e poluição visual.
   - A ação de fechar projeto deve ter destaque visual em vermelho vivo (`#ef4444`), localizada após o nome da pasta no cabeçalho do Explorer ou acionada via clique com botão direito no avatar.
 - **Segregação Semântica da Barra Superior (TopBar) e Zero Duplicidades:**
-  - As ações que operam diretamente sobre o documento em edição (*Salvar*, *Exportar PDF/Imprimir*, *Copiar HTML*) pertencem ao grupo de formatação do editor ProseMirror, posicionadas ao final após *Desfazer/Refazer*.
-  - O grupo esquerdo da TopBar reserva-se a ações de contexto (*Alternar Barra Lateral*, *Abrir/Trocar Pasta*, *Assistente IA Wizard* e *Localizador Rápido Ctrl+P*).
+  - As ações que operam diretamente sobre o documento em edição (_Salvar_, _Exportar PDF/Imprimir_, _Copiar HTML_) pertencem ao grupo de formatação do editor ProseMirror, posicionadas ao final após _Desfazer/Refazer_.
+  - O grupo esquerdo da TopBar reserva-se a ações de contexto (_Alternar Barra Lateral_, _Abrir/Trocar Pasta_, _Assistente IA Wizard_ e _Localizador Rápido Ctrl+P_).
   - Ações de criação de arquivos e pastas pertencem exclusivamente à barra de ferramentas do Explorer, evitando duplicações desnecessárias no topo.
   - O terminal integrado possui seus pontos de acesso canônicos no topo direito e na barra de status; nunca o duplique dentro da barra de ferramentas do Explorer.
 
@@ -79,16 +79,18 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 
 ## 2. Arquitetura e Stack Tecnológica
 
-| Camada | Tecnologia | Papel |
-| :--- | :--- | :--- |
-| **Frontend UI** | **Svelte 5 + TypeScript + Vite** | Interface cirúrgica reativa, sistema de abas, explorer e painéis com zero Virtual DOM |
-| **Editor Core** | **ProseMirror Core Puro** | Schema customizado, serializador bidirecional Markdown GFM, menus flutuantes e inline |
-| **Terminal** | **Terminal Veu + portable-pty Rust** | Terminal sequencial, editorial e leve contextualizado na pasta ativa |
-| **Desktop / Core**| **Tauri v2 + Rust 2021** | IPC seguro, manipulação de arquivos, PTY nativo (`portable-pty`), watcher (`notify`) |
-| **Mobile** | **Tauri v2 Mobile (Android)** | Wrapper nativo mobile para Android via NDK/Gradle |
+| Camada             | Tecnologia                           | Papel                                                                                 |
+| :----------------- | :----------------------------------- | :------------------------------------------------------------------------------------ |
+| **Frontend UI**    | **Svelte 5 + TypeScript + Vite**     | Interface cirúrgica reativa, sistema de abas, explorer e painéis com zero Virtual DOM |
+| **Editor Core**    | **ProseMirror Core Puro**            | Schema customizado, serializador bidirecional Markdown GFM, menus flutuantes e inline |
+| **Terminal**       | **Terminal Veu + portable-pty Rust** | Terminal sequencial, editorial e leve contextualizado na pasta ativa                  |
+| **Desktop / Core** | **Tauri v2 + Rust 2021**             | IPC seguro, manipulação de arquivos, PTY nativo (`portable-pty`), watcher (`notify`)  |
+| **Mobile**         | **Tauri v2 Mobile (Android)**        | Wrapper nativo mobile para Android via NDK/Gradle                                     |
 
 ### 2.1. Modularização do Backend Rust (`src-tauri/src/`)
+
 A arquitetura do backend é rigorosamente segregada por domínios de responsabilidade:
+
 - **`commands/`**: Handlers IPC invocados pelo frontend via `invoke()`:
   - `fs_cmd.rs`: Operações seguras de sistema de arquivos (leitura de árvore de diretórios, leitura/escrita de arquivos, salvamento de imagens e verificação de existência).
   - `pty_cmd.rs`: Gestão de sessões de terminal interativo (`portable-pty`), spawn de PTY, redimensionamento de janela, escrita de dados no stdin e encerramento sem processos zumbis (`kill_terminal`).
@@ -129,6 +131,7 @@ O Tauri v2 adota o modelo de segurança declarativa baseado em **Capabilities** 
 O projeto adota a metodologia Spec-Driven Development através do framework canônico `tlc-spec-driven` localizado em `.agent/skills/tlc-spec-driven/`.
 
 ### 4.1. Fases Adaptativas do Ciclo de Vida
+
 ```
 ┌──────────┐   ┌──────────┐   ┌─────────┐   ┌─────────┐
 │ SPECIFY  │ → │  DESIGN  │ → │  TASKS  │ → │ EXECUTE │
@@ -144,9 +147,10 @@ O projeto adota a metodologia Spec-Driven Development através do framework can�
   - **Complex** (Ambiguidade, novo domínio): Spec completo com discussão prévia de áreas cinzentas (`context.md`), Design de arquitetura com pesquisa e plano de validação/UAT.
 
 ### 4.2. Invariantes Inegociáveis do SDD
+
 1. **Parada Obrigatória para Aprovação Humana**:
    - NUNCA inicie a Fase de Execução (Fase 4) sem antes:
-     a) Esclarecer todas as áreas cinzentas (*gray areas*) com o usuário e documentá-las em `.specs/features/<feature>/context.md`.
+     a) Esclarecer todas as áreas cinzentas (_gray areas_) com o usuário e documentá-las em `.specs/features/<feature>/context.md`.
      b) Apresentar `spec.md` e `tasks.md` e aguardar aprovação explícita do usuário.
      c) Registrar a aprovação formal com a citação exata das palavras do usuário: `**Approved**: <data> - user: "<suas palavras>"`.
 2. **Testes Derivados dos Critérios de Aceite**:
@@ -162,17 +166,18 @@ O projeto adota a metodologia Spec-Driven Development através do framework can�
    - Aprovações cobrem implementação e commits locais. Comandos destrutivos ou remotos (`git push`, reset, force push) requerem autorização humana pontual explícita.
 
 ### 4.3. Parâmetros e Scripts Determinísticos do TLC
+
 Todos os scripts residem em `.agent/skills/tlc-spec-driven/scripts/` e devem ser executados a partir da raiz do projeto:
 
-| Momento | Comando de Validação | Finalidade e Parâmetros |
-| :--- | :--- | :--- |
-| **Antes de apresentar a Spec** | `python .agent/skills/tlc-spec-driven/scripts/validate_spec.py <feature> --strict` | Valida sintaxe EARS, IDs de requisitos, ausência de números em seções H2 e preenchimento de premissas. |
-| **Antes de apresentar as Tasks** | `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature>` | Valida granularidade, tags de metadados sem hífen (`**Where**:`, `**Gate**:`, `**Done When**:`), dependências e bloco `## Checks`. |
-| **Antes de iniciar a Execução (T01)** | `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature> --execute` | Garante aprovação formal registrada em `spec.md` e `tasks.md`, e valida que o comando `**Build**:` passe antes do código. |
-| **Antes de cada Commit Atômico** | `python .agent/skills/tlc-spec-driven/scripts/check_commit.py --message "<mensagem>"` | Assegura mensagem padronizada e integridade da tarefa concluída. |
-| **Após a última tarefa implementada** | `python .agent/skills/tlc-spec-driven/scripts/check_proofs.py <feature>` | Executa a suíte de provas no `HEAD` e gera o documento `proofs.md`. |
-| **Antes de declarar a feature concluída** | `python .agent/skills/tlc-spec-driven/scripts/validate_verification.py <feature>` | Portão final: valida árvore limpa, provas passando no `HEAD`, aprovações documentadas e veredicto do Verificador em `verification.md`. |
-| **Gestão de Lições Aprendidas** | `python .agent/skills/tlc-spec-driven/scripts/lessons.py list --status confirmed` | Consulta e atualiza o repositório contínuo de lições aprendidas em `.specs/lessons.json`. |
+| Momento                                   | Comando de Validação                                                                  | Finalidade e Parâmetros                                                                                                                |
+| :---------------------------------------- | :------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
+| **Antes de apresentar a Spec**            | `python .agent/skills/tlc-spec-driven/scripts/validate_spec.py <feature> --strict`    | Valida sintaxe EARS, IDs de requisitos, ausência de números em seções H2 e preenchimento de premissas.                                 |
+| **Antes de apresentar as Tasks**          | `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature>`            | Valida granularidade, tags de metadados sem hífen (`**Where**:`, `**Gate**:`, `**Done When**:`), dependências e bloco `## Checks`.     |
+| **Antes de iniciar a Execução (T01)**     | `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature> --execute`  | Garante aprovação formal registrada em `spec.md` e `tasks.md`, e valida que o comando `**Build**:` passe antes do código.              |
+| **Antes de cada Commit Atômico**          | `python .agent/skills/tlc-spec-driven/scripts/check_commit.py --message "<mensagem>"` | Assegura mensagem padronizada e integridade da tarefa concluída.                                                                       |
+| **Após a última tarefa implementada**     | `python .agent/skills/tlc-spec-driven/scripts/check_proofs.py <feature>`              | Executa a suíte de provas no `HEAD` e gera o documento `proofs.md`.                                                                    |
+| **Antes de declarar a feature concluída** | `python .agent/skills/tlc-spec-driven/scripts/validate_verification.py <feature>`     | Portão final: valida árvore limpa, provas passando no `HEAD`, aprovações documentadas e veredicto do Verificador em `verification.md`. |
+| **Gestão de Lições Aprendidas**           | `python .agent/skills/tlc-spec-driven/scripts/lessons.py list --status confirmed`     | Consulta e atualiza o repositório contínuo de lições aprendidas em `.specs/lessons.json`.                                              |
 
 ---
 
@@ -236,4 +241,3 @@ Consulte `Docs/c.md` para a lista completa com todas as variáveis de ambiente.
 - **Desktop Build:** `npm run tauri build`
 - **Android Dev:** `npm run tauri android dev`
 - **Android Build:** `npm run tauri android build`
-

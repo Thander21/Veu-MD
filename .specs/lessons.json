@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 3,
+  "next_id": 5,
   "lessons": [
     {
       "id": "L-001",
@@ -40,6 +40,42 @@
       ],
       "created": "2026-11-07T13:32:02Z",
       "last_seen": "2026-11-07T13:32:02Z"
+    },
+    {
+      "id": "L-003",
+      "key": "gate_fail::sempre compilar o executavel de producao com npm run tauri build com path do cargo carregado para embutir assets dist nunca via cargo build direto",
+      "text": "Sempre compilar o executavel de producao com 'npm run tauri build' (com Path do cargo carregado) para embutir assets dist, nunca via cargo build direto",
+      "signal": "gate_fail",
+      "scope": "desktop-build",
+      "status": "candidate",
+      "features": [
+        "architecture-ipc-contracts-and-ringbuffer"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "Docs/c.md:110 (desktop-build)"
+      ],
+      "created": "2026-11-09T01:33:38Z",
+      "last_seen": "2026-11-09T01:33:38Z"
+    },
+    {
+      "id": "L-004",
+      "key": "ac_gap::aiassistantpanel deve ser flex child acoplado em workspace com position relative e 100 de altura nunca fixed evitando sobrepor texto do editor",
+      "text": "AiAssistantPanel deve ser flex-child acoplado em .workspace com position relative e 100% de altura, nunca fixed, evitando sobrepor texto do editor",
+      "signal": "ac_gap",
+      "scope": "ui-layout",
+      "status": "candidate",
+      "features": [
+        "ai-assistant-wizard-and-multi-cli"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/lib/components/AiAssistantPanel.svelte:620 (ui-layout)"
+      ],
+      "created": "2026-11-09T01:33:43Z",
+      "last_seen": "2026-11-09T01:33:43Z"
     }
   ]
 }
