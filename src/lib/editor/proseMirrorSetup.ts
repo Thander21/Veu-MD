@@ -1,6 +1,7 @@
 import { Schema, Slice, DOMSerializer, Node as ProseMirrorNode } from 'prosemirror-model';
 import { defaultMarkdownParser, defaultMarkdownSerializer, MarkdownParser, MarkdownSerializer } from 'prosemirror-markdown';
 import { schema as baseSchema } from 'prosemirror-schema-basic';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { addListNodes, splitListItem, liftListItem, sinkListItem } from 'prosemirror-schema-list';
 import {
   tableNodes,
@@ -102,9 +103,7 @@ export const veuMarkdownSerializer = new MarkdownSerializer(
       state.write(' ');
     },
     image(state, node) {
-      const src = node.attrs.title && node.attrs.title.startsWith('./assets/')
-        ? node.attrs.title
-        : node.attrs.src;
+      const src = node.attrs.src || '';
       state.write(
         "![" +
           state.esc(node.attrs.alt || "") +
@@ -121,6 +120,61 @@ export const veuMarkdownSerializer = new MarkdownSerializer(
     highlight: { open: '==', close: '==', mixable: true, expelEnclosingWhitespace: true }
   }
 );
+
+let activeDocumentDir: string = '';
+
+export function setActiveDocumentDir(dir: string) {
+  activeDocumentDir = dir;
+}
+
+export function getActiveDocumentDir(): string {
+  return activeDocumentDir;
+}
+
+export function resolveImageSrc(src: string, docDir = activeDocumentDir): string {
+  if (!src) return '';
+  if (
+    src.startsWith('data:') ||
+    src.startsWith('http://') ||
+    src.startsWith('https://') ||
+    src.startsWith('blob:') ||
+    src.startsWith('asset:')
+  ) {
+    return src;
+  }
+  if (docDir) {
+    const cleanSrc = src.replace(/^\.\//, '');
+    const sep = docDir.includes('/') ? '/' : '\\';
+    const absolutePath = `${docDir}${sep}${cleanSrc}`;
+    try {
+      return convertFileSrc(absolutePath);
+    } catch {
+      return src;
+    }
+  }
+  return src;
+}
+
+export function createImageNodeView(node: ProseMirrorNode) {
+  const dom = document.createElement('img');
+  const rawSrc = node.attrs.src || '';
+  dom.src = resolveImageSrc(rawSrc);
+  if (node.attrs.alt) dom.alt = node.attrs.alt;
+  if (node.attrs.title) dom.title = node.attrs.title;
+  dom.className = 'veu-editor-image';
+
+  return {
+    dom,
+    update(updatedNode: ProseMirrorNode) {
+      if (updatedNode.type.name !== 'image') return false;
+      const newSrc = updatedNode.attrs.src || '';
+      dom.src = resolveImageSrc(newSrc);
+      if (updatedNode.attrs.alt) dom.alt = updatedNode.attrs.alt;
+      if (updatedNode.attrs.title) dom.title = updatedNode.attrs.title;
+      return true;
+    }
+  };
+}
 
 // 4. Regras de Entrada Inteligentes (Digitar # cria H1 na hora sem mostrar a tag)
 export function buildInputRules(schema: Schema) {
@@ -334,9 +388,13 @@ export function handleSmartPaste(
     text = sanitizeAiGreetings(text);
   }
 
-  // Detecta estruturas Markdown ricas (tabelas, blocos de código, títulos, listas, checklists)
+  // Detecta estruturas Markdown ricas (tabelas, blocos de código, títulos, listas, checklists e marcas inline)
   const hasMarkdownStructures =
-    /(?:^|\n)(?:#{1,6}\s|>\s|[-*+]\s|\|\s*.+?\s*\||```|\[[ xX]\]|\d+\.\s)/.test(text);
+    /(?:^|\n)(?:#{1,6}\s|>\s|[-*+]\s|\|\s*.+?\s*\||```|\[[ xX]\]|\d+\.\s)/.test(text) ||
+    /(\*\*|__)[^\s].+?\1/.test(text) ||
+    /~~[^\s].+?~~/.test(text) ||
+    /`[^`\n]+`/.test(text) ||
+    /\[.+?\]\(.+?\)/.test(text);
 
   if (hasMarkdownStructures) {
     try {

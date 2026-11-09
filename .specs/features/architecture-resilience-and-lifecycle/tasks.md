@@ -55,7 +55,7 @@ graph TD
 **Gate**: `npm run check:rust`
 **Done When**: Ao receber EOF na leitura do PTY, o backend emite evento term-exit e remove a sessão de AppState.terminals.
 
-### T04: [ ] Resolução de Imagens Locais via Asset Protocol
+### T04: [x] Resolução de Imagens Locais via Asset Protocol
 **Where**: `src/lib/editor/proseMirrorSetup.ts`
 **Depends on**: T03
 **Tests**: `npm run check`

@@ -1,7 +1,12 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { EditorView } from 'prosemirror-view';
-  import { createEditorState, veuMarkdownSerializer, handleSmartPaste } from '../editor/proseMirrorSetup';
+  import {
+    createEditorState,
+    veuMarkdownSerializer,
+    handleSmartPaste,
+    createImageNodeView
+  } from '../editor/proseMirrorSetup';
   import FloatingMenu from './FloatingMenu.svelte';
   import SlashMenu from './SlashMenu.svelte';
   import type { HeadingItem } from '../types';
@@ -93,6 +98,9 @@
 
     editorView = new EditorView(editorContainer, {
       state,
+      nodeViews: {
+        image: (node) => createImageNodeView(node)
+      },
       dispatchTransaction(transaction) {
         const newState = editorView!.state.apply(transaction);
         editorView!.updateState(newState);

@@ -15,7 +15,7 @@
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
   import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
   import { formatDocument } from './lib/utils/codeFormatter';
-  import { serializeDocToHtml, copyFormattedHtml } from './lib/editor/proseMirrorSetup';
+  import { serializeDocToHtml, copyFormattedHtml, setActiveDocumentDir } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import { fsService } from './lib/services/fsService';
   import {
@@ -473,6 +473,13 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 
   $: activeTab = tabs.find((t) => t.id === activeTabId) || null;
 
+  $: if (activeTab?.path) {
+    const p = activeTab.path;
+    const lastSlash = Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'));
+    const dir = lastSlash > 0 ? p.substring(0, lastSlash) : currentFolderPath;
+    setActiveDocumentDir(dir);
+  }
+
   // Gerencia o arquivo sendo monitorado pelo File Watcher nativo
   let watchedPath: string = '';
   $: if (activeTab?.path && activeTab.path !== watchedPath) {
@@ -889,9 +896,9 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       if (activeEditorView) {
         const { schema, tr } = activeEditorView.state;
         const imageNode = schema.nodes.image.create({
-          src: base64Data,
+          src: relPath,
           alt: filename,
-          title: relPath
+          title: filename
         });
         activeEditorView.dispatch(tr.replaceSelectionWith(imageNode));
         statusNotification = `Imagem salva em ${relPath}`;
