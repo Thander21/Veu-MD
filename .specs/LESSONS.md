@@ -38,6 +38,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/lib/components/AiAssistantPanel.svelte:620 (ui-layout)
 - last seen: 2026-11-09T01:33:43Z
 
+### L-005 - Auto-save multi-aba exige timers isolados por tabId com flush atomico no blur ou switch para prevenir race condition e perda de dados
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `editor-state` · harmful: 0
+- features: architecture-resilience-and-lifecycle
+- evidence: src/App.svelte:687 (editor-state)
+- last seen: 2026-11-09T08:37:06Z
+
+### L-006 - Imagens locais em Markdown no Tauri WebView2 requerem resolucao via convertFileSrc no nodeView para evitar 404s e bloat de base64 no disco
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `editor-assets` · harmful: 0
+- features: architecture-resilience-and-lifecycle
+- evidence: src/lib/editor/proseMirrorSetup.ts:135 (editor-assets)
+- last seen: 2026-11-09T08:37:11Z
+
+### L-007 - Motores dual-engine de terminal devem coexistir no DOM via CSS display para evitar vazamento de PTYs zumbis no Windows
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `terminal-lifecycle` · harmful: 0
+- features: architecture-resilience-and-lifecycle
+- evidence: src/lib/components/TerminalPanel.svelte:472 (terminal-lifecycle)
+- last seen: 2026-11-09T08:37:54Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

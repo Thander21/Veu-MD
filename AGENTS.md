@@ -19,6 +19,11 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - O prompt de entrada é interativo e editável com seleção nativa por mouse, navegação por histórico com setas (`ArrowUp`/`ArrowDown`) e clique livre para mover o cursor, posicionado ao final da linha do tempo quando a sessão está ociosa.
   - Durante a execução de um comando, a interface exibe streaming contínuo da saída com status, botão **Parar (`Ctrl+C`)** e ação de escape para liberar o prompt caso o processo silencie sem retorno padronizado.
   - **Eliminação de Processos Zumbis (Win32 ConPTY)**: Toda sessão `TerminalSession` no Rust deve reter o handle do processo filho (`child`). Ao invocar `kill_terminal` (fechamento explícito de projeto), o processo deve ser encerrado com `child.kill()`, impedindo processos órfãos consumindo CPU e memória no Windows.
+  - **Convivência Dual-Engine sem Desmontagem DOM**:
+    - O alternador de motores de terminal (`terminalEngine`: 'veu' vs 'xterm') **NUNCA** deve desmontar componentes através de blocos condicionais como `{#if terminalEngine === 'veu'}`.
+    - Ambos os motores devem permanecer montados simultaneamente no DOM, alternados estritamente via classes CSS de visibilidade (`.hidden` / `display: none`), preservando histórico, timelines e garantindo que `closeProjectTerminals` localize as referências para encerrar PTYs no backend.
+  - **Ciclo de Vida de Encerramento Natural do PTY**:
+    - Ao receber EOF na leitura contínua (ex: comando `exit` digitado pelo usuário ou término de script), a thread Rust no `pty_cmd.rs` deve remover a sessão de `AppState.terminals` e emitir o evento `term-exit-{termId}` com o exit code, liberando a memória do backend e desarmando o streaming no frontend.
 - **Barra Lateral Direita Acoplada do Chat IA vs Gaveta Fixa de Temas:**
   - O **Chat IA (`AiAssistantPanel`)** atua como uma barra lateral direita acoplada (`position: relative; height: 100%; flex-shrink: 0;`) inserida diretamente no fluxo de `.workspace` ao lado de `.center-stage`. Isso assegura que o palco central e o editor ProseMirror contraiam proporcionalmente quando o chat estiver aberto, impedindo terminantemente que o chat flutue ou sobreponha o texto do documento em edição. Possui alça interativa de redimensionamento (`.sidebar-resize-handle`) e cabeçalho alinhado a 44px com a `TopBar`.
   - Painéis de configuração rápida e transitória como **`ThemeSettings`** permanecem como gavetas fixas flutuantes (`position: fixed; right: 0; top: 44px; bottom: 24px; z-index: 40;`), pois são diálogos de ajuste estético pontual e não barras laterais de trabalho contínuo.
@@ -74,6 +79,17 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - O grupo esquerdo da TopBar reserva-se a ações de contexto (_Alternar Barra Lateral_, _Abrir/Trocar Pasta_, _Assistente IA Wizard_ e _Localizador Rápido Ctrl+P_).
   - Ações de criação de arquivos e pastas pertencem exclusivamente à barra de ferramentas do Explorer, evitando duplicações desnecessárias no topo.
   - O terminal integrado possui seus pontos de acesso canônicos no topo direito e na barra de status; nunca o duplique dentro da barra de ferramentas do Explorer.
+- **Isolamento de Auto-Save por Aba e Flush de Ciclo de Vida**:
+  - **NUNCA** utilize timers escalares globais únicos para o auto-save de múltiplos documentos.
+  - O auto-save deve gerenciar timers isolados por aba (`Map<string, Timeout>`).
+  - Na comutação de abas (`handleSelectTab`), no fechamento de aba (`closeTab`), na criação de novos arquivos ou na troca de projetos (`switchToProject`), qualquer aba com alterações pendentes (`isDirty === true`) **DEVE** descarregar seu salvamento imediatamente no disco antes de atualizar o ponteiro ativo, eliminando race conditions de perda de digitação.
+- **Resolução de Assets e Imagens Locais no ProseMirror**:
+  - Caminhos relativos de imagens em Markdown (ex: `![diagrama](./assets/img.png)`) **DEVEM** ser mapeados para o protocolo nativo de assets do Tauri v2 (`convertFileSrc`) através de um `nodeView` customizado no ProseMirror.
+  - O WebView2 não consegue resolver caminhos relativos contra o disco local por operar sob a origem web (`http://127.0.0.1:1420` ou `asset.localhost`), gerando erro 404 se não houver a conversão.
+  - Imagens coladas (`Ctrl + V`) devem ser salvas como arquivos binários na pasta `./assets/` e referenciadas no documento por caminho relativo limpo, **NUNCA** gravando payloads brutos de base64 no `.md` do disco.
+- **Smart Paste de Marcas Inline**:
+  - O interceptador `handleSmartPaste` deve detectar tanto blocos (`#`, `>`, `-`, `|`, ````) quanto marcações inline (`**`, `*`, `~~`, `` ` ``, `[texto](link)`).
+  - Colagens que contenham essas marcas devem ser convertidas diretamente em nós e marks ricos do ProseMirror, impedindo terminantemente que asteriscos ou crases literais sejam inseridos na visualização WYSIWYG.
 
 ---
 
@@ -123,6 +139,9 @@ O Tauri v2 adota o modelo de segurança declarativa baseado em **Capabilities** 
 - **Invariantes de Segurança do IPC**:
   - **Sanitização de Caminhos & Anti-Traversal**: Comandos Rust que gravam arquivos (`save_image_asset`, `save_custom_theme`) aplicam extração canônica de nome base (`Path::file_name()`) e validações estritas, rejeitando qualquer padrão de evasão de diretório (`..`, `/`, `\`).
   - **Content Security Policy (CSP)**: Configurada em `tauri.conf.json` para bloquear fontes externas não autorizadas, restringindo a origens locais (`'self'`, `asset:`), Google Fonts e imagens remotas em Markdown via `https:`.
+  - **Contenção Estrita em Exclusão de Arquivos (`delete_entry`)**:
+    - O comando `delete_entry` no Rust deve validar canonicamente o caminho (`validate_safe_deletion_path`) antes de invocar `remove_dir_all` ou `remove_file`.
+    - É estritamente vedado excluir caminhos vazios, espaços em branco, raízes de volumes (`/`, `C:\`) ou diretórios críticos do sistema operacional (`C:\Windows`).
 
 ---
 
