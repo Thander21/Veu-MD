@@ -95,6 +95,13 @@
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { stripAnsi, ansiToHtml } from '../utils/ansiParser';
+  import {
+    appendBlockWithRingBuffer,
+    spawnTerminalIpc,
+    writeTerminalIpc,
+    resizeTerminalIpc,
+    killTerminalIpc
+  } from '../stores/terminalStore';
 
   export let projectId: string = 'default';
   export let visible: boolean = false;
@@ -188,10 +195,10 @@
     const rows = Math.max(8, Math.min(160, Math.floor(usableH / 19)));
 
     if (termId) {
-      invoke('resize_terminal', { termId, cols, rows }).catch(() => {});
+      resizeTerminalIpc(termId, cols, rows).catch(() => {});
     } else {
       currentTabs.forEach((t) => {
-        invoke('resize_terminal', { termId: t.id, cols, rows }).catch(() => {});
+        resizeTerminalIpc(t.id, cols, rows).catch(() => {});
       });
     }
   }
@@ -245,11 +252,7 @@
     projectActiveTermId = { ...projectActiveTermId };
 
     try {
-      await invoke('spawn_terminal', {
-        termId: id,
-        cwd: currentFolderPath || null,
-        shell: 'powershell.exe'
-      });
+      await spawnTerminalIpc(id, currentFolderPath || undefined, 'powershell.exe');
 
       syncPtySize(id);
 
@@ -290,11 +293,7 @@
     projectActiveTermId = { ...projectActiveTermId };
 
     try {
-      await invoke('spawn_terminal', {
-        termId: id,
-        cwd: cwd || null,
-        shell: shell || null
-      });
+      await spawnTerminalIpc(id, cwd || undefined, shell || undefined);
 
       syncPtySize(id);
 
@@ -420,7 +419,7 @@
         tab.history = [...tab.history, inputToSend.trim()];
       }
 
-      invoke('write_terminal', { termId: tab.id, data: `${inputToSend}\r\n` }).catch((err) => {
+      writeTerminalIpc(tab.id, `${inputToSend}\r\n`).catch((err) => {
         console.error('Erro ao enviar entrada para o processo:', err);
       });
 
@@ -451,11 +450,11 @@
       status: 'running'
     };
 
-    tab.blocks = [...tab.blocks, newBlock];
+    tab.blocks = appendBlockWithRingBuffer(tab.blocks, newBlock);
     tab.isRunning = true;
     allTabs = [...allTabs];
 
-    invoke('write_terminal', { termId: tab.id, data: `${command}\r\n` }).catch((err) => {
+    writeTerminalIpc(tab.id, `${command}\r\n`).catch((err) => {
       newBlock.outputRaw = `Erro ao executar comando: ${err}`;
       newBlock.outputHtml = `<span class="ansi-red">Erro ao executar comando: ${err}</span>`;
       newBlock.status = 'completed';
@@ -468,7 +467,7 @@
 
   export function stopCommand(tab: TermTab) {
     // Envia SIGINT (^C) ao PTY
-    invoke('write_terminal', { termId: tab.id, data: '\x03' }).catch(() => {});
+    writeTerminalIpc(tab.id, '\x03').catch(() => {});
 
     const runningBlock = tab.blocks.find((b) => b.status === 'running');
     if (runningBlock) {
@@ -673,13 +672,13 @@
     // Se o processo estiver executando e o usuário pressionar teclas, repassa diretamente ao PTY
     if (tab.isRunning && !e.ctrlKey && !e.altKey && !e.metaKey) {
       if (e.key === 'Enter') {
-        invoke('write_terminal', { termId: tab.id, data: '\r\n' }).catch(() => {});
+        writeTerminalIpc(tab.id, '\r\n').catch(() => {});
       } else if (e.key === 'Backspace') {
-        invoke('write_terminal', { termId: tab.id, data: '\x08' }).catch(() => {});
+        writeTerminalIpc(tab.id, '\x08').catch(() => {});
       } else if (e.key === 'Escape') {
-        invoke('write_terminal', { termId: tab.id, data: '\x1b' }).catch(() => {});
+        writeTerminalIpc(tab.id, '\x1b').catch(() => {});
       } else if (e.key.length === 1) {
-        invoke('write_terminal', { termId: tab.id, data: e.key }).catch(() => {});
+        writeTerminalIpc(tab.id, e.key).catch(() => {});
       }
     }
   }
@@ -732,7 +731,7 @@
     const tabsToClose = allTabs.filter((t) => t.projectId === pId);
     for (const t of tabsToClose) {
       if (t.unlisten) t.unlisten();
-      invoke('kill_terminal', { termId: t.id }).catch(() => {});
+      killTerminalIpc(t.id).catch(() => {});
       delete timelineContainers[t.id];
     }
     allTabs = allTabs.filter((t) => t.projectId !== pId);
@@ -744,7 +743,7 @@
     const tab = allTabs.find((t) => t.id === id);
     if (tab) {
       if (tab.unlisten) tab.unlisten();
-      invoke('kill_terminal', { termId: id }).catch(() => {});
+      killTerminalIpc(id).catch(() => {});
       delete timelineContainers[id];
     }
 

@@ -23,6 +23,12 @@
   import { subscribeTheme, getTheme } from '../theme/themeStore';
   import type { ThemeConfig } from '../types';
   import TerminalVeuPanel from './TerminalVeuPanel.svelte';
+  import {
+    spawnTerminalIpc,
+    writeTerminalIpc,
+    resizeTerminalIpc,
+    killTerminalIpc
+  } from '../stores/terminalStore';
 
   export let projectId: string = 'default';
   export let visible: boolean = false;
@@ -78,7 +84,7 @@
       await createTerminalSession('powershell.exe', currentFolderPath);
       const tab = getActiveTab();
       if (tab) {
-        invoke('write_terminal', { termId: tab.id, data: `${command}\r\n` }).catch(() => {});
+        writeTerminalIpc(tab.id, `${command}\r\n`).catch(() => {});
       }
     }
   }
@@ -148,7 +154,7 @@
     const tab = getActiveTab();
     if (!tab || !tab.termInstance) return;
     tab.termInstance.clear();
-    invoke('write_terminal', { termId: tab.id, data: '\x0c' }).catch(() => {});
+    writeTerminalIpc(tab.id, '\x0c').catch(() => {});
   }
 
   function handleSendToAi() {
@@ -295,29 +301,25 @@
           try {
             const pasteData = await navigator.clipboard.readText();
             if (pasteData) {
-              invoke('write_terminal', { termId: id, data: pasteData });
+              writeTerminalIpc(id, pasteData);
             }
           } catch {}
         }
       });
 
       try {
-        await invoke('spawn_terminal', {
-          termId: id,
-          cwd: cwd || null,
-          shell: shell || null
-        });
+        await spawnTerminalIpc(id, cwd || undefined, shell || undefined);
 
         newTab.unlisten = await listen(`term-output-${id}`, (event: any) => {
           term.write(event.payload);
         });
 
         term.onData((data) => {
-          invoke('write_terminal', { termId: id, data });
+          writeTerminalIpc(id, data);
         });
 
         term.onResize(({ cols, rows }) => {
-          invoke('resize_terminal', { termId: id, cols, rows });
+          resizeTerminalIpc(id, cols, rows);
         });
       } catch (err) {
         term.writeln(`\r\n\x1b[31mErro ao iniciar terminal nativo: ${err}\x1b[0m\r\n`);
@@ -330,7 +332,7 @@
     if (tab) {
       if (tab.unlisten) tab.unlisten();
       if (tab.termInstance) tab.termInstance.dispose();
-      invoke('kill_terminal', { termId: id }).catch(() => {});
+      killTerminalIpc(id).catch(() => {});
       delete terminalContainers[id];
     }
 
@@ -359,7 +361,7 @@
     toClose.forEach((t) => {
       if (t.unlisten) t.unlisten();
       if (t.termInstance) t.termInstance.dispose();
-      invoke('kill_terminal', { termId: t.id }).catch(() => {});
+      killTerminalIpc(t.id).catch(() => {});
       delete terminalContainers[t.id];
     });
     allTabs = allTabs.filter((t) => t.projectId !== targetProjectId);
@@ -462,7 +464,7 @@
     allTabs.forEach((t) => {
       if (t.unlisten) t.unlisten();
       if (t.termInstance) t.termInstance.dispose();
-      invoke('kill_terminal', { termId: t.id }).catch(() => {});
+      killTerminalIpc(t.id).catch(() => {});
     });
   });
 </script>

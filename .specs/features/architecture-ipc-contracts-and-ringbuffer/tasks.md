@@ -37,21 +37,21 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: Todas as assinaturas de entrada e saída dos comandos Rust (fs_cmd, pty_cmd, ai_cmd, theme_cmd, watcher_cmd) estão declaradas e tipadas sem uso de any.
 
-### T02: Ring-Buffer de Retenção de Blocos no Terminal Veu
+### T02: [x] Ring-Buffer de Retenção de Blocos no Terminal Veu
 **Where**: `src/stores/terminalStore.ts`
 **Depends on**: T01
 **Tests**: `npm run check`
 **Gate**: `npm run check`
 **Done When**: A inserção de blocos na timeline do terminal impõe teto de 500 blocos com evicção FIFO dos mais antigos, preservando bloco em streaming e prompt ativo.
 
-### T03: Tipagem do Consumo de IPC em Stores e Componentes
+### T03: [x] Tipagem do Consumo de IPC em Stores e Componentes
 **Where**: `src/stores/terminalStore.ts`
 **Depends on**: T02
 **Tests**: `npm run check`
 **Gate**: `npm run check`
 **Done When**: Chamadas invoke consom as interfaces tipadas de src/types/ipc.ts com validação em tempo de compilação do TypeScript sem erros.
 
-### T04: Testes Automatizados de Regressão e Validação da Suíte
+### T04: [x] Testes Automatizados de Regressão e Validação da Suíte
 **Where**: `scripts/test_ipc_and_ringbuffer.mjs`
 **Depends on**: T03
 **Tests**: `npm test`
