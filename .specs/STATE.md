@@ -220,8 +220,9 @@
   - T06: Suíte de testes automatizados scripts/test_architecture_resilience.mjs integrada ao npm test implementada
   - proofs.md gerado com 5 pass, 0 fail no HEAD
   - verification.md verificado e aprovado com validate_verification
+  - Rastreabilidade de requisitos ARC-01..ARC-08 atualizada e selada como passed
 - **In-progress**: none
-- **Next step**: Sistema com resiliência de concorrência, auto-save seguro, PTY livre de vazamentos e suporte nativo a assets locais.
+- **Next step**: Selecionar próxima feature do Backlog Técnico (ex: Quick Open Ctrl+P ou Exportação PDF/HTML) para iniciar Phase 1 (Specify).
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master
