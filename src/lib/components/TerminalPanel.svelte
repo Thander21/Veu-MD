@@ -470,21 +470,23 @@
 </script>
 
 <div class="terminal-root" class:hidden={!visible}>
-  {#if terminalEngine === 'veu'}
-    <TerminalVeuPanel
-      bind:this={veuRef}
-      {projectId}
-      {visible}
-      {currentFolderPath}
-      {hasActiveFile}
-      bind:orientation
-      bind:isMaximized
-      {terminalEngine}
-      onSwitchEngine={switchEngine}
-      {onClose}
-      {onInsertText}
-    />
-  {:else}
+  <!-- Terminal Veu Engine (Preservado continuamente no DOM) -->
+  <TerminalVeuPanel
+    bind:this={veuRef}
+    {projectId}
+    visible={visible && terminalEngine === 'veu'}
+    {currentFolderPath}
+    {hasActiveFile}
+    bind:orientation
+    bind:isMaximized
+    {terminalEngine}
+    onSwitchEngine={switchEngine}
+    {onClose}
+    {onInsertText}
+  />
+
+  <!-- xterm.js Engine (Preservado continuamente no DOM) -->
+  <div class="xterm-engine-wrapper" class:hidden={terminalEngine !== 'xterm'}>
     <!-- Resizer Bar (oculto quando maximizado ou sem arquivo ativo) -->
     {#if !isMaximized && hasActiveFile}
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -673,7 +675,7 @@
         {/each}
       </div>
     </div>
-  {/if}
+  </div>
 </div>
 
 <style>
@@ -682,6 +684,14 @@
   }
 
   .terminal-root.hidden {
+    display: none !important;
+  }
+
+  .xterm-engine-wrapper {
+    display: contents;
+  }
+
+  .xterm-engine-wrapper.hidden {
     display: none !important;
   }
 

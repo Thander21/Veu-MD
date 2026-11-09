@@ -831,6 +831,10 @@
       resizeObserver.disconnect();
       resizeObserver = null;
     }
+    allTabs.forEach((t) => {
+      if (t.unlisten) t.unlisten();
+      killTerminalIpc(t.id).catch(() => {});
+    });
   });
 </script>
 

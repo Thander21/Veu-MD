@@ -41,7 +41,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: O auto-save é isolado por aba ou documento com cancelamento/flush síncrono ao trocar de aba ou fechar aba com alterações não salvas.
 
-### T02: [ ] Preservação Dual-Engine no Terminal
+### T02: [x] Preservação Dual-Engine no Terminal
 **Where**: `src/lib/components/TerminalPanel.svelte`
 **Depends on**: T01
 **Tests**: `npm run check`
