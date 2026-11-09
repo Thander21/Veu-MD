@@ -71,9 +71,7 @@ pub fn run_ai_prompt(
             cmd.arg("-c");
         }
         cmd.arg("-p").arg(&prompt);
-    } else if raw_tool.eq_ignore_ascii_case("claude") {
-        cmd.arg("-p").arg(&prompt);
-    } else if raw_tool.eq_ignore_ascii_case("muse") {
+    } else if raw_tool.eq_ignore_ascii_case("claude") || raw_tool.eq_ignore_ascii_case("muse") {
         cmd.arg("-p").arg(&prompt);
     } else {
         cmd.arg(&prompt);
@@ -106,8 +104,8 @@ pub fn run_ai_prompt(
         // Drena stderr concorrentemente em thread separada para prevenir deadlock
         let app_handle_err = app_handle.clone();
         let stream_event_err = stream_event.clone();
-        let err_thread = if let Some(stderr) = child.stderr.take() {
-            Some(std::thread::spawn(move || {
+        let err_thread = child.stderr.take().map(|stderr| {
+            std::thread::spawn(move || {
                 let mut reader = std::io::BufReader::new(stderr);
                 let mut buffer = [0u8; 1024];
                 while let Ok(n) = reader.read(&mut buffer) {
@@ -117,10 +115,8 @@ pub fn run_ai_prompt(
                     let text = String::from_utf8_lossy(&buffer[..n]).to_string();
                     let _ = app_handle_err.emit(&stream_event_err, text);
                 }
-            }))
-        } else {
-            None
-        };
+            })
+        });
 
         // Drena stdout concorrentemente
         if let Some(stdout) = child.stdout.take() {

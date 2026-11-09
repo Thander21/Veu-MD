@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:rust": "%USERPROFILE%\\.cargo\\bin\\cargo.exe check --manifest-path src-tauri/Cargo.toml",
+    "check:clippy": "%USERPROFILE%\\.cargo\\bin\\cargo.exe clippy --manifest-path src-tauri/Cargo.toml",
+    "test:rust": "%USERPROFILE%\\.cargo\\bin\\cargo.exe test --manifest-path src-tauri/Cargo.toml",
     "test": "node scripts/run_all_tests.mjs",
     "test:e2e": "node scripts/test_chat_drawer.mjs",
     "tauri": "tauri",

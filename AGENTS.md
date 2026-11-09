@@ -87,71 +87,126 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 | **Desktop / Core**| **Tauri v2 + Rust 2021** | IPC seguro, manipulação de arquivos, PTY nativo (`portable-pty`), watcher (`notify`) |
 | **Mobile** | **Tauri v2 Mobile (Android)** | Wrapper nativo mobile para Android via NDK/Gradle |
 
----
-
-## 3. Orquestração e Processo SDD (Tech Lead's Club)
-
-O projeto adota a metodologia Spec-Driven Development através do framework `tlc-spec-driven` localizado em `.agent/skills/tlc-spec-driven/`.
-
-### Fluxo de Trabalho de Features
-1. **Especificação (`spec.md`):** Requisitos no formato EARS e modelo de dados.
-   - Validação: `python .agent/skills/tlc-spec-driven/scripts/validate_spec.py <feature> --strict`
-2. **Tarefas (`tasks.md`):** Tarefas atômicas com portões executáveis determinísticos.
-   - Validação: `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature> --execute`
-3. **Execução & Verificação:** Implementação tarefa a tarefa com verificação independente (`proofs.md` e `verification.md`).
-   - Validação Final: `python .agent/skills/tlc-spec-driven/scripts/validate_verification.py <feature>`
-
-### Invariantes Estritos do SDD
-- **Parada Obrigatória para Aprovação Humana:** NUNCA inicie a Fase 4 (Execute) sem antes:
-  1. Clarificar todas as áreas cinzentas (*gray areas*) com o usuário e documentá-las em `context.md`.
-  2. Obter a aprovação formal do usuário e registrá-la em `spec.md` e `tasks.md` como `**Approved**: <data> - user: "<suas palavras>"`.
-- **Sintaxe Canônica em `spec.md`:** Os títulos de seção **NÃO** devem conter números (use `## Problem Statement`, `## Out of Scope`, `## Assumptions & Open Questions`, `## User Stories`, `## Requirement Traceability`).
-- **Execução de Scripts no Windows:** Sempre execute scripts no diretório do projeto: `cd "W:\_Projetos\Veu MD"; python .agent/skills/tlc-spec-driven/scripts/...`
-- **Árvore Limpa para Verificação:** `check_proofs.py` e `validate_verification.py` só atestam sucesso sobre uma árvore limpa (`git status` sem alterações pendentes).
-
-### Sintaxe Obrigatória em `tasks.md`
-- Nos blocos de tarefa (`### T01: ...`), as tags de metadados **NÃO** devem ter hífen de lista:
-  ```markdown
-  ### T01: Descrição da tarefa
-  **Where**: src/caminho/arquivo.svelte
-  **Depends on**: T00
-  **Tests**: npm run check
-  **Gate**: npm run check
-  **Done When**: Critério atendido
-  ```
-- O bloco `## Checks` deve conter:
-  ```markdown
-  Build: <comando>
-  Run <name>: <comando>
-  Check: C01
-  Proof: run <name> | <expressão regex>
-  ```
+### 2.1. Modularização do Backend Rust (`src-tauri/src/`)
+A arquitetura do backend é rigorosamente segregada por domínios de responsabilidade:
+- **`commands/`**: Handlers IPC invocados pelo frontend via `invoke()`:
+  - `fs_cmd.rs`: Operações seguras de sistema de arquivos (leitura de árvore de diretórios, leitura/escrita de arquivos, salvamento de imagens e verificação de existência).
+  - `pty_cmd.rs`: Gestão de sessões de terminal interativo (`portable-pty`), spawn de PTY, redimensionamento de janela, escrita de dados no stdin e encerramento sem processos zumbis (`kill_terminal`).
+  - `ai_cmd.rs`: Execução segura e streaming contínuo de ferramentas CLI de IA locais (`claude`, `muse`, scripts).
+  - `theme_cmd.rs`: Persistência atômica de temas personalizados no diretório de dados do usuário.
+  - `watcher_cmd.rs`: Monitoramento reativo de alterações em disco via `notify`, com debounce para evitar notificações concorrentes redundantes.
+- **`utils/`**: Utilitários puros e auxiliares de baixo nível:
+  - `tool_path.rs`: Resolução agnóstica de executáveis e ferramentas CLI no PATH do sistema operacional Windows/macOS/Linux.
+  - `base64.rs`: Codificação e decodificação eficiente de payloads binários sem overhead de crates pesadas.
+- **`state.rs`**: Estruturas de estado global compartilhado injetadas no runtime do Tauri via `tauri::State` (ex: `TerminalState` protegendo instâncias ativas com `Mutex<HashMap<String, TerminalSession>>`).
+- **`lib.rs`**: Ponto central de inicialização do Tauri v2, registro de plugins oficiais e montagem de comandos IPC (`generate_handler!`).
+- **`main.rs`**: Ponto de entrada canônico que delega diretamente a execução para `lib::run()`.
 
 ---
 
-## 4. Estrutura de Pastas e Ferramentas
+## 3. Modelo de Permissões e Segurança (Tauri v2 Capabilities)
+
+O Tauri v2 adota o modelo de segurança declarativa baseado em **Capabilities** e **Listas de Controle de Acesso (ACL)**:
+
+- **Declaração Central de Capabilities (`src-tauri/capabilities/default.json`)**:
+  - Define as permissões estritas concedidas à janela principal (`main`).
+  - Plugins ativos:
+    - `core:default`: Ciclo de vida básico e infraestrutura IPC de eventos.
+    - `shell:default`: Acesso controlado ao subsistema de execução de subprocessos.
+    - `fs:default`: Operações de I/O em arquivos com escopos delimitados.
+    - `dialog:default`: Caixas de diálogo nativas do sistema operacional (abrir pasta/arquivo).
+- **Validação Estrita em Build (`tauri-build`)**:
+  - O crate `tauri-build` em tempo de compilação gera os schemas em `src-tauri/gen/schemas/` e valida todas as permissões declaradas contra os manifests de ACL.
+  - Qualquer referência a permissão inexistente ou incompatível bloqueia o build imediatamente antes da compilação do Rust.
+- **Invariantes de Segurança do IPC**:
+  - **Sanitização de Caminhos & Anti-Traversal**: Comandos Rust que gravam arquivos (`save_image_asset`, `save_custom_theme`) aplicam extração canônica de nome base (`Path::file_name()`) e validações estritas, rejeitando qualquer padrão de evasão de diretório (`..`, `/`, `\`).
+  - **Content Security Policy (CSP)**: Configurada em `tauri.conf.json` para bloquear fontes externas não autorizadas, restringindo a origens locais (`'self'`, `asset:`), Google Fonts e imagens remotas em Markdown via `https:`.
+
+---
+
+## 4. Orquestração e Processo SDD (Tech Lead's Club - TLC)
+
+O projeto adota a metodologia Spec-Driven Development através do framework canônico `tlc-spec-driven` localizado em `.agent/skills/tlc-spec-driven/`.
+
+### 4.1. Fases Adaptativas do Ciclo de Vida
+```
+┌──────────┐   ┌──────────┐   ┌─────────┐   ┌─────────┐
+│ SPECIFY  │ → │  DESIGN  │ → │  TASKS  │ → │ EXECUTE │
+└──────────┘   └──────────┘   └─────────┘   └─────────┘
+   Obrigatório    Opcional*      Opcional*    Obrigatório
+* Dispensado automaticamente de acordo com o auto-sizing da complexidade.
+```
+
+- **Auto-Sizing de Complexidade**:
+  - **Small** (≤ 3 arquivos, alteração pontual): Spec inline, pula Design e Tasks; implementa e valida diretamente.
+  - **Medium** (Feature clara, < 10 tarefas): Spec conciso, pula Design formal, tarefas implícitas ou diretas; implementa e valida.
+  - **Large** (Multi-componente, muitas interfaces): Spec completo com IDs rastreáveis (EARS), Design de arquitetura e breakdown completo de tarefas atômicas em `tasks.md`.
+  - **Complex** (Ambiguidade, novo domínio): Spec completo com discussão prévia de áreas cinzentas (`context.md`), Design de arquitetura com pesquisa e plano de validação/UAT.
+
+### 4.2. Invariantes Inegociáveis do SDD
+1. **Parada Obrigatória para Aprovação Humana**:
+   - NUNCA inicie a Fase de Execução (Fase 4) sem antes:
+     a) Esclarecer todas as áreas cinzentas (*gray areas*) com o usuário e documentá-las em `.specs/features/<feature>/context.md`.
+     b) Apresentar `spec.md` e `tasks.md` e aguardar aprovação explícita do usuário.
+     c) Registrar a aprovação formal com a citação exata das palavras do usuário: `**Approved**: <data> - user: "<suas palavras>"`.
+2. **Testes Derivados dos Critérios de Aceite**:
+   - Os testes validam o comportamento especificado, nunca espelham a implementação.
+3. **Commit Atômico com Portão Determinístico**:
+   - Uma tarefa por commit atômico (`tasks.md` atualizada antes do commit). O script `check_commit.py` valida o portão antes de cada commit.
+4. **Verificação Independente Obrigatória (Autor ≠ Verificador)**:
+   - Ao finalizar a última tarefa, o script `check_proofs.py` consolida as evidências em `proofs.md`.
+   - Um sub-agente ou sessão independente atuando como **Verifier** audita todas as provas no `HEAD`, testando casos de borda e garantindo que asserções não sejam mais frouxas que o critério.
+5. **Árvore Limpa para Validação Final**:
+   - `validate_verification.py` e `check_proofs.py` exigem estritamente `git status` 100% limpo para atestar conformidade.
+6. **Raio de Explosão Delimitado (Blast Radius)**:
+   - Aprovações cobrem implementação e commits locais. Comandos destrutivos ou remotos (`git push`, reset, force push) requerem autorização humana pontual explícita.
+
+### 4.3. Parâmetros e Scripts Determinísticos do TLC
+Todos os scripts residem em `.agent/skills/tlc-spec-driven/scripts/` e devem ser executados a partir da raiz do projeto:
+
+| Momento | Comando de Validação | Finalidade e Parâmetros |
+| :--- | :--- | :--- |
+| **Antes de apresentar a Spec** | `python .agent/skills/tlc-spec-driven/scripts/validate_spec.py <feature> --strict` | Valida sintaxe EARS, IDs de requisitos, ausência de números em seções H2 e preenchimento de premissas. |
+| **Antes de apresentar as Tasks** | `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature>` | Valida granularidade, tags de metadados sem hífen (`**Where**:`, `**Gate**:`, `**Done When**:`), dependências e bloco `## Checks`. |
+| **Antes de iniciar a Execução (T01)** | `python .agent/skills/tlc-spec-driven/scripts/validate_tasks.py <feature> --execute` | Garante aprovação formal registrada em `spec.md` e `tasks.md`, e valida que o comando `**Build**:` passe antes do código. |
+| **Antes de cada Commit Atômico** | `python .agent/skills/tlc-spec-driven/scripts/check_commit.py --message "<mensagem>"` | Assegura mensagem padronizada e integridade da tarefa concluída. |
+| **Após a última tarefa implementada** | `python .agent/skills/tlc-spec-driven/scripts/check_proofs.py <feature>` | Executa a suíte de provas no `HEAD` e gera o documento `proofs.md`. |
+| **Antes de declarar a feature concluída** | `python .agent/skills/tlc-spec-driven/scripts/validate_verification.py <feature>` | Portão final: valida árvore limpa, provas passando no `HEAD`, aprovações documentadas e veredicto do Verificador em `verification.md`. |
+| **Gestão de Lições Aprendidas** | `python .agent/skills/tlc-spec-driven/scripts/lessons.py list --status confirmed` | Consulta e atualiza o repositório contínuo de lições aprendidas em `.specs/lessons.json`. |
+
+---
+
+## 5. Estrutura de Pastas e Ferramentas
 
 ```
 ├── .agent/skills/         # Habilidades de agentes (instaladas via @tech-leads-club/agent-skills)
 ├── .agents/               # Lockfile das skills (.skill-lock.json)
 ├── .specs/features/       # Especificações SDD, tasks, proofs e verificações
+├── .vscode/               # Configurações canônicas de extensões e settings para Rust, Svelte e Tauri
 ├── Docs/                  # Documentação técnica, especificações de produto e comandos rápidos
 │   ├── c.md               # Cheat-sheet de comandos rápidos (Web, Desktop, Android)
 │   └── PLANO_E_STACK...   # Especificação e arquitetura detalhada
 ├── src/                   # Código-fonte Svelte 5 (UI, Editor ProseMirror, Componentes)
 │   ├── lib/               # Componentes Svelte (Editor, TabBar, Sidebar, TopBar, etc.)
 │   ├── prosemirror/       # Schema, Serializador Markdown, Regras de Input
-│   └── stores/            # Estados reativos (tema, abas, arquivos)
+│   └── stores/            # Estados reativos (tema, abas, arquivos, terminal)
 ├── src-tauri/             # Backend Tauri v2 em Rust
-│   ├── src/               # Código Rust (lib.rs, main.rs, PTY, watcher)
-│   ├── Cargo.toml         # Crates Rust (tauri, portable-pty, notify, serde)
-│   └── tauri.conf.json    # Configuração da janela, build e bundle Tauri v2
+│   ├── capabilities/      # Declaração declarativa de permissões e ACLs (default.json)
+│   ├── gen/schemas/       # Schemas de validação gerados pelo tauri-build
+│   ├── src/
+│   │   ├── commands/      # Módulos IPC (fs_cmd, pty_cmd, ai_cmd, theme_cmd, watcher_cmd)
+│   │   ├── utils/         # Módulos auxiliares (tool_path, base64)
+│   │   ├── state.rs       # Gestão de estado do terminal e watchers
+│   │   ├── lib.rs         # Inicialização do Tauri v2 e registro de plugins
+│   │   └── main.rs        # Ponto de entrada binário
+│   ├── Cargo.toml         # Crates Rust (tauri v2, portable-pty, notify, serde)
+│   └── tauri.conf.json    # Configuração de janelas, build, CSP e bundle
 └── package.json           # Dependências frontend e scripts NPM
 ```
 
 ---
 
-## 5. Diretrizes de Compilação Desktop & Toolchain Windows (Tauri v2 + Rust)
+## 6. Diretrizes de Compilação Desktop & Toolchain Windows (Tauri v2 + Rust)
 
 - **Detecção Automática do `rc.exe` (Windows Resource Compiler):**
   - O arquivo `src-tauri/build.rs` contém busca de fallback para o compilador de recursos `rc.exe` no diretório canônico `C:\Program Files (x86)\Windows Kits\10\bin\*\x64\rc.exe`.
@@ -167,12 +222,15 @@ O projeto adota a metodologia Spec-Driven Development através do framework `tlc
 
 ---
 
-## 6. Comandos Canônicos do Projeto
+## 7. Comandos Canônicos do Projeto
 
 Consulte `Docs/c.md` para a lista completa com todas as variáveis de ambiente.
 
-- **Frontend Check:** `npm run check`
-- **Rust Backend Check:** `npm run check:rust`
+- **Frontend Check:** `npm run check` (svelte-check com TypeScript e Svelte 5)
+- **Rust Backend Check:** `npm run check:rust` (cargo check rápido em src-tauri)
+- **Rust Linter / Clippy:** `npm run check:clippy` (análise semântica e idiomática de Rust)
+- **Rust Unit Tests:** `npm run test:rust` (suíte de testes unitários em Rust)
+- **Suíte Completa de Testes JS:** `npm test` (testes automatizados de regressão)
 - **Web Dev:** `npm run dev`
 - **Desktop Dev:** `npm run tauri dev`
 - **Desktop Build:** `npm run tauri build`

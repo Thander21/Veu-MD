@@ -53,8 +53,8 @@ fn scan_directory(dir: &Path) -> Result<Vec<FileNode>, String> {
         }
     }
 
-    dirs_list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    files_list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    dirs_list.sort_by_key(|a| a.name.to_lowercase());
+    files_list.sort_by_key(|a| a.name.to_lowercase());
 
     entries.extend(dirs_list);
     entries.extend(files_list);

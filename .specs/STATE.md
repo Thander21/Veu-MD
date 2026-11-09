@@ -146,6 +146,30 @@
 - **Date**: 2026-11-07
 - **Status**: active
 
+### AD-019
+- **Decision**: Centralizar contratos e interfaces de comunicação IPC (TypeScript ↔ Rust) sob `src/types/ipc.ts`.
+- **Reason**: Assegura tipagem estrita de argumentos e retornos em chamadas `invoke()`, prevenindo incompatibilidade de chaves em tempo de execução e eliminando tipos `any` soltos.
+- **Trade-off**: Exige atualização do contrato TypeScript ao alterar ou adicionar comandos no Rust.
+- **Scope**: src/types/ipc.ts, src-tauri/src/commands/, frontend stores e componentes.
+- **Date**: 2026-11-09
+- **Status**: active
+
+### AD-020
+- **Decision**: Implementar Ring-Buffer de retenção de blocos históricos na timeline do Terminal Veu com descarte FIFO após 500 blocos.
+- **Reason**: Previne vazamento de memória e acúmulo desnecessário de centenas de nós DOM no WebView2 durante sessões longas de desenvolvimento, compilação ou streaming de logs.
+- **Trade-off**: Histórico superior a 500 comandos/saídas não é retido indefinidamente em memória da UI.
+- **Scope**: terminalStore.ts, TerminalPanel.svelte, gerenciamento de timeline.
+- **Date**: 2026-11-09
+- **Status**: active
+
+### AD-021
+- **Decision**: Estabelecer a adoção progressiva de Runes do Svelte 5 (`$state`, `$derived`) em novos módulos de estado e refatorações, mantendo retrocompatibilidade com stores existentes.
+- **Reason**: Alinha o código-fonte ao padrão nativo do Svelte 5, reduzindo boilerplate de subscrição manual e otimizando a granularidade reativa.
+- **Trade-off**: Convivência temporária de módulos com stores legados e módulos baseados em Runes durante o período de transição.
+- **Scope**: src/stores/, reatividade frontend, Svelte 5.
+- **Date**: 2026-11-09
+- **Status**: active
+
 ---
 
 ## Handoff
