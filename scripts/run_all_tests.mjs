@@ -13,7 +13,8 @@ const testSuites = [
   { name: 'Sidebar Layout & Splash Screen', script: 'scripts/test_sidebar_splash.mjs' },
   { name: 'Terminal Veu Lab & ANSI Processing', script: 'scripts/test_terminal_veu_lab.mjs' },
   { name: 'Theme System & Known Files Support', script: 'scripts/test_theme_and_file_support.mjs' },
-  { name: 'IPC Contracts & Terminal Ring-Buffer', script: 'scripts/test_ipc_and_ringbuffer.mjs' }
+  { name: 'IPC Contracts & Terminal Ring-Buffer', script: 'scripts/test_ipc_and_ringbuffer.mjs' },
+  { name: 'Architecture Resilience & Lifecycle', script: 'scripts/test_architecture_resilience.mjs' }
 ];
 
 console.log('🚀 Executando Suíte Completa de Testes Automatizados (Modo Fail-Fast)\n');

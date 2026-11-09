@@ -69,7 +69,7 @@ graph TD
 **Gate**: `npm run check:rust`
 **Done When**: O comando delete_entry valida e rejeita caminhos raiz, vazios ou fora dos limites seguros do sistema operacional.
 
-### T06: [ ] Suíte Automatizada de Testes Arquiteturais
+### T06: [x] Suíte Automatizada de Testes Arquiteturais
 **Where**: `scripts/test_architecture_resilience.mjs`
 **Depends on**: T05
 **Tests**: `npm test`
