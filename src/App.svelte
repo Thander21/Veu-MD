@@ -126,7 +126,6 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   async function switchToProject(targetId: string, saveCurrent = true) {
     if (saveCurrent && activeProjectId) {
       if (activeTab?.isDirty) {
-        if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
         await saveCurrentFile();
       }
       const currentProj = openProjects.find((p) => p.id === activeProjectId);
@@ -468,6 +467,8 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     if (unsubscribeTheme) unsubscribeTheme();
     if (unlistenWatcher) unlistenWatcher();
     fsService.unwatchFile().catch(() => {});
+    autoSaveTimeouts.forEach((t) => clearTimeout(t));
+    autoSaveTimeouts.clear();
   });
 
   $: activeTab = tabs.find((t) => t.id === activeTabId) || null;
@@ -531,7 +532,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     // Verifica se já está aberto em uma aba
     const existing = tabs.find((t) => t.path === filePath);
     if (existing) {
-      activeTabId = existing.id;
+      await handleSelectTab(existing.id);
       return;
     }
 
@@ -545,6 +546,10 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         content = await fsService.readFileBase64(filePath);
       } else {
         content = await fsService.readTextFile(filePath);
+      }
+
+      if (activeTab && activeTab.isDirty && currentFolderPath) {
+        await saveTab(activeTab);
       }
 
       const newTab: TabItem = {
@@ -678,28 +683,38 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
   }
 
-  let autoSaveTimeout: any = null;
+  let autoSaveTimeouts: Map<string, any> = new Map();
 
-  async function saveCurrentFile() {
+  async function saveTab(targetTab: TabItem | null | undefined) {
+    if (!targetTab || targetTab.isImage) return;
     if (!currentFolderPath) {
       statusNotification = 'Selecione uma pasta para salvar arquivos.';
       setTimeout(() => (statusNotification = ''), 4000);
       return;
     }
-    if (!activeTab || activeTab.isImage) return;
-    if (!activeTab.path && currentFolderPath) {
+    if (!targetTab.path && currentFolderPath) {
       const sep = currentFolderPath.includes('/') ? '/' : '\\';
-      activeTab.path = `${currentFolderPath}${sep}${activeTab.title}`;
+      targetTab.path = `${currentFolderPath}${sep}${targetTab.title}`;
     }
-    if (!activeTab.path) return;
+    if (!targetTab.path) return;
+
+    // Cancela timeout pendente dessa aba se existir
+    if (autoSaveTimeouts.has(targetTab.id)) {
+      clearTimeout(autoSaveTimeouts.get(targetTab.id));
+      autoSaveTimeouts.delete(targetTab.id);
+    }
 
     try {
-      await fsService.writeTextFile(activeTab.path, activeTab.content);
-      activeTab.isDirty = false;
+      await fsService.writeTextFile(targetTab.path, targetTab.content);
+      targetTab.isDirty = false;
       tabs = [...tabs];
     } catch (err) {
-      console.error('Erro ao salvar:', err);
+      console.error('Erro ao salvar aba:', err);
     }
+  }
+
+  async function saveCurrentFile() {
+    await saveTab(activeTab);
   }
 
   function handleEditorContentChange(newMarkdown: string) {
@@ -707,27 +722,68 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     if (activeTab.content !== newMarkdown) {
       activeTab.content = newMarkdown;
 
-      // Auto-save inteligente apenas quando há uma pasta aberta
+      // Auto-save inteligente isolado por aba quando há uma pasta aberta
       if (currentFolderPath) {
         activeTab.isDirty = true;
         tabs = [...tabs];
 
-        if (autoSaveTimeout) {
-          clearTimeout(autoSaveTimeout);
+        const tabId = activeTab.id;
+        if (autoSaveTimeouts.has(tabId)) {
+          clearTimeout(autoSaveTimeouts.get(tabId));
         }
-        autoSaveTimeout = setTimeout(() => {
-          saveCurrentFile();
+        const timeout = setTimeout(() => {
+          autoSaveTimeouts.delete(tabId);
+          const t = tabs.find((x) => x.id === tabId);
+          if (t && t.isDirty) {
+            saveTab(t);
+          }
         }, 1000);
+        autoSaveTimeouts.set(tabId, timeout);
       } else {
         tabs = [...tabs];
       }
     }
   }
 
-  function closeTab(tabId: string) {
+  async function closeTab(tabId: string) {
+    const tabToClose = tabs.find((t) => t.id === tabId);
+    if (tabToClose) {
+      if (autoSaveTimeouts.has(tabId)) {
+        clearTimeout(autoSaveTimeouts.get(tabId));
+        autoSaveTimeouts.delete(tabId);
+      }
+      // Flush imediato de alterações não salvas antes de fechar a aba
+      if (tabToClose.isDirty && currentFolderPath) {
+        await saveTab(tabToClose);
+      }
+    }
+
     tabs = tabs.filter((t) => t.id !== tabId);
     if (activeTabId === tabId) {
       activeTabId = tabs[tabs.length - 1]?.id || null;
+    }
+  }
+
+  async function handleSelectTab(targetId: string) {
+    if (targetId === activeTabId) return;
+    // Flush atômico da aba atual antes de alternar se houver alterações
+    if (activeTab && activeTab.isDirty && currentFolderPath) {
+      await saveTab(activeTab);
+    }
+    activeTabId = targetId;
+
+    // Sincronização externa ao focar aba inativa (ARC-07)
+    const targetTab = tabs.find((t) => t.id === targetId);
+    if (targetTab && targetTab.path && !targetTab.isDirty && !targetTab.isImage) {
+      try {
+        const diskContent = await fsService.readTextFile(targetTab.path);
+        if (diskContent !== targetTab.content) {
+          targetTab.content = diskContent;
+          tabs = [...tabs];
+        }
+      } catch {
+        // Ignora silenciosamente se o arquivo não estiver disponível
+      }
     }
   }
 
@@ -930,7 +986,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         <TabBar
           {tabs}
           {activeTabId}
-          onSelectTab={(id) => (activeTabId = id)}
+          onSelectTab={handleSelectTab}
           onCloseTab={closeTab}
         />
       {/if}
