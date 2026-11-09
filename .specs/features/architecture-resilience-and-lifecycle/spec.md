@@ -53,12 +53,12 @@ A análise estrita da arquitetura do Veu MD revelou cinco gaps estruturais de co
 
 | ID | Requirement | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| ARC-01 | Isolamento de debounce de auto-save por aba sem race conditions | High | pending |
-| ARC-02 | Flush atômico de alterações pendentes na comutação de abas | High | pending |
-| ARC-03 | Persistência imediata antes do fechamento de abas modificadas | High | pending |
-| ARC-04 | Preservação de contêineres DOM na alternância dual-engine do terminal | High | pending |
-| ARC-05 | Emissão de evento de saída e limpeza de sessão PTY ao atingir EOF | Medium | pending |
-| ARC-06 | Resolução de caminhos relativos de imagem via Tauri asset protocol | High | pending |
-| ARC-07 | Sincronização externa de abas em segundo plano ao receber foco | Medium | pending |
-| ARC-08 | Validação de segurança e proteção de raízes em `delete_entry` | High | pending |
+| ARC-01 | Isolamento de debounce de auto-save por aba sem race conditions | High | passed |
+| ARC-02 | Flush atômico de alterações pendentes na comutação de abas | High | passed |
+| ARC-03 | Persistência imediata antes do fechamento de abas modificadas | High | passed |
+| ARC-04 | Preservação de contêineres DOM na alternância dual-engine do terminal | High | passed |
+| ARC-05 | Emissão de evento de saída e limpeza de sessão PTY ao atingir EOF | Medium | passed |
+| ARC-06 | Resolução de caminhos relativos de imagem via Tauri asset protocol | High | passed |
+| ARC-07 | Sincronização externa de abas em segundo plano ao receber foco | Medium | passed |
+| ARC-08 | Validação de segurança e proteção de raízes em `delete_entry` | High | passed |
 
