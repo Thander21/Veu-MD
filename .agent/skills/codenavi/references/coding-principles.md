@@ -1,21 +1,8 @@
 # Coding Principles
 
 Read this file during the Execute phase when implementing changes.
-These principles reduce common AI coding mistakes and ensure
-consistent, high-quality output.
 
-## 1. Think Before Coding
-
-Before writing any code:
-
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple approaches exist, present them with tradeoffs.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-- If the developer's approach seems wrong, say so constructively.
-  Don't be sycophantic — honesty prevents bugs.
-
-## 2. Simplicity First
+## 1. Simplicity First
 
 Write the minimum code that solves the problem.
 
@@ -26,10 +13,7 @@ Write the minimum code that solves the problem.
 - No speculative optimization.
 - If you wrote 200 lines and it could be 50, rewrite it.
 
-The test: "Would a senior engineer say this is overcomplicated?"
-If yes, simplify.
-
-## 3. Surgical Changes
+## 2. Surgical Changes
 
 When editing existing code:
 
@@ -45,7 +29,7 @@ When your changes create orphans:
 
 The test: Every changed line traces directly to the mission objective.
 
-## 4. Goal-Driven Execution
+## 3. Goal-Driven Execution
 
 Transform vague tasks into verifiable goals:
 
@@ -58,7 +42,7 @@ Strong success criteria enable autonomous execution. Weak criteria
 ("make it work") require constant clarification — ask for better
 criteria rather than guessing.
 
-## 5. Respect the Codebase
+## 4. Respect the Codebase
 
 You are a guest in this codebase. Act like it.
 
@@ -71,7 +55,7 @@ You are a guest in this codebase. Act like it.
 If existing conventions conflict with language best practices, flag it
 to the developer. Don't silently introduce a different convention.
 
-## 6. Language Best Practices
+## 5. Language Best Practices
 
 Always follow the official best practices for the language and
 frameworks in use. This means:
@@ -91,7 +75,7 @@ documentation using the Knowledge Verification Chain:
 .notebook/ → project docs → MCP Context7 → web search → flag as uncertain
 ```
 
-## 7. Dependencies and Imports
+## 6. Dependencies and Imports
 
 When adding new dependencies or imports:
 
@@ -103,7 +87,7 @@ When adding new dependencies or imports:
   rationale — never silently add packages.
 - Match the project's import style and ordering conventions.
 
-## 8. Error Handling
+## 7. Error Handling
 
 - Handle errors that can realistically occur.
 - Don't add catch blocks for theoretically impossible scenarios.
@@ -113,7 +97,7 @@ When adding new dependencies or imports:
 - Never swallow errors silently (empty catch blocks) unless
   there's an explicit reason documented in a comment.
 
-## 9. Testing
+## 8. Testing
 
 When tests are part of the mission:
 
@@ -133,7 +117,7 @@ When tests are NOT part of the mission:
   "This change affects the payment flow but there are no tests
   covering this path. Consider adding tests for [specific cases]."
 
-## 10. Comments
+## 9. Comments
 
 - Don't add comments that restate the code.
 - Don't remove existing comments unless they're provably wrong.
