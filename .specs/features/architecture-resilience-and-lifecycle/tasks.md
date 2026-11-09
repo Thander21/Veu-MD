@@ -62,7 +62,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: O ProseMirror mapeia referências relativas de imagem em documentos Markdown para convertFileSrc sem quebras de renderização.
 
-### T05: [ ] Proteção de Raízes e Contenção em Deleção
+### T05: [x] Proteção de Raízes e Contenção em Deleção
 **Where**: `src-tauri/src/commands/fs_cmd.rs`
 **Depends on**: T04
 **Tests**: `npm run check:rust`

@@ -122,13 +122,47 @@ pub fn rename_entry(old_path: String, new_path: String) -> Result<(), String> {
     fs::rename(old_path, new_path).map_err(|e| e.to_string())
 }
 
+pub fn validate_safe_deletion_path(path: &str) -> Result<std::path::PathBuf, String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err("Caminho não pode ser vazio".to_string());
+    }
+
+    let p = Path::new(trimmed);
+    if !p.exists() {
+        return Err("Caminho não existe".to_string());
+    }
+
+    let canonical = p.canonicalize().map_err(|e| format!("Caminho inválido: {}", e))?;
+    let components: Vec<_> = canonical.components().collect();
+
+    if components.len() <= 1 {
+        return Err("Não é permitido excluir a raiz do sistema de arquivos".to_string());
+    }
+
+    #[cfg(windows)]
+    if components.len() <= 2 {
+        return Err("Não é permitido excluir a raiz de uma unidade de disco".to_string());
+    }
+
+    #[cfg(windows)]
+    {
+        let lower = canonical.to_string_lossy().to_lowercase();
+        if lower.ends_with(":\\windows") || lower.contains(":\\windows\\") || lower.ends_with(":\\windows\\system32") {
+            return Err("Não é permitido excluir diretórios de sistema do Windows".to_string());
+        }
+    }
+
+    Ok(canonical)
+}
+
 #[tauri::command]
 pub fn delete_entry(path: String) -> Result<(), String> {
-    let p = Path::new(&path);
-    if p.is_dir() {
-        fs::remove_dir_all(p).map_err(|e| e.to_string())
+    let canonical = validate_safe_deletion_path(&path)?;
+    if canonical.is_dir() {
+        fs::remove_dir_all(&canonical).map_err(|e| e.to_string())
     } else {
-        fs::remove_file(p).map_err(|e| e.to_string())
+        fs::remove_file(&canonical).map_err(|e| e.to_string())
     }
 }
 
@@ -155,4 +189,38 @@ pub fn save_image_asset(base_dir: String, filename: String, base64_data: String)
     fs::write(&target_path, bytes).map_err(|e| format!("Erro ao salvar imagem binária: {}", e))?;
 
     Ok(format!("./assets/{}", safe_filename))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_path_rejected() {
+        let res = validate_safe_deletion_path("");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), "Caminho não pode ser vazio");
+    }
+
+    #[test]
+    fn test_whitespace_path_rejected() {
+        let res = validate_safe_deletion_path("   ");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), "Caminho não pode ser vazio");
+    }
+
+    #[test]
+    fn test_nonexistent_path_rejected() {
+        let res = validate_safe_deletion_path("Z:\\path_that_does_not_exist_xyz123");
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), "Caminho não existe");
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_root_drive_rejected() {
+        let res = validate_safe_deletion_path("C:\\");
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("Não é permitido excluir a raiz"));
+    }
 }
