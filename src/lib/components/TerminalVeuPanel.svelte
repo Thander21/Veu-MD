@@ -111,7 +111,7 @@
   export let isMaximized: boolean = false;
   export let onClose: () => void;
   export let onInsertText: ((text: string) => void) | undefined = undefined;
-  export let terminalEngine: 'xterm' | 'veu' = 'veu';
+  export let terminalEngine: 'xterm' | 'veu' = 'xterm';
   export let onSwitchEngine: ((engine: 'xterm' | 'veu') => void) | undefined = undefined;
 
   // Monitora presença de arquivo ativo
@@ -135,12 +135,15 @@
   $: activeTermId = projectActiveTermId[effectiveProjectId] || (currentTabs[0]?.id || '');
 
   let timelineContainers: Record<string, HTMLDivElement> = {};
+  let inputElements: Record<string, HTMLTextAreaElement> = {};
   let activeInputEl: HTMLTextAreaElement | null = null;
 
-  function resizeTextarea() {
-    if (activeInputEl) {
-      activeInputEl.style.height = 'auto';
-      activeInputEl.style.height = `${Math.min(180, Math.max(22, activeInputEl.scrollHeight))}px`;
+  function resizeTextarea(tabId?: string | unknown) {
+    const targetId = typeof tabId === 'string' ? tabId : activeTermId;
+    const el = inputElements[targetId] || activeInputEl;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${Math.min(180, Math.max(20, el.scrollHeight))}px`;
     }
   }
 
@@ -685,8 +688,9 @@
 
   function focusActiveInput() {
     tick().then(() => {
-      if (activeInputEl) {
-        activeInputEl.focus();
+      const el = inputElements[activeTermId] || activeInputEl;
+      if (el) {
+        el.focus();
       }
     });
   }
@@ -980,10 +984,10 @@
 
     <!-- Área de Exibição dos Terminais Veu Persistentes por Projeto -->
     <div class="terminal-content">
-      {#each currentTabs as t (t.id)}
+      {#each allTabs as t (t.id)}
         <div
           class="term-wrapper"
-          class:hidden={t.id !== activeTermId}
+          class:hidden={t.id !== activeTermId || t.projectId !== effectiveProjectId}
           bind:this={timelineContainers[t.id]}
           on:click={focusActiveInput}
           role="presentation"
@@ -1133,12 +1137,12 @@
                     class="inline-terminal-input"
                     rows="1"
                     bind:value={t.activeInput}
-                    bind:this={activeInputEl}
+                    bind:this={inputElements[t.id]}
                     placeholder="Digite um comando... (Enter executa, Shift+Enter quebra linha)"
                     on:keydown={(e) => handleInputKeydown(e, t)}
                     on:input={() => {
                       updateSuggestions(t.activeInput);
-                      resizeTextarea();
+                      resizeTextarea(t.id);
                     }}
                     spellcheck="false"
                     autocomplete="off"
@@ -1687,11 +1691,14 @@
     pointer-events: none;
     font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     font-size: 12.5px;
-    line-height: 22px;
+    line-height: 20px;
+    padding: 0;
+    margin: 0;
     white-space: pre;
     display: flex;
     align-items: center;
     user-select: none;
+    z-index: 1;
   }
 
   .ghost-invisible {
@@ -1705,6 +1712,8 @@
   }
 
   .inline-terminal-input {
+    position: relative;
+    z-index: 2;
     width: 100%;
     background: transparent;
     border: none;
@@ -1715,7 +1724,7 @@
     line-height: 20px;
     padding: 0;
     margin: 0;
-    caret-color: var(--veu-h1-color);
+    caret-color: var(--veu-h1-color, #cba6f7);
     resize: none;
     overflow-y: hidden;
     box-shadow: none;

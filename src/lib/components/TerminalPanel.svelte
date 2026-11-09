@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import '@xterm/xterm/css/xterm.css';
@@ -50,8 +50,8 @@
     unlisten?: UnlistenFn;
   }
 
-  // Mecanismo ativo do terminal: 'xterm' ou 'veu' (VeuLab)
-  let terminalEngine: 'xterm' | 'veu' = 'veu';
+  // Mecanismo ativo do terminal: 'xterm' ou 'veu' (VeuLab) - Padrão xterm
+  let terminalEngine: 'xterm' | 'veu' = 'xterm';
   let veuRef: any = null;
 
   // Todas as sessões ativas xterm indexadas por projeto
@@ -78,11 +78,14 @@
   let insertTimeout: any = null;
 
   export async function runCommandInTerminal(command: string, customTitle?: string) {
-    if (veuRef && typeof veuRef.runCommandInNewTab === 'function') {
+    if (terminalEngine === 'veu' && veuRef && typeof veuRef.runCommandInNewTab === 'function') {
       await veuRef.runCommandInNewTab(command, customTitle);
     } else {
-      await createTerminalSession('powershell.exe', currentFolderPath);
-      const tab = getActiveTab();
+      let tab = getActiveTab();
+      if (!tab) {
+        await createTerminalSession('powershell.exe', currentFolderPath);
+        tab = getActiveTab();
+      }
       if (tab) {
         writeTerminalIpc(tab.id, `${command}\r\n`).catch(() => {});
       }
@@ -230,12 +233,16 @@
             if (container && container.clientWidth > 0 && container.clientHeight > 0) {
               try {
                 t.fitAddon.fit();
+                if (t.termInstance.cols > 0 && t.termInstance.rows > 0) {
+                  resizeTerminalIpc(t.id, t.termInstance.cols, t.termInstance.rows).catch(() => {});
+                }
               } catch {
                 // container em transição
               }
             }
           }
         });
+        getActiveTab()?.termInstance?.focus();
       }, 50);
     });
   }
@@ -254,77 +261,95 @@
     projectActiveTermId[pId] = id;
     projectActiveTermId = { ...projectActiveTermId };
 
-    setTimeout(async () => {
-      const container = terminalContainers[id];
-      if (!container) return;
+    await tick();
+    let container = terminalContainers[id];
+    if (!container) {
+      await new Promise((r) => setTimeout(r, 60));
+      container = terminalContainers[id];
+    }
+    if (!container) return;
 
-      const termTheme = getXtermTheme(currentThemeConfig || getTheme());
+    const termTheme = getXtermTheme(currentThemeConfig || getTheme());
 
-      const term = new Terminal({
-        fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-        fontSize: 13,
-        lineHeight: 1.25,
-        cursorBlink: true,
-        theme: termTheme,
-        allowProposedApi: true,
-        rightClickSelectsWord: true,
-        convertEol: true
-      });
-
-      const fit = new FitAddon();
-      term.loadAddon(fit);
-      term.open(container);
-      if (container.clientWidth > 0 && container.clientHeight > 0) {
-        try {
-          fit.fit();
-        } catch {}
+    const term = new Terminal({
+      fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+      fontSize: 13,
+      lineHeight: 1.25,
+      cursorBlink: true,
+      cursorStyle: 'block',
+      theme: termTheme,
+      allowProposedApi: true,
+      rightClickSelectsWord: true,
+      convertEol: false,
+      windowsPty: {
+        backend: 'conpty',
+        buildNumber: 22000
       }
+    });
 
-      newTab.termInstance = term;
-      newTab.fitAddon = fit;
+    const fit = new FitAddon();
+    term.loadAddon(fit);
+    term.open(container);
+    if (container.clientWidth > 0 && container.clientHeight > 0) {
+      try {
+        fit.fit();
+      } catch {}
+    }
 
-      container.addEventListener('contextmenu', async (ev) => {
-        ev.preventDefault();
-        if (term.hasSelection()) {
-          const selectedText = term.getSelection();
-          if (selectedText) {
-            try {
-              await navigator.clipboard.writeText(selectedText);
-              copiedFeedback = true;
-              if (copyTimeout) clearTimeout(copyTimeout);
-              copyTimeout = setTimeout(() => {
-                copiedFeedback = false;
-              }, 1200);
-            } catch {}
-          }
-        } else {
+    newTab.termInstance = term;
+    newTab.fitAddon = fit;
+
+    term.focus();
+    container.addEventListener('click', () => {
+      term.focus();
+    });
+
+    container.addEventListener('contextmenu', async (ev) => {
+      ev.preventDefault();
+      if (term.hasSelection()) {
+        const selectedText = term.getSelection();
+        if (selectedText) {
           try {
-            const pasteData = await navigator.clipboard.readText();
-            if (pasteData) {
-              writeTerminalIpc(id, pasteData);
-            }
+            await navigator.clipboard.writeText(selectedText);
+            copiedFeedback = true;
+            if (copyTimeout) clearTimeout(copyTimeout);
+            copyTimeout = setTimeout(() => {
+              copiedFeedback = false;
+            }, 1200);
           } catch {}
         }
+      } else {
+        try {
+          const pasteData = await navigator.clipboard.readText();
+          if (pasteData) {
+            writeTerminalIpc(id, pasteData);
+          }
+        } catch {}
+      }
+    });
+
+    try {
+      await spawnTerminalIpc(id, cwd || undefined, shell || undefined);
+
+      // Sincroniza imediatamente as dimensões com o ConPTY no backend
+      if (term.cols > 0 && term.rows > 0) {
+        resizeTerminalIpc(id, term.cols, term.rows).catch(() => {});
+      }
+
+      newTab.unlisten = await listen(`term-output-${id}`, (event: any) => {
+        term.write(event.payload);
       });
 
-      try {
-        await spawnTerminalIpc(id, cwd || undefined, shell || undefined);
+      term.onData((data) => {
+        writeTerminalIpc(id, data);
+      });
 
-        newTab.unlisten = await listen(`term-output-${id}`, (event: any) => {
-          term.write(event.payload);
-        });
-
-        term.onData((data) => {
-          writeTerminalIpc(id, data);
-        });
-
-        term.onResize(({ cols, rows }) => {
-          resizeTerminalIpc(id, cols, rows);
-        });
-      } catch (err) {
-        term.writeln(`\r\n\x1b[31mErro ao iniciar terminal nativo: ${err}\x1b[0m\r\n`);
-      }
-    }, 50);
+      term.onResize(({ cols, rows }) => {
+        resizeTerminalIpc(id, cols, rows);
+      });
+    } catch (err) {
+      term.writeln(`\r\n\x1b[31mErro ao iniciar terminal nativo: ${err}\x1b[0m\r\n`);
+    }
   }
 
   function closeTerminal(id: string) {
@@ -416,12 +441,33 @@
     window.addEventListener('mouseup', onMouseUp);
   }
 
-  $: if (visible && terminalEngine === 'xterm' && currentTabs.length === 0 && currentFolderPath) {
-    createTerminalSession('powershell.exe', currentFolderPath);
+  const spawningProjects = new Set<string>();
+
+  $: if (
+    visible &&
+    terminalEngine === 'xterm' &&
+    currentTabs.length === 0 &&
+    currentFolderPath &&
+    !spawningProjects.has(effectiveProjectId)
+  ) {
+    spawningProjects.add(effectiveProjectId);
+    createTerminalSession('powershell.exe', currentFolderPath).finally(() => {
+      spawningProjects.delete(effectiveProjectId);
+    });
   }
 
   $: if (visible && terminalEngine === 'xterm' && activeTermId) {
     fitAll();
+  }
+
+  let previousEffectiveProjectId = effectiveProjectId;
+  $: if (effectiveProjectId !== previousEffectiveProjectId) {
+    previousEffectiveProjectId = effectiveProjectId;
+    if (visible && terminalEngine === 'xterm') {
+      setTimeout(() => {
+        fitAll();
+      }, 60);
+    }
   }
 
   function attachResizeObserver(node: HTMLDivElement) {
@@ -449,8 +495,11 @@
 
   onMount(() => {
     const savedEngine = localStorage.getItem('veu_terminal_engine');
-    if (savedEngine === 'veu' || savedEngine === 'xterm') {
+    if (savedEngine === 'xterm' || savedEngine === 'veu') {
       terminalEngine = savedEngine;
+    } else {
+      terminalEngine = 'xterm';
+      localStorage.setItem('veu_terminal_engine', 'xterm');
     }
 
     unsubscribeTheme = subscribeTheme((theme) => {
@@ -524,12 +573,14 @@
                 projectActiveTermId[effectiveProjectId] = t.id;
                 projectActiveTermId = { ...projectActiveTermId };
                 fitAll();
+                t.termInstance?.focus();
               }}
               on:keydown={(e) => {
                 if (e.key === 'Enter') {
                   projectActiveTermId[effectiveProjectId] = t.id;
                   projectActiveTermId = { ...projectActiveTermId };
                   fitAll();
+                  t.termInstance?.focus();
                 }
               }}
             >
@@ -664,12 +715,12 @@
         </div>
       </div>
 
-      <!-- Área de Visualização do xterm.js -->
+      <!-- Área de Visualização do xterm.js (Persistente em todos os projetos) -->
       <div class="terminal-content" bind:this={terminalContentEl} use:attachResizeObserver>
-        {#each currentTabs as t (t.id)}
+        {#each allTabs as t (t.id)}
           <div
             class="term-wrapper"
-            class:hidden={t.id !== activeTermId}
+            class:hidden={t.id !== activeTermId || t.projectId !== effectiveProjectId}
             bind:this={terminalContainers[t.id]}
           ></div>
         {/each}
