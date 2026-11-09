@@ -58,7 +58,7 @@ assert(
 );
 console.log('✓ PASSOU: Ciclo de vida completo de encerramento de PTY e limpeza de AppState (ARC-05)');
 
-// 4. Validação de Resolução de Imagens Locais e Smart Paste Inline (ARC-06)
+// 4. Validação de Resolução de Imagens Locais, Sincronização Externa e Smart Paste Inline (ARC-06, ARC-07)
 const pmSetupPath = join(process.cwd(), 'src', 'lib', 'editor', 'proseMirrorSetup.ts');
 const pmSetupContent = readFileSync(pmSetupPath, 'utf8');
 
@@ -78,7 +78,15 @@ assert(
   pmSetupContent.includes('(\\*\\*|__)[^\\s].+?\\1'),
   'handleSmartPaste deve detectar marcas inline como negrito para preservar padrão WYSIWYG'
 );
-console.log('✓ PASSOU: Resolução de imagens locais via asset protocol e smart paste inline (ARC-06)');
+assert(
+  appSvelteContent.includes('// Sincronização externa ao focar aba inativa (ARC-07)'),
+  'App.svelte deve conter sincronização externa ao comutar foco para aba inativa (ARC-07)'
+);
+assert(
+  appSvelteContent.includes('if (diskContent !== targetTab.content)'),
+  'App.svelte deve atualizar o conteúdo da aba inativa caso o arquivo no disco tenha sido modificado externamente'
+);
+console.log('✓ PASSOU: Resolução de imagens locais, sincronização externa e smart paste inline (ARC-06, ARC-07)');
 
 // 5. Validação de Segurança e Contenção em delete_entry (ARC-08)
 const fsCmdPath = join(process.cwd(), 'src-tauri', 'src', 'commands', 'fs_cmd.rs');

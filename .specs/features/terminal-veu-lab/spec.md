@@ -83,13 +83,13 @@ Esta especificação define o refinamento do **Terminal Veu Lab** como motor ún
 
 | Requirement ID | User Story | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| VEULAB-01 | Inicialização Instantânea do Terminal Veu Lab no Projeto Ativo | P1 | Pending |
-| VEULAB-02 | Foco Automático e Cabeçalho Informativo na Abertura | P1 | Pending |
-| VEULAB-03 | Preservação de Sessões em Segundo Plano Multi-Projeto | P1 | Pending |
-| VEULAB-04 | Normalização de Retornos de Carro (`\r`) do ConPTY | P1 | Pending |
-| VEULAB-05 | Parser Semântico de Cores ANSI Integrado ao Tema | P1 | Pending |
-| VEULAB-06 | Ações de Copiar e Inserir no Editor por Bloco | P1 | Pending |
-| VEULAB-07 | Streaming em Tempo Real com Indicador de Execução | P1 | Pending |
-| VEULAB-08 | Interrupção Imediata via Botão Parar e Atalho Ctrl+C | P1 | Pending |
-| VEULAB-09 | Recuperação Confiável do Prompt sem Travamento | P1 | Pending |
+| VEULAB-01 | Inicialização Instantânea do Terminal Veu Lab no Projeto Ativo | P1 | Passed |
+| VEULAB-02 | Foco Automático e Cabeçalho Informativo na Abertura | P1 | Passed |
+| VEULAB-03 | Preservação de Sessões em Segundo Plano Multi-Projeto | P1 | Passed |
+| VEULAB-04 | Normalização de Retornos de Carro (`\r`) do ConPTY | P1 | Passed |
+| VEULAB-05 | Parser Semântico de Cores ANSI Integrado ao Tema | P1 | Passed |
+| VEULAB-06 | Ações de Copiar e Inserir no Editor por Bloco | P1 | Passed |
+| VEULAB-07 | Streaming em Tempo Real com Indicador de Execução | P1 | Passed |
+| VEULAB-08 | Interrupção Imediata via Botão Parar e Atalho Ctrl+C | P1 | Passed |
+| VEULAB-09 | Recuperação Confiável do Prompt sem Travamento | P1 | Passed |
 

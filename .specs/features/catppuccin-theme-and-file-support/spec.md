@@ -104,13 +104,13 @@ Esta especificação define o tema Catppuccin Mocha como oficial e padrão, a am
 
 | Requirement ID | User Story | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| THEME-01 | Paleta Oficial Catppuccin Mocha Padrão do Veu MD | P1 | Pending |
-| THEME-02 | Tipografia Roboto como Padrão do Tema Oficial | P1 | Pending |
-| THEME-03 | Renomeação do Tema Legado para Veu Crepúsculo | P1 | Pending |
-| FONT-01 | Lista Expandida de Tipografias Populares de IDE | P1 | Pending |
-| FONT-02 | Atualização Reativa Imediata de Família de Fonte | P1 | Pending |
-| FILE-01 | Ícones e Abertura para Arquivos Conhecidos (HTML, JSON, CSS, JS, TS) | P1 | Pending |
-| FILE-02 | Abertura como Texto Puro (isMarkdown: false) para Código | P1 | Pending |
-| FILE-03 | Ícone Indefinido e Abertura para Demais Arquivos Texto | P1 | Pending |
-| FILE-04 | Preservação de Bloqueio Seguro para Arquivos Binários | P1 | Pending |
+| THEME-01 | Paleta Oficial Catppuccin Mocha Padrão do Veu MD | P1 | Passed |
+| THEME-02 | Tipografia Roboto como Padrão do Tema Oficial | P1 | Passed |
+| THEME-03 | Renomeação do Tema Legado para Veu Crepúsculo | P1 | Passed |
+| FONT-01 | Lista Expandida de Tipografias Populares de IDE | P1 | Passed |
+| FONT-02 | Atualização Reativa Imediata de Família de Fonte | P1 | Passed |
+| FILE-01 | Ícones e Abertura para Arquivos Conhecidos (HTML, JSON, CSS, JS, TS) | P1 | Passed |
+| FILE-02 | Abertura como Texto Puro (isMarkdown: false) para Código | P1 | Passed |
+| FILE-03 | Ícone Indefinido e Abertura para Demais Arquivos Texto | P1 | Passed |
+| FILE-04 | Preservação de Bloqueio Seguro para Arquivos Binários | P1 | Passed |
 

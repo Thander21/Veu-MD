@@ -44,10 +44,10 @@ Após a consolidação da modularização do backend Rust e a validação do con
 
 | ID | Requirement | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| IPC-01 | Tipagem estrita centralizada de payloads e retornos IPC | High | pending |
-| IPC-02 | Tratamento e tipagem padronizada de erros de IPC | Medium | pending |
-| RING-01 | Ring-buffer de retenção de até 500 blocos no Terminal Veu | High | pending |
-| RING-02 | Preservação de bloco ativo e prompt durante evicção FIFO | High | pending |
-| RUNE-01 | Adoção de Svelte 5 runes em novos módulos e refatorações | Medium | pending |
-| RUNE-02 | Compatibilidade retroativa de stores durante a migração | Medium | pending |
+| IPC-01 | Tipagem estrita centralizada de payloads e retornos IPC | High | passed |
+| IPC-02 | Tratamento e tipagem padronizada de erros de IPC | Medium | passed |
+| RING-01 | Ring-buffer de retenção de até 500 blocos no Terminal Veu | High | passed |
+| RING-02 | Preservação de bloco ativo e prompt durante evicção FIFO | High | passed |
+| RUNE-01 | Adoção de Svelte 5 runes em novos módulos e refatorações | Medium | passed |
+| RUNE-02 | Compatibilidade retroativa de stores durante a migração | Medium | passed |
 
