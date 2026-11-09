@@ -308,9 +308,13 @@
     activeView = 'chat';
   }
 
+  let onMouseMoveRef: ((e: MouseEvent) => void) | null = null;
+  let onMouseUpRef: (() => void) | null = null;
+
   function startResizing(e: MouseEvent) {
     e.preventDefault();
     isResizing = true;
+    document.body.style.userSelect = 'none';
     const startX = e.clientX;
     const startW = panelWidth;
 
@@ -323,12 +327,17 @@
     const onMouseUp = () => {
       if (isResizing) {
         isResizing = false;
+        document.body.style.userSelect = '';
         localStorage.setItem('veu_ai_sidebar_width', String(panelWidth));
       }
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      if (onMouseMoveRef) window.removeEventListener('mousemove', onMouseMoveRef);
+      if (onMouseUpRef) window.removeEventListener('mouseup', onMouseUpRef);
+      onMouseMoveRef = null;
+      onMouseUpRef = null;
     };
 
+    onMouseMoveRef = onMouseMove;
+    onMouseUpRef = onMouseUp;
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   }
@@ -341,6 +350,11 @@
   }
 
   onDestroy(() => {
+    if (isResizing) {
+      document.body.style.userSelect = '';
+      if (onMouseMoveRef) window.removeEventListener('mousemove', onMouseMoveRef);
+      if (onMouseUpRef) window.removeEventListener('mouseup', onMouseUpRef);
+    }
     if (isGenerating && activeReqId) {
       invoke('cancel_ai_prompt', { reqId: activeReqId }).catch(() => {});
     }
@@ -606,32 +620,32 @@
 <style>
   .sidebar-resize-handle {
     position: absolute;
-    left: 0;
+    left: -3px;
     top: 0;
     bottom: 0;
     width: 6px;
     cursor: col-resize;
     background-color: transparent;
     transition: background-color 0.2s;
-    z-index: 41;
+    z-index: 25;
   }
 
-  .sidebar-resize-handle:hover {
+  .sidebar-resize-handle:hover,
+  .sidebar-resize-handle:active {
     background-color: var(--veu-h1-color);
   }
 
   .ai-drawer {
-    position: fixed;
-    right: 0;
-    top: 44px;
-    bottom: 24px;
+    position: relative;
+    height: 100%;
+    flex-shrink: 0;
     max-width: 90vw;
     background-color: var(--veu-bg-sidebar);
     border-left: 1px solid var(--veu-border-color);
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.35);
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
-    z-index: 40;
+    z-index: 10;
     box-sizing: border-box;
     overflow: hidden;
   }
@@ -640,9 +654,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    height: 44px;
+    padding: 0 12px;
     border-bottom: 1px solid var(--veu-border-color);
-    background-color: rgba(0, 0, 0, 0.08);
+    background-color: var(--veu-bg-sidebar);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    user-select: none;
   }
 
   .drawer-title {
