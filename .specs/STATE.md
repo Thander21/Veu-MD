@@ -170,26 +170,58 @@
 - **Date**: 2026-11-09
 - **Status**: active
 
+### AD-022
+- **Decision**: Isolar o timer de auto-save por aba (`Map<string, Timeout>`) e descarregar persistência síncrona na troca de abas e no fechamento.
+- **Reason**: Elimina race condition onde alternar abas antes de 1000ms salvava a aba errada e perdia digitação.
+- **Trade-off**: Requer gerenciar a limpeza de múltiplos timeouts em `onDestroy`.
+- **Scope**: App.svelte, ciclo de vida de abas, auto-save.
+- **Date**: 2026-11-09
+- **Status**: active
+
+### AD-023
+- **Decision**: Preservar o Terminal Veu e o xterm.js simultaneamente no DOM via CSS display (`.hidden`), eliminando desmontagem condicional via `{#if}`.
+- **Reason**: Mantém histórico de timeline e evita processos PTY órfãos no Windows ao fechar projetos com xterm selecionado.
+- **Trade-off**: Retém contêineres leves no DOM mesmo quando ocultos.
+- **Scope**: TerminalPanel.svelte, TerminalVeuPanel.svelte, dual-engine.
+- **Date**: 2026-11-09
+- **Status**: active
+
+### AD-024
+- **Decision**: Implementar ciclo de vida completo de encerramento de PTY no Rust com emissão de `term-exit-{id}` e remoção automática de `state.terminals` ao atingir EOF.
+- **Reason**: Impede acúmulo de sessões finalizadas em memória e notifica a interface imediatamente sobre o término do shell.
+- **Trade-off**: Exige clonagem do Arc de terminals para a thread de leitura.
+- **Scope**: src-tauri/src/commands/pty_cmd.rs, PTY lifecycle.
+- **Date**: 2026-11-09
+- **Status**: active
+
+### AD-025
+- **Decision**: Mapear caminhos relativos de imagem no ProseMirror para o protocolo de assets do Tauri v2 via `convertFileSrc` e `createImageNodeView`.
+- **Reason**: Evita erros 404 em documentos Markdown existentes que referenciam assets locais (`./assets/img.png`), preservando a fidelidade WYSIWYG.
+- **Trade-off**: Imagens relativas requerem resolução contra o diretório do documento ativo.
+- **Scope**: proseMirrorSetup.ts, Editor.svelte, App.svelte.
+- **Date**: 2026-11-09
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: sidebar-layout-and-splash / .specs/features/sidebar-layout-and-splash/
+- **Feature**: architecture-resilience-and-lifecycle / .specs/features/architecture-resilience-and-lifecycle/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-001..AD-018
-  - spec.md com critérios EARS validados (0 erros no validador)
+  - AD-022..AD-025
+  - spec.md com critérios EARS validados (0 erros no validador com --strict)
   - tasks.md validado com portões determinísticos (0 erros no validador com --execute)
-  - T01: Splash Screen no index.html com logotipo Crepúsculo e fade-out suave implementado
-  - T02: Configuração de background escuro (#0e0b16) e theme Dark no Tauri v2 implementado
-  - T03: Botão de alternância fixo no topo da barra fina de projetos implementado
-  - T04: Barra lateral de arquivos de ponta a ponta com cabeçalho superior e redimensionamento dinâmico (180px a 600px) implementado
-  - T05: Limpeza e foco exclusivo da TopBar no documento (removido logotipo e duplicidades) implementado
-  - T06: Reestruturação do layout central em App.svelte implementado
-  - proofs.md gerado com 7 pass, 0 fail
+  - T01: Isolamento de auto-save por aba e flush atômico de foco/fechamento em App.svelte implementado
+  - T02: Preservação de contêineres dual-engine no Terminal sem desmontagem DOM implementado
+  - T03: Encerramento natural de PTY, emissão de term-exit e limpeza de sessão no Rust implementado
+  - T04: Resolução de imagens locais via convertFileSrc no ProseMirror e smart paste inline implementado
+  - T05: Proteção de raízes e contenção de caminhos em delete_entry no Rust implementado
+  - T06: Suíte de testes automatizados scripts/test_architecture_resilience.mjs integrada ao npm test implementada
+  - proofs.md gerado com 5 pass, 0 fail no HEAD
   - verification.md verificado e aprovado com validate_verification
 - **In-progress**: none
-- **Next step**: Sistema com inicialização escura sem tela branca, barra lateral de ponta a ponta, redimensionável e TopBar limpa.
+- **Next step**: Sistema com resiliência de concorrência, auto-save seguro, PTY livre de vazamentos e suporte nativo a assets locais.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master
