@@ -17,6 +17,7 @@
   import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
   import { formatDocument } from './lib/utils/codeFormatter';
   import { extractFrontmatter, attachFrontmatter } from './lib/utils/frontmatter';
+  import { estimateTokens, collectTextFilePaths, buildContextPayload } from './lib/utils/aiContext';
   import { serializeDocToHtml, copyFormattedHtml, setActiveDocumentDir } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import { fsService } from './lib/services/fsService';
@@ -716,6 +717,50 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
   }
 
+  async function handleCopyContext(node: FileNode) {
+    try {
+      if (!node.is_dir) {
+        const rawContent = await fsService.readTextFile(node.path);
+        let relPath = node.name;
+        if (currentFolderPath && node.path.startsWith(currentFolderPath)) {
+          relPath = node.path.slice(currentFolderPath.length).replace(/^[\\/]+/, '');
+        }
+        const xml = buildContextPayload([{ path: relPath, content: rawContent }]);
+        await navigator.clipboard.writeText(xml);
+        const tokens = estimateTokens(rawContent);
+        statusNotification = `Contexto copiado: "${node.name}" (~${tokens} tokens)`;
+        setTimeout(() => (statusNotification = ''), 4000);
+      } else {
+        const filePaths = collectTextFilePaths(node);
+        if (filePaths.length === 0) {
+          statusNotification = `Nenhum arquivo de texto encontrado na pasta "${node.name}".`;
+          setTimeout(() => (statusNotification = ''), 4000);
+          return;
+        }
+        const files: Array<{ path: string; content: string }> = [];
+        let totalChars = 0;
+        for (const fp of filePaths) {
+          try {
+            const content = await fsService.readTextFile(fp);
+            files.push({ path: fp, content });
+            totalChars += content.length;
+          } catch {
+            // Ignora arquivos inacessíveis
+          }
+        }
+        const xml = buildContextPayload(files, currentFolderPath || node.path);
+        await navigator.clipboard.writeText(xml);
+        const tokens = estimateTokens('a'.repeat(totalChars));
+        statusNotification = `Contexto copiado: ${files.length} arquivo(s) de "${node.name}" (~${tokens} tokens)`;
+        setTimeout(() => (statusNotification = ''), 4000);
+      }
+    } catch (err) {
+      console.error('Erro ao copiar contexto de IA:', err);
+      statusNotification = 'Erro ao copiar contexto de IA para a área de transferência.';
+      setTimeout(() => (statusNotification = ''), 4000);
+    }
+  }
+
   let autoSaveTimeouts: Map<string, any> = new Map();
 
   async function saveTab(targetTab: TabItem | null | undefined) {
@@ -987,6 +1032,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         onDeleteEntry={handleDeleteEntry}
         onRenameEntry={handleRenameEntry}
         onCreateInFolder={handleCreateInFolder}
+        onCopyContext={handleCopyContext}
         onQuickOpen={() => (quickOpenVisible = true)}
       />
     {/if}

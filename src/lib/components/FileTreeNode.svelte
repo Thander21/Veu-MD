@@ -15,7 +15,8 @@
     FolderPlus,
     TerminalSquare,
     Pencil,
-    Trash2
+    Trash2,
+    Sparkles
   } from 'lucide-svelte';
   import type { FileNode } from '../types';
   import VeuMdIcon from './VeuMdIcon.svelte';
@@ -29,6 +30,7 @@
   export let onRenameEntry: (path: string, currentName: string) => void;
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void;
   export let onOpenTerminalInFolder: (path: string) => void;
+  export let onCopyContext: ((node: FileNode) => void) | undefined = undefined;
 
   const IMAGE_EXTENSIONS = new Set([
     'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'
@@ -107,6 +109,7 @@
       tabindex="0"
       on:click={() => onToggleFolder(node.path)}
       on:keydown={(e) => e.key === 'Enter' && onToggleFolder(node.path)}
+      on:contextmenu|preventDefault|stopPropagation={() => onCopyContext && onCopyContext(node)}
     >
       <span class="chevron">
         {#if expandedFolders[node.path]}
@@ -126,6 +129,13 @@
 
       <!-- Ações ao passar o mouse na pasta -->
       <span class="node-actions" role="toolbar" tabindex="-1" on:click|stopPropagation on:keydown|stopPropagation>
+        <button
+          class="item-act-btn"
+          title="Copiar pasta como Contexto de IA"
+          on:click={() => onCopyContext && onCopyContext(node)}
+        >
+          <Sparkles size={12} color="#cba6f7" />
+        </button>
         <button
           class="item-act-btn"
           title="Novo arquivo nesta pasta"
@@ -178,6 +188,7 @@
             {onRenameEntry}
             {onCreateInFolder}
             {onOpenTerminalInFolder}
+            {onCopyContext}
           />
         {/each}
       </div>
@@ -191,6 +202,7 @@
       tabindex="0"
       on:click={() => isViewable(node.extension) && onOpenFile(node.path, node.name)}
       on:keydown={(e) => e.key === 'Enter' && isViewable(node.extension) && onOpenFile(node.path, node.name)}
+      on:contextmenu|preventDefault|stopPropagation={() => isViewable(node.extension) && !BINARY_EXTENSIONS.has((node.extension || '').toLowerCase()) && onCopyContext && onCopyContext(node)}
     >
       <svelte:component
         this={getFileIcon(node.extension)}
@@ -201,6 +213,15 @@
 
       <!-- Ações ao passar o mouse no arquivo -->
       <span class="node-actions" role="toolbar" tabindex="-1" on:click|stopPropagation on:keydown|stopPropagation>
+        {#if isViewable(node.extension) && !BINARY_EXTENSIONS.has((node.extension || '').toLowerCase())}
+          <button
+            class="item-act-btn"
+            title="Copiar como Contexto de IA"
+            on:click={() => onCopyContext && onCopyContext(node)}
+          >
+            <Sparkles size={12} color="#cba6f7" />
+          </button>
+        {/if}
         <button
           class="item-act-btn"
           title="Renomear arquivo"

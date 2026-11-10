@@ -44,7 +44,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: O Editor calcula e emite a contagem de tokens atualizada e a StatusBar exibe ~X tokens em tempo real, exibindo 0 quando vazio.
 
-### T03: [ ] Ação Context Dropper na Árvore do Explorer e Feedback
+### T03: [x] Ação Context Dropper na Árvore do Explorer e Feedback
 **Where**: `src/lib/components/FileTreeNode.svelte`
 **Depends on**: T02
 **Tests**: `npm run check`

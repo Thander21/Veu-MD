@@ -39,6 +39,7 @@
   export let onDeleteEntry: (path: string, name: string, isDir: boolean) => void = () => {};
   export let onRenameEntry: (path: string, currentName: string) => void = () => {};
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
+  export let onCopyContext: ((node: FileNode) => void) | undefined = undefined;
   export let onQuickOpen: (() => void) | undefined = undefined;
   export let terminalOpen: boolean = false;
   export let onToggleTerminal: () => void = () => {};
@@ -275,6 +276,7 @@
               {onRenameEntry}
               {onCreateInFolder}
               {onOpenTerminalInFolder}
+              {onCopyContext}
             />
           {/each}
         {/if}
