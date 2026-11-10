@@ -1,7 +1,8 @@
 # Feature Specification: AI Context Dropper and Token Counter
 
 **Feature Name**: `ai-context-dropper-and-tokens`
-**Status**: pending
+**Status**: in-progress
+**Approved**: 2026-11-10 - user: "aprovado"
 
 ## Problem Statement
 
