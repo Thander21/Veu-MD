@@ -11,10 +11,14 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Edição 100% WYSIWYG Estilo Word:**
   - O editor ProseMirror **NUNCA** deve exibir caracteres brutos de formatação Markdown (`#`, `**`, `*`, `>`, ````) no corpo do texto durante leitura ou digitação.
   - A experiência visual deve ser fluida e direta, idêntica a processadores de texto ricos (Word/Pages).
-- **Terminal Veu — Sequencial, Editorial e Interativo (Anti-CRT):**
-  - O terminal adota prioritariamente o **Terminal Veu** com fluxo sequencial de blocos, tipografia editorial e parser ANSI semântico nativo (`ansiParser.ts`). O motor `@xterm/xterm` (v5.5.0) é mantido temporariamente em modo de convivência dual-engine via alternador na UI até a validação completa de maturidade do Terminal Veu em produção.
-  - **Controle Total & Não-Interceptação de CLIs**: O Terminal Veu **NUNCA** deve interceptar, sequestrar ou redirecionar comandos de terminal (como `agy`, `claude`, `muse`, scripts ou subcomandos como `agy --add`) para gavetas de chat. O usuário possui controle total do PTY com streaming e parada via `Ctrl+C`.
-  - **Normalização de ConPTY no Windows**: Retornos de carro (`\r`) e sequências de controle de cursor devem ser processados via `resolveCarriageReturns` para evitar texto sobreposto e ecos duplicados de comandos.
+- **Terminal Veu & xterm — Convivência Dual-Engine (xterm Padrão):**
+  - O terminal adota o **`@xterm/xterm` (v5.5.0)** como motor padrão de produção, garantindo compatibilidade integral com CLIs interativos (`agy`, `muse`), modo raw, PSReadLine e seleção nativa. O **Terminal Veu (VeuLab)** com fluxo sequencial editorial em blocos permanece em modo de convivência dual-engine acessível via alternador na UI.
+  - **Controle Total & Não-Interceptação de CLIs**: O terminal **NUNCA** deve interceptar, sequestrar ou redirecionar comandos de terminal (como `agy`, `claude`, `muse`, scripts ou subcomandos como `agy --add`) para gavetas de chat. O usuário possui controle total do PTY com streaming e parada via `Ctrl+C`.
+  - **Normalização de ConPTY no Windows**: Retornos de carro (`\r`) e sequências de controle de cursor no VeuLab devem ser processados via `resolveCarriageReturns` para evitar texto sobreposto e ecos duplicados de comandos.
+  - **Configuração do xterm para Windows ConPTY**:
+    - O parâmetro `convertEol: false` é **estritamente obrigatório** ao usar ConPTY (`portable-pty`). ConPTY já gerencia quebras CRLF; ativar `convertEol: true` corrompe o cálculo de coordenadas de cursor em CLIs como `agy` e `muse`.
+    - Declarar `windowsPty: { backend: 'conpty', buildNumber: 22000 }`, `cursorBlink: true` e `cursorStyle: 'block'`.
+    - **Sincronização Imediata de Dimensões**: Imediatamente após invocar `spawnTerminalIpc`, o frontend deve emitir `resizeTerminalIpc(id, term.cols, term.rows)`, impedindo que o ConPTY permaneça preso no grid fallback de 80×24.
   - **Cold Start Imediato**: A inicialização do shell e seu banner inicial nunca devem ser descartados quando a lista de blocos estiver vazia; ao abrir o painel, a sessão deve estar pronta e o prompt imediatamente focado.
   - O prompt de entrada é interativo e editável com seleção nativa por mouse, navegação por histórico com setas (`ArrowUp`/`ArrowDown`) e clique livre para mover o cursor, posicionado ao final da linha do tempo quando a sessão está ociosa.
   - Durante a execução de um comando, a interface exibe streaming contínuo da saída com status, botão **Parar (`Ctrl+C`)** e ação de escape para liberar o prompt caso o processo silencie sem retorno padronizado.
@@ -33,8 +37,12 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - Tags `<svelte:window>` devem permanecer obrigatoriamente no nível superior do markup, nunca aninhadas em blocos condicionais como `{#if}`.
 - **Persistência e Continuidade do Terminal Multi-Projeto:**
   - **NUNCA** destrua o `<TerminalPanel>` usando blocos de re-renderização reativa como `{#key currentFolderPath}` ou `{#if visible}` ao recolher o painel.
+  - **Containers DOM Montados Continuamente (`allTabs`)**: A renderização dos containers de terminal (`.term-wrapper`) **NUNCA** deve iterar apenas sobre o subconjunto do projeto ativo (`{#each currentTabs ...}`). Os wrappers de todos os projetos devem permanecer permanentemente montados no DOM (`{#each allTabs as t (t.id)}`), alternados exclusivamente via classe CSS `.hidden` (`display: none`). O desmonte de um nó DOM desconecta permanentemente a instância do `xterm`, tornando o terminal em branco e congelado ao alternar de volta ao projeto.
   - O painel deve ser ocultado estritamente via classe CSS `.hidden` (`display: none`), preservando compilações, servidores locais e histórico de comandos em background ao alternar entre abas ou recolher com `Ctrl + '`.
   - O comando `kill_terminal` no backend Rust só deve ser disparado quando a aba do projeto for **explicitamente fechada** pelo usuário (`closeProject`), nunca durante troca de foco ou minimização.
+- **Visibilidade do Cursor e Alinhamento em Autocomplete/Ghost Text:**
+  - Em prompts com overlay de sugestões preditivas (ghost text), o elemento de entrada (`textarea`/`input`) deve possuir empilhamento superior (`position: relative; z-index: 2; caret-color: var(--veu-h1-color, #cba6f7)`), e o overlay deve possuir `z-index: 1`.
+  - A métrica de `line-height` deve ser estritamente idêntica entre o input e o ghost overlay (ex: `20px`), evitando que o cursor de digitação fique desalinhado ou oculto atrás da camada de sugestão.
 - **Sincronização Atômica de Workspace e Debounce de Storage:**
   - Na alternância de projetos (`switchToProject`), o carregamento assíncrono de arquivos deve ser protegido por uma sentinela atômica (`isSwitchingProject`), impedindo que microtasks de I/O disparem blocos reativos que sobrescrevam abas do projeto de destino com dados defasados.
   - A serialização e salvamento em `localStorage` durante digitação no editor deve conter debounce de 500ms, evitando I/O síncrono bloqueante a cada caractere digitado.
