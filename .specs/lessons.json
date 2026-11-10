@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 8,
+  "next_id": 9,
   "lessons": [
     {
       "id": "L-001",
@@ -130,6 +130,24 @@
       ],
       "created": "2026-11-09T08:37:54Z",
       "last_seen": "2026-11-09T08:37:54Z"
+    },
+    {
+      "id": "L-008",
+      "key": "gate_fail::scripts e novos utilitarios exigem terminacao de linha normalizada com newline final commitados antes de check proofs py para evitar arvore dirty durante o build",
+      "text": "Scripts e novos utilitarios exigem terminacao de linha normalizada com newline final commitados antes de check_proofs.py para evitar arvore dirty durante o build.",
+      "signal": "gate_fail",
+      "scope": "sdd/verification",
+      "status": "candidate",
+      "features": [
+        "zero-server-cloud-sync"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "scripts/test_cloud_sync.mjs:1 (sdd/verification)"
+      ],
+      "created": "2026-11-10T19:32:42Z",
+      "last_seen": "2026-11-10T19:32:42Z"
     }
   ]
 }

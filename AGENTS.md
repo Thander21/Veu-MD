@@ -98,6 +98,10 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Smart Paste de Marcas Inline**:
   - O interceptador `handleSmartPaste` deve detectar tanto blocos (`#`, `>`, `-`, `|`, ````) quanto marcações inline (`**`, `*`, `~~`, `` ` ``, `[texto](link)`).
   - Colagens que contenham essas marcas devem ser convertidas diretamente em nós e marks ricos do ProseMirror, impedindo terminantemente que asteriscos ou crases literais sejam inseridos na visualização WYSIWYG.
+- **Ergonomia e Acessibilidade em Diálogos e Modais Svelte:**
+  - Componentes de modal contendo `role="dialog"` **DEVEM** declarar explicitamente `tabindex="-1"`.
+  - O contêiner de backdrop com evento `on:click` deve incluir handler de teclado para escape (`on:keydown={(e) => e.key === 'Escape' && onClose()}`).
+  - Para fechar o modal ao clicar fora, use a verificação `if (e.target === e.currentTarget) onClose();` no backdrop em vez de `on:click|stopPropagation` no contêiner interno (o que gera advertência de elemento não-interativo sem listener de teclado no `svelte-check`).
 
 ---
 
@@ -147,6 +151,7 @@ O Tauri v2 adota o modelo de segurança declarativa baseado em **Capabilities** 
 - **Invariantes de Segurança do IPC**:
   - **Sanitização de Caminhos & Anti-Traversal**: Comandos Rust que gravam arquivos (`save_image_asset`, `save_custom_theme`) aplicam extração canônica de nome base (`Path::file_name()`) e validações estritas, rejeitando qualquer padrão de evasão de diretório (`..`, `/`, `\`).
   - **Content Security Policy (CSP)**: Configurada em `tauri.conf.json` para bloquear fontes externas não autorizadas, restringindo a origens locais (`'self'`, `asset:`), Google Fonts e imagens remotas em Markdown via `https:`.
+  - **Conectividade CSP para Protocolos de Nuvem Desacoplados**: A diretiva `connect-src` na CSP em `tauri.conf.json` deve incluir `https:`, viabilizando chamadas diretas a servidores WebDAV, Nextcloud ou endpoints autorizados pelo usuário sem bloqueio do WebView.
   - **Contenção Estrita em Exclusão de Arquivos (`delete_entry`)**:
     - O comando `delete_entry` no Rust deve validar canonicamente o caminho (`validate_safe_deletion_path`) antes de invocar `remove_dir_all` ou `remove_file`.
     - É estritamente vedado excluir caminhos vazios, espaços em branco, raízes de volumes (`/`, `C:\`) ou diretórios críticos do sistema operacional (`C:\Windows`).
@@ -189,6 +194,7 @@ O projeto adota a metodologia Spec-Driven Development através do framework can�
    - Um sub-agente ou sessão independente atuando como **Verifier** audita todas as provas no `HEAD`, testando casos de borda e garantindo que asserções não sejam mais frouxas que o critério.
 5. **Árvore Limpa para Validação Final**:
    - `validate_verification.py` e `check_proofs.py` exigem estritamente `git status` 100% limpo para atestar conformidade.
+   - **Integridade de Finais de Linha e Árvore Limpa**: Todo script em `scripts/` ou novo utilitário em `src/` deve ser salvo com terminação de linha normalizada e newline final (`\n`) commitados antes de invocar `check_proofs.py`. Processos de build podem reformatar arquivos sem quebra final durante o portão determinístico, marcando a árvore como `dirty` e invalidando o resultado.
 6. **Raio de Explosão Delimitado (Blast Radius)**:
    - Aprovações cobrem implementação e commits locais. Comandos destrutivos ou remotos (`git push`, reset, force push) requerem autorização humana pontual explícita.
 

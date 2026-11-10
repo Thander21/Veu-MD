@@ -56,6 +56,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/lib/components/TerminalPanel.svelte:472 (terminal-lifecycle)
 - last seen: 2026-11-09T08:37:54Z
 
+### L-008 - Scripts e novos utilitarios exigem terminacao de linha normalizada com newline final commitados antes de check_proofs.py para evitar arvore dirty durante o build.
+- signal: `gate_fail` · recurrence: 1 feature(s) · scope: `sdd/verification` · harmful: 0
+- features: zero-server-cloud-sync
+- evidence: scripts/test_cloud_sync.mjs:1 (sdd/verification)
+- last seen: 2026-11-10T19:32:42Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
