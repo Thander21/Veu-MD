@@ -1,7 +1,8 @@
 # Feature Specification: Zero-Server Cloud Sync
 
 **Feature Name**: `zero-server-cloud-sync`
-**Status**: pending
+**Status**: in-progress
+**Approved**: 2026-11-10 - user: "aprovado"
 
 ## Problem Statement
 
