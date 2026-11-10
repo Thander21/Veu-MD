@@ -51,7 +51,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: Arquivos e pastas possuem botão de ação e atalho de contexto para copiar para o clipboard no formato <context> com aviso na StatusBar.
 
-### T04: [ ] Suíte Automatizada de Testes de Contexto e Tokens
+### T04: [x] Suíte Automatizada de Testes de Contexto e Tokens
 **Where**: `scripts/test_ai_context_and_tokens.mjs`
 **Depends on**: T03
 **Tests**: `npm test`
