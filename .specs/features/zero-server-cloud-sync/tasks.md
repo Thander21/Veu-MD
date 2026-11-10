@@ -37,7 +37,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: Funções de autenticação WebDAV, enfileiramento, upload não-bloqueante e detecção de conectividade estão implementadas com tipagem estrita e zero bloat.
 
-### T02: [ ] Integração do Pipeline em Background e Proteção de Dirty Tabs
+### T02: [x] Integração do Pipeline em Background e Proteção de Dirty Tabs
 **Where**: `src/App.svelte`
 **Depends on**: T01
 **Tests**: `npm run check`

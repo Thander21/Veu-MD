@@ -21,6 +21,7 @@
   import { serializeDocToHtml, copyFormattedHtml, setActiveDocumentDir } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import { fsService } from './lib/services/fsService';
+  import { cloudSyncService } from './lib/services/cloudSyncService';
   import {
     loadProjectsFromStorage,
     saveProjectsToStorage as storeSaveProjects,
@@ -790,6 +791,15 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       await fsService.writeTextFile(targetTab.path, contentToSave);
       targetTab.isDirty = false;
       tabs = [...tabs];
+
+      // Sincronização em segundo plano não-bloqueante (Zero-Server Cloud Sync)
+      if (targetTab.isMarkdown) {
+        let relPath = targetTab.title;
+        if (currentFolderPath && targetTab.path.startsWith(currentFolderPath)) {
+          relPath = targetTab.path.slice(currentFolderPath.length).replace(/^[\\/]+/, '');
+        }
+        cloudSyncService.enqueueUpload(targetTab.path, relPath, contentToSave);
+      }
     } catch (err) {
       console.error('Erro ao salvar aba:', err);
     }
