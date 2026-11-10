@@ -97,3 +97,4 @@ const badConfigRes = await syncService.testConnection({ ...cfg, serverUrl: '' })
 assert.strictEqual(badConfigRes.success, false, 'TestConnection sem URL deve falhar com mensagem explicativa');
 
 console.log('✓ PASSOU: Todos os testes de Zero-Server Cloud Sync e resiliencia foram aprovados com sucesso!');
+
