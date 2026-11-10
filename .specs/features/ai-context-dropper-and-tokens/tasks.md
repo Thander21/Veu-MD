@@ -37,7 +37,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: Funções estimateTokens, formatFileContext, wrapContext e collectContextFiles estão implementadas em TypeScript puro.
 
-### T02: [ ] Integração de Tokens na StatusBar e Editor
+### T02: [x] Integração de Tokens na StatusBar e Editor
 **Where**: `src/lib/components/StatusBar.svelte`
 **Depends on**: T01
 **Tests**: `npm run check`

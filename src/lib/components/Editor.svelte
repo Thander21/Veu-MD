@@ -9,13 +9,14 @@
   } from '../editor/proseMirrorSetup';
   import FloatingMenu from './FloatingMenu.svelte';
   import SlashMenu from './SlashMenu.svelte';
+  import { estimateTokens } from '../utils/aiContext';
   import type { HeadingItem } from '../types';
 
   export let content: string = '';
   export let isMarkdown: boolean = true;
   export let onChange: (newContent: string) => void;
   export let onHeadingsChange: (headings: HeadingItem[]) => void;
-  export let onStatsChange: (stats: { words: number; chars: number; readTime: string }) => void;
+  export let onStatsChange: (stats: { words: number; chars: number; tokens: number; readTime: string }) => void;
   export let onEditorReady: (view: EditorView) => void;
   export let onPasteImage: ((base64: string) => void) | undefined = undefined;
   export let smartPasteSanitizeAi: boolean = true;
@@ -62,14 +63,16 @@
     });
     onHeadingsChange(headings);
 
-    // 3. Estatísticas de Texto (Palavras / Caracteres)
+    // 3. Estatísticas de Texto (Palavras / Caracteres / Tokens)
     const text = state.doc.textContent;
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
+    const tokens = chars === 0 ? 0 : estimateTokens(text);
     const readMinutes = Math.max(1, Math.ceil(words / 200));
     onStatsChange({
       words,
       chars,
+      tokens,
       readTime: `${readMinutes} min de leitura`
     });
   }

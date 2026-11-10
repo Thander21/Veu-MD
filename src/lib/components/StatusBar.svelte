@@ -1,7 +1,12 @@
 <script lang="ts">
-  import { TerminalSquare, FileText } from 'lucide-svelte';
+  import { TerminalSquare, FileText, Sparkles } from 'lucide-svelte';
 
-  export let stats = { words: 0, chars: 0, readTime: '1 min de leitura' };
+  export let stats: { words: number; chars: number; tokens?: number; readTime: string } = {
+    words: 0,
+    chars: 0,
+    tokens: 0,
+    readTime: '1 min de leitura'
+  };
   export let terminalOpen: boolean = false;
   export let notification: string = '';
   export let onToggleTerminal: () => void;
@@ -15,6 +20,11 @@
     </span>
     <span class="dot">•</span>
     <span class="stat-item">{stats.chars} caracteres</span>
+    <span class="dot">•</span>
+    <span class="stat-item token-item" title="Estimativa de tokens para IA (~4 caracteres por token)">
+      <Sparkles size={11} style="opacity: 0.8;" />
+      <span>~{stats.tokens ?? 0} tokens</span>
+    </span>
     <span class="dot">•</span>
     <span class="stat-item">{stats.readTime}</span>
     {#if notification}

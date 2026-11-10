@@ -42,7 +42,7 @@
   let tabs: TabItem[] = [];
   let activeTabId: string | null = null;
   let headings: HeadingItem[] = [];
-  let stats = { words: 0, chars: 0, readTime: '1 min de leitura' };
+  let stats = { words: 0, chars: 0, tokens: 0, readTime: '1 min de leitura' };
   let statusNotification = '';
 
   // Painéis visíveis
