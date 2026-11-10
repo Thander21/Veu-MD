@@ -14,6 +14,7 @@ export interface TabItem {
   isDirty: boolean;
   isMarkdown: boolean;
   isImage?: boolean;
+  frontmatter?: string | null;
 }
 
 export interface HeadingItem {

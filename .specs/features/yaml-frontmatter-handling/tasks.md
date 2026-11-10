@@ -37,7 +37,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: Funções de extração, reanexação e resumo de frontmatter estão implementadas com tipagem estrita e zero dependências externas.
 
-### T02: [ ] Integração no Estado de Abas e Ciclo de Arquivos
+### T02: [x] Integração no Estado de Abas e Ciclo de Arquivos
 **Where**: `src/App.svelte`
 **Depends on**: T01
 **Tests**: `npm run check`

@@ -15,6 +15,7 @@
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
   import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
   import { formatDocument } from './lib/utils/codeFormatter';
+  import { extractFrontmatter, attachFrontmatter } from './lib/utils/frontmatter';
   import { serializeDocToHtml, copyFormattedHtml, setActiveDocumentDir } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import { fsService } from './lib/services/fsService';
@@ -178,6 +179,12 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
               } else {
                 content = await fsService.readTextFile(item.path);
               }
+              let frontmatter: string | null = null;
+              if (item.isMarkdown && !isImg) {
+                const parsed = extractFrontmatter(content);
+                frontmatter = parsed.frontmatter;
+                content = parsed.body;
+              }
               loadedTabs.push({
                 id: item.id || `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                 title: item.title,
@@ -185,7 +192,8 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
                 content,
                 isDirty: false,
                 isMarkdown: item.isMarkdown,
-                isImage: isImg
+                isImage: isImg,
+                frontmatter
               });
             } catch {
               // Arquivo movido ou inacessível, ignora
@@ -380,10 +388,18 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       if (!targetTab) return;
 
       try {
-        const newContent: string = await fsService.readTextFile(changedPath);
-        if (newContent !== targetTab.content) {
+        const newRawContent: string = await fsService.readTextFile(changedPath);
+        let updatedContent = newRawContent;
+        let updatedFrontmatter: string | null = targetTab.frontmatter || null;
+        if (targetTab.isMarkdown && !targetTab.isImage) {
+          const parsed = extractFrontmatter(newRawContent);
+          updatedFrontmatter = parsed.frontmatter;
+          updatedContent = parsed.body;
+        }
+        if (updatedContent !== targetTab.content || updatedFrontmatter !== targetTab.frontmatter) {
           if (!targetTab.isDirty) {
-            targetTab.content = newContent;
+            targetTab.content = updatedContent;
+            targetTab.frontmatter = updatedFrontmatter;
             tabs = [...tabs];
             statusNotification = `Arquivo "${targetTab.title}" sincronizado com alteração externa.`;
             setTimeout(() => (statusNotification = ''), 4000);
@@ -559,14 +575,23 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         await saveTab(activeTab);
       }
 
+      const isMarkdown = fileName.endsWith('.md') || fileName.endsWith('.markdown');
+      let frontmatter: string | null = null;
+      if (isMarkdown && !isImg) {
+        const parsed = extractFrontmatter(content);
+        frontmatter = parsed.frontmatter;
+        content = parsed.body;
+      }
+
       const newTab: TabItem = {
         id: `tab-${Date.now()}`,
         title: fileName,
         path: filePath,
         content,
         isDirty: false,
-        isMarkdown: fileName.endsWith('.md') || fileName.endsWith('.markdown'),
-        isImage: isImg
+        isMarkdown,
+        isImage: isImg,
+        frontmatter
       };
 
       tabs = [...tabs, newTab];
@@ -712,7 +737,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
 
     try {
-      await fsService.writeTextFile(targetTab.path, targetTab.content);
+      let contentToSave = targetTab.content;
+      if (targetTab.isMarkdown && targetTab.frontmatter) {
+        contentToSave = attachFrontmatter(targetTab.content, targetTab.frontmatter);
+      }
+      await fsService.writeTextFile(targetTab.path, contentToSave);
       targetTab.isDirty = false;
       tabs = [...tabs];
     } catch (err) {
