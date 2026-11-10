@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { TerminalSquare, FileText, Sparkles } from 'lucide-svelte';
+  import { TerminalSquare, FileText, Sparkles, Cloud, CloudOff, CloudUpload } from 'lucide-svelte';
+  import type { SyncStatus } from '../services/cloudSyncService';
 
   export let stats: { words: number; chars: number; tokens?: number; readTime: string } = {
     words: 0,
@@ -10,6 +11,9 @@
   export let terminalOpen: boolean = false;
   export let notification: string = '';
   export let onToggleTerminal: () => void;
+  export let syncStatus: SyncStatus = 'disabled';
+  export let pendingSyncCount: number = 0;
+  export let onOpenCloudSync: () => void = () => {};
 </script>
 
 <footer class="statusbar">
@@ -34,6 +38,30 @@
   </div>
 
   <div class="right-group">
+    <button
+      type="button"
+      class="sync-btn"
+      class:active={syncStatus !== 'disabled'}
+      title="Sincronização em Nuvem (WebDAV)"
+      on:click={onOpenCloudSync}
+    >
+      {#if syncStatus === 'syncing'}
+        <CloudUpload size={13} color="#cba6f7" />
+        <span>Sync ({pendingSyncCount})</span>
+      {:else if syncStatus === 'offline'}
+        <CloudOff size={13} color="#fab387" />
+        <span>Offline {#if pendingSyncCount > 0}({pendingSyncCount}){/if}</span>
+      {:else if syncStatus === 'idle'}
+        <Cloud size={13} color="#a6e3a1" />
+        <span>Nuvem</span>
+      {:else if syncStatus === 'error'}
+        <CloudOff size={13} color="#f38ba8" />
+        <span>Erro Sync</span>
+      {:else}
+        <CloudOff size={13} style="opacity: 0.5;" />
+        <span>Nuvem</span>
+      {/if}
+    </button>
     <span class="stat-item">UTF-8</span>
     <button
       class="term-btn"
@@ -85,7 +113,8 @@
     opacity: 0.4;
   }
 
-  .term-btn {
+  .term-btn,
+  .sync-btn {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -96,14 +125,17 @@
     cursor: pointer;
     padding: 2px 6px;
     border-radius: 3px;
+    transition: all 0.15s ease;
   }
 
-  .term-btn:hover {
+  .term-btn:hover,
+  .sync-btn:hover {
     background-color: var(--veu-active-item-bg);
     color: var(--veu-text-color);
   }
 
-  .term-btn.active {
+  .term-btn.active,
+  .sync-btn.active {
     color: var(--veu-h1-color);
   }
 </style>

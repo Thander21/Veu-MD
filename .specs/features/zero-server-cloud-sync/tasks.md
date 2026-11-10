@@ -44,7 +44,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: Ao salvar localmente, o arquivo é gravado no disco imediatamente e o upload é agendado em background sem travar o editor, preservando abas com isDirty na sincronização remota.
 
-### T03: [ ] Modal de Configuração e Indicador na StatusBar
+### T03: [x] Modal de Configuração e Indicador na StatusBar
 **Where**: `src/lib/components/CloudSyncModal.svelte`
 **Depends on**: T02
 **Tests**: `npm run check`

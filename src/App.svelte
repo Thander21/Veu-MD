@@ -15,13 +15,14 @@
   import StatusBar from './lib/components/StatusBar.svelte';
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
   import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
+  import CloudSyncModal from './lib/components/CloudSyncModal.svelte';
   import { formatDocument } from './lib/utils/codeFormatter';
   import { extractFrontmatter, attachFrontmatter } from './lib/utils/frontmatter';
   import { estimateTokens, collectTextFilePaths, buildContextPayload } from './lib/utils/aiContext';
   import { serializeDocToHtml, copyFormattedHtml, setActiveDocumentDir } from './lib/editor/proseMirrorSetup';
   import { initTheme, setTheme, getTheme, subscribeTheme } from './lib/theme/themeStore';
   import { fsService } from './lib/services/fsService';
-  import { cloudSyncService } from './lib/services/cloudSyncService';
+  import { cloudSyncService, type SyncStatus } from './lib/services/cloudSyncService';
   import {
     loadProjectsFromStorage,
     saveProjectsToStorage as storeSaveProjects,
@@ -58,6 +59,10 @@
   let findReplaceShowReplace = false;
   let smartPasteSanitizeAi = true;
   let quickOpenVisible = false;
+  let cloudSyncModalOpen = false;
+  let cloudSyncStatus: SyncStatus = 'disabled';
+  let pendingSyncCount: number = 0;
+  let unsubSync: (() => void) | null = null;
 
   let activeEditorView: EditorView | null = null;
   let editorRef: any = null;
@@ -373,6 +378,12 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       }
     }, 150);
 
+    // Escuta alterações de status da sincronização em nuvem
+    unsubSync = cloudSyncService.subscribe((status, pending) => {
+      cloudSyncStatus = status;
+      pendingSyncCount = pending;
+    });
+
     // Escuta alterações de temas em tempo real e associa ao projeto ativo
     unsubscribeTheme = subscribeTheme((newTheme) => {
       if (activeProjectId) {
@@ -483,6 +494,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   });
 
   onDestroy(() => {
+    if (unsubSync) unsubSync();
     if (unsubscribeTheme) unsubscribeTheme();
     if (unlistenWatcher) unlistenWatcher();
     fsService.unwatchFile().catch(() => {});
@@ -1168,6 +1180,15 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     {terminalOpen}
     notification={statusNotification}
     onToggleTerminal={() => (terminalOpen = !terminalOpen)}
+    syncStatus={cloudSyncStatus}
+    {pendingSyncCount}
+    onOpenCloudSync={() => (cloudSyncModalOpen = true)}
+  />
+
+  <!-- Modal de Configuração de Sincronização em Nuvem (WebDAV) -->
+  <CloudSyncModal
+    bind:visible={cloudSyncModalOpen}
+    onClose={() => (cloudSyncModalOpen = false)}
   />
 
   <!-- Modal Flutuante de Busca Rápida (Ctrl+P) -->
