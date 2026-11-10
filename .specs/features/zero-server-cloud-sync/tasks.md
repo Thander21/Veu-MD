@@ -51,7 +51,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: Usuário pode configurar servidor WebDAV, credenciais e testar conexão, com feedback visual de estado na StatusBar.
 
-### T04: [ ] Suíte Automatizada de Testes de Sincronização em Nuvem
+### T04: [x] Suíte Automatizada de Testes de Sincronização em Nuvem
 **Where**: `scripts/test_cloud_sync.mjs`
 **Depends on**: T03
 **Tests**: `npm test`

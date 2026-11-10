@@ -16,7 +16,8 @@ const testSuites = [
   { name: 'IPC Contracts & Terminal Ring-Buffer', script: 'scripts/test_ipc_and_ringbuffer.mjs' },
   { name: 'Architecture Resilience & Lifecycle', script: 'scripts/test_architecture_resilience.mjs' },
   { name: 'YAML Frontmatter Handling', script: 'scripts/test_yaml_frontmatter.mjs' },
-  { name: 'AI Context Dropper & Token Counter', script: 'scripts/test_ai_context_and_tokens.mjs' }
+  { name: 'AI Context Dropper & Token Counter', script: 'scripts/test_ai_context_and_tokens.mjs' },
+  { name: 'Zero-Server Cloud Sync', script: 'scripts/test_cloud_sync.mjs' }
 ];
 
 console.log('🚀 Executando Suíte Completa de Testes Automatizados (Modo Fail-Fast)\n');
