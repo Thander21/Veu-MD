@@ -44,7 +44,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: TabItem suporta frontmatter; openFile extrai frontmatter para a aba e saveTab reconstitui o cabeçalho YAML intacto antes da gravação em disco.
 
-### T03: [ ] Indicador Colapsável de Metadados YAML na Interface
+### T03: [x] Indicador Colapsável de Metadados YAML na Interface
 **Where**: `src/lib/components/FrontmatterBanner.svelte`
 **Depends on**: T02
 **Tests**: `npm run check`

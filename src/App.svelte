@@ -8,6 +8,7 @@
   import TabBar from './lib/components/TabBar.svelte';
   import Editor from './lib/components/Editor.svelte';
   import ImageViewer from './lib/components/ImageViewer.svelte';
+  import FrontmatterBanner from './lib/components/FrontmatterBanner.svelte';
   import ThemeSettings from './lib/components/ThemeSettings.svelte';
   import AiAssistantPanel from './lib/components/AiAssistantPanel.svelte';
   import TerminalPanel from './lib/components/TerminalPanel.svelte';
@@ -1044,6 +1045,9 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
                 path={activeTab.path}
               />
             {:else}
+              {#if activeTab.isMarkdown && activeTab.frontmatter}
+                <FrontmatterBanner frontmatter={activeTab.frontmatter} />
+              {/if}
               {#key activeTab.id}
                 <Editor
                   bind:this={editorRef}
