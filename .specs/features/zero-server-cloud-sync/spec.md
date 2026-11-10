@@ -1,7 +1,7 @@
 # Feature Specification: Zero-Server Cloud Sync
 
 **Feature Name**: `zero-server-cloud-sync`
-**Status**: in-progress
+**Status**: passed
 **Approved**: 2026-11-10 - user: "aprovado"
 
 ## Problem Statement
@@ -42,8 +42,8 @@ Usuários que utilizam o Veu MD em múltiplos dispositivos (desktop e mobile) ne
 
 | ID | Requirement | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| SYNC-01 | Upload não-bloqueante em segundo plano de arquivos modificados | High | pending |
-| SYNC-02 | Isolamento estrito de I/O de rede em relação ao auto-save local | High | pending |
-| SYNC-03 | Atualização remota com notificação na StatusBar e proteção de dirty tabs | Medium | pending |
-| SYNC-04 | Modo tolerante a desconexão com enfileiramento diferido de sincronização | Medium | pending |
+| SYNC-01 | Upload não-bloqueante em segundo plano de arquivos modificados | High | passed |
+| SYNC-02 | Isolamento estrito de I/O de rede em relação ao auto-save local | High | passed |
+| SYNC-03 | Atualização remota com notificação na StatusBar e proteção de dirty tabs | Medium | passed |
+| SYNC-04 | Modo tolerante a desconexão com enfileiramento diferido de sincronização | Medium | passed |
 

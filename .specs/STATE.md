@@ -218,25 +218,34 @@
 - **Date**: 2026-11-10
 - **Status**: active
 
+### AD-028
+- **Decision**: Sincronização em nuvem local-first via protocolo aberto WebDAV em segundo plano desacoplado com fila offline-first e proteção de abas ativas.
+- **Reason**: Proporciona sincronização de notas e documentos sem servidor proprietário contra Nextcloud/ownCloud/WebDAV, garantindo privacidade total, custo zero de infraestrutura e zero bloqueio de digitação ou salvamento em disco.
+- **Trade-off**: Requer configuração de credenciais WebDAV pelo usuário nas configurações do app.
+- **Scope**: src/lib/services/cloudSyncService.ts, src/lib/components/CloudSyncModal.svelte, src/lib/components/StatusBar.svelte, src/App.svelte, src-tauri/tauri.conf.json.
+- **Date**: 2026-11-10
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: ai-context-dropper-and-tokens / .specs/features/ai-context-dropper-and-tokens/
+- **Feature**: zero-server-cloud-sync / .specs/features/zero-server-cloud-sync/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-027
-  - spec.md com critérios EARS validados (TOK-01, TOK-02, CTX-01, CTX-02)
+  - AD-028
+  - spec.md com critérios EARS validados (SYNC-01..SYNC-04)
   - tasks.md validado com portões determinísticos (T01..T04 concluídos)
-  - T01: Funções estimateTokens, formatFileContext, wrapContext e buildContextPayload em TypeScript puro (`aiContext.ts`)
-  - T02: Estimativa de tokens em tempo real emitida pelo Editor e exibida na StatusBar com ~X tokens (0 para documento vazio)
-  - T03: Botões de ação e atalhos contextuais no FileTreeNode para copiar arquivos e pastas como contexto XML de IA com notificação
-  - T04: Suíte automatizada com 5 grupos de testes (`test_ai_context_and_tokens.mjs`) integrada ao executor global npm test
+  - T01: Cliente WebDAV, autenticação Basic e fila assíncrona tolerante a offline em TypeScript puro (`cloudSyncService.ts`)
+  - T02: Integração de enfileiramento em background não-bloqueante no saveTab e proteção de dirty tabs (`App.svelte`)
+  - T03: Modal de configurações WebDAV (`CloudSyncModal.svelte`) e indicador de estado de sync na StatusBar (`StatusBar.svelte`)
+  - T04: Suíte automatizada com 5 grupos de testes (`test_cloud_sync.mjs`) integrada ao executor global npm test
   - proofs.md gerado com 5 pass, 0 fail no HEAD
   - verification.md verificado e aprovado com validate_verification
-  - Rastreabilidade de requisitos TOK-01..TOK-02 e CTX-01..CTX-02 atualizada e selada como passed
+  - Rastreabilidade de requisitos SYNC-01..SYNC-04 atualizada e selada como passed
+  - Todas as 15 features formais do repositório concluídas e 100% verificadas
 - **In-progress**: none
-- **Next step**: Selecionar próxima feature pendente do backlog (`zero-server-cloud-sync`) para iniciar elaboração de tasks e aprovação.
+- **Next step**: Ciclo completo de especificações e backlog concluído. Sistema pronto para compilação final, release ou novas demandas do usuário.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master
