@@ -115,3 +115,4 @@ assert(multiPayload.includes('# Veu MD') && multiPayload.includes('Guia de Inici
 assert(multiPayload.startsWith('<context>\n') && multiPayload.endsWith('\n</context>'), 'Deve envelopar com tag raiz <context>');
 
 console.log('✓ PASSOU: Todos os testes de AI Context Dropper e Token Counter foram aprovados com sucesso!');
+
