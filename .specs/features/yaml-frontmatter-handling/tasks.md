@@ -51,7 +51,7 @@ graph TD
 **Gate**: `npm run check`
 **Done When**: O componente FrontmatterBanner renderiza badge discreto e painel expansível no topo do editor sem vazar tokens brutos para o ProseMirror.
 
-### T04: [ ] Suíte Automatizada de Testes e Integração
+### T04: [x] Suíte Automatizada de Testes e Integração
 **Where**: `scripts/test_yaml_frontmatter.mjs`
 **Depends on**: T03
 **Tests**: `npm test`
