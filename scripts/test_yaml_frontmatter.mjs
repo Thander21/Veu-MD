@@ -76,3 +76,4 @@ const reattachedEmpty = attachFrontmatter('', resEmptyBody.frontmatter);
 assert(reattachedEmpty.startsWith('---\n') && reattachedEmpty.endsWith('---\n'), 'Reanexar com corpo vazio gera bloco valido');
 
 console.log('✓ PASSOU: Todos os 7 testes de integridade e requisitos de Frontmatter YAML foram aprovados com sucesso!');
+
