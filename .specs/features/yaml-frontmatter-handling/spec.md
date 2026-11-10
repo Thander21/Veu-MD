@@ -1,7 +1,8 @@
 # Feature Specification: YAML Frontmatter Handling
 
 **Feature Name**: `yaml-frontmatter-handling`
-**Status**: pending
+**Status**: in-progress
+**Approved**: 2026-11-10 - user: "aprovado"
 
 ## Problem Statement
 
