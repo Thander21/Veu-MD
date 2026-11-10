@@ -202,27 +202,33 @@
 - **Date**: 2026-11-09
 - **Status**: active
 
+### AD-026
+- **Decision**: Extração desacoplada de Frontmatter YAML no ciclo de carregamento e reconstituição fiel na persistência em disco.
+- **Reason**: Protege documentos com metadados (Jekyll, Hugo, Astro, Obsidian) de terem delimitadores `---` corrompidos ou transformados em linhas divisórias no ProseMirror, preservando a integridade byte-a-byte no disco e a leitura limpa WYSIWYG.
+- **Trade-off**: Requer manutenção de metadados em campo dedicado no estado da aba (`TabItem.frontmatter`).
+- **Scope**: src/lib/utils/frontmatter.ts, src/lib/components/FrontmatterBanner.svelte, src/App.svelte, src/lib/types.ts.
+- **Date**: 2026-11-10
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: architecture-resilience-and-lifecycle / .specs/features/architecture-resilience-and-lifecycle/
+- **Feature**: yaml-frontmatter-handling / .specs/features/yaml-frontmatter-handling/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-022..AD-025
-  - spec.md com critérios EARS validados (0 erros no validador com --strict)
-  - tasks.md validado com portões determinísticos (0 erros no validador com --execute)
-  - T01: Isolamento de auto-save por aba e flush atômico de foco/fechamento em App.svelte implementado
-  - T02: Preservação de contêineres dual-engine no Terminal sem desmontagem DOM implementado
-  - T03: Encerramento natural de PTY, emissão de term-exit e limpeza de sessão no Rust implementado
-  - T04: Resolução de imagens locais via convertFileSrc no ProseMirror e smart paste inline implementado
-  - T05: Proteção de raízes e contenção de caminhos em delete_entry no Rust implementado
-  - T06: Suíte de testes automatizados scripts/test_architecture_resilience.mjs integrada ao npm test implementada
+  - AD-026
+  - spec.md com critérios EARS validados (YAML-01..YAML-04)
+  - tasks.md validado com portões determinísticos (T01..T04 concluídos)
+  - T01: Funções de extração, tolerância CRLF/LF, resumo e reanexação em TypeScript puro (`frontmatter.ts`)
+  - T02: Suporte a `frontmatter` em `TabItem`, isolamento no `openFile` e reconstituição no `saveTab` (`App.svelte`, `types.ts`)
+  - T03: Banner temático discreto e colapsável de metadados (`FrontmatterBanner.svelte`) no topo do editor
+  - T04: Suíte automatizada com 7 testes unitários e de integração (`test_yaml_frontmatter.mjs`) no `npm test`
   - proofs.md gerado com 5 pass, 0 fail no HEAD
   - verification.md verificado e aprovado com validate_verification
-  - Rastreabilidade de requisitos ARC-01..ARC-08 atualizada e selada como passed
+  - Rastreabilidade de requisitos YAML-01..YAML-04 atualizada e selada como passed
 - **In-progress**: none
-- **Next step**: Selecionar próxima feature do Backlog Técnico (ex: Quick Open Ctrl+P ou Exportação PDF/HTML) para iniciar Phase 1 (Specify).
+- **Next step**: Selecionar próxima feature pendente do backlog (`ai-context-dropper-and-tokens` ou `zero-server-cloud-sync`) para iniciar elaboração de tasks e aprovação.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master

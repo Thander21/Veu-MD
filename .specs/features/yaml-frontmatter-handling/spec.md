@@ -1,7 +1,7 @@
 # Feature Specification: YAML Frontmatter Handling
 
 **Feature Name**: `yaml-frontmatter-handling`
-**Status**: in-progress
+**Status**: passed
 **Approved**: 2026-11-10 - user: "aprovado"
 
 ## Problem Statement
@@ -42,8 +42,8 @@ Arquivos Markdown com metadados YAML no início delimitados por `---` (ex: Jekyl
 
 | ID | Requirement | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| YAML-01 | Isolamento e extração de bloco YAML frontmatter no carregamento | High | pending |
-| YAML-02 | Visualizador discreto e colapsável de metadados no topo do editor | Medium | pending |
-| YAML-03 | Persistência e reanexação fiel do bloco YAML ao salvar no disco | High | pending |
-| YAML-04 | Preservação do fluxo padrão em arquivos sem frontmatter | High | pending |
+| YAML-01 | Isolamento e extração de bloco YAML frontmatter no carregamento | High | passed |
+| YAML-02 | Visualizador discreto e colapsável de metadados no topo do editor | Medium | passed |
+| YAML-03 | Persistência e reanexação fiel do bloco YAML ao salvar no disco | High | passed |
+| YAML-04 | Preservação do fluxo padrão em arquivos sem frontmatter | High | passed |
 
