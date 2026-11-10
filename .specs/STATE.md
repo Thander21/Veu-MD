@@ -210,25 +210,33 @@
 - **Date**: 2026-11-10
 - **Status**: active
 
+### AD-027
+- **Decision**: Contador determinístico de tokens na StatusBar e empacotador XML de contexto de projeto (Context Dropper) com coleta seletiva e zero-bloat.
+- **Reason**: Permite estimar o consumo de contexto de LLMs (~4 caracteres por token) com custo zero de CPU/memória e sem embutir dicionários Tiktoken volumosos no binário, além de empacotar arquivos/pastas no formato XML canônico reconhecido por todos os modelos de IA.
+- **Trade-off**: A contagem de tokens é uma aproximação heurística de alta fidelidade (margem de ±5%) e não uma tokenização BPE exata de um modelo específico.
+- **Scope**: src/lib/utils/aiContext.ts, src/lib/components/StatusBar.svelte, src/lib/components/Editor.svelte, src/lib/components/FileTreeNode.svelte, src/App.svelte.
+- **Date**: 2026-11-10
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: yaml-frontmatter-handling / .specs/features/yaml-frontmatter-handling/
+- **Feature**: ai-context-dropper-and-tokens / .specs/features/ai-context-dropper-and-tokens/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-026
-  - spec.md com critérios EARS validados (YAML-01..YAML-04)
+  - AD-027
+  - spec.md com critérios EARS validados (TOK-01, TOK-02, CTX-01, CTX-02)
   - tasks.md validado com portões determinísticos (T01..T04 concluídos)
-  - T01: Funções de extração, tolerância CRLF/LF, resumo e reanexação em TypeScript puro (`frontmatter.ts`)
-  - T02: Suporte a `frontmatter` em `TabItem`, isolamento no `openFile` e reconstituição no `saveTab` (`App.svelte`, `types.ts`)
-  - T03: Banner temático discreto e colapsável de metadados (`FrontmatterBanner.svelte`) no topo do editor
-  - T04: Suíte automatizada com 7 testes unitários e de integração (`test_yaml_frontmatter.mjs`) no `npm test`
+  - T01: Funções estimateTokens, formatFileContext, wrapContext e buildContextPayload em TypeScript puro (`aiContext.ts`)
+  - T02: Estimativa de tokens em tempo real emitida pelo Editor e exibida na StatusBar com ~X tokens (0 para documento vazio)
+  - T03: Botões de ação e atalhos contextuais no FileTreeNode para copiar arquivos e pastas como contexto XML de IA com notificação
+  - T04: Suíte automatizada com 5 grupos de testes (`test_ai_context_and_tokens.mjs`) integrada ao executor global npm test
   - proofs.md gerado com 5 pass, 0 fail no HEAD
   - verification.md verificado e aprovado com validate_verification
-  - Rastreabilidade de requisitos YAML-01..YAML-04 atualizada e selada como passed
+  - Rastreabilidade de requisitos TOK-01..TOK-02 e CTX-01..CTX-02 atualizada e selada como passed
 - **In-progress**: none
-- **Next step**: Selecionar próxima feature pendente do backlog (`ai-context-dropper-and-tokens` ou `zero-server-cloud-sync`) para iniciar elaboração de tasks e aprovação.
+- **Next step**: Selecionar próxima feature pendente do backlog (`zero-server-cloud-sync`) para iniciar elaboração de tasks e aprovação.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master

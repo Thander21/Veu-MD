@@ -1,7 +1,7 @@
 # Feature Specification: AI Context Dropper and Token Counter
 
 **Feature Name**: `ai-context-dropper-and-tokens`
-**Status**: in-progress
+**Status**: passed
 **Approved**: 2026-11-10 - user: "aprovado"
 
 ## Problem Statement
@@ -41,8 +41,8 @@ Usuários que utilizam o Veu MD em fluxos de trabalho assistidos por inteligênc
 
 | ID | Requirement | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| TOK-01 | Exibição de contagem estimada de tokens em tempo real na StatusBar | High | pending |
-| TOK-02 | Tratamento de documento vazio com contagem zerada de tokens | Low | pending |
-| CTX-01 | Ação de copiar arquivo como bloco XML de contexto no menu do Explorer | High | pending |
-| CTX-02 | Coleta recursiva de arquivos texto/markdown ao copiar pasta como contexto | Medium | pending |
+| TOK-01 | Exibição de contagem estimada de tokens em tempo real na StatusBar | High | passed |
+| TOK-02 | Tratamento de documento vazio com contagem zerada de tokens | Low | passed |
+| CTX-01 | Ação de copiar arquivo como bloco XML de contexto no menu do Explorer | High | passed |
+| CTX-02 | Coleta recursiva de arquivos texto/markdown ao copiar pasta como contexto | Medium | passed |
 
