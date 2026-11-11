@@ -16,18 +16,23 @@
     FolderPlus,
     RefreshCw,
     Search,
+    FileSearch,
     ListTree,
     FolderX,
     X,
-    TerminalSquare
+    TerminalSquare,
+    Sparkles,
+    Link2
   } from 'lucide-svelte';
   import FileTreeNode from './FileTreeNode.svelte';
   import VeuMdIcon from './VeuMdIcon.svelte';
   import type { FileNode, HeadingItem } from '../types';
+  import type { BacklinkItem } from '../utils/backlinkScanner';
 
   export let fileTree: FileNode[] = [];
   export let currentFolderPath: string = '';
   export let headings: HeadingItem[] = [];
+  export let backlinks: BacklinkItem[] = [];
   export let onOpenFile: (path: string, name: string) => void;
   export let onOpenFolder: () => void = () => {};
   export let onCloseFolder: () => void = () => {};
@@ -40,7 +45,9 @@
   export let onRenameEntry: (path: string, currentName: string) => void = () => {};
   export let onCreateInFolder: (folderPath: string, isDir: boolean) => void = () => {};
   export let onCopyContext: ((node: FileNode) => void) | undefined = undefined;
+  export let onOpenTemplates: (() => void) | undefined = undefined;
   export let onQuickOpen: (() => void) | undefined = undefined;
+  export let onGlobalSearch: (() => void) | undefined = undefined;
   export let terminalOpen: boolean = false;
   export let onToggleTerminal: () => void = () => {};
 
@@ -179,6 +186,16 @@
     </div>
 
     <div class="header-right">
+      {#if onGlobalSearch}
+        <button
+          class="header-action-btn search-quick-btn"
+          title="Busca Global no Workspace (Ctrl+Shift+F)"
+          on:click={onGlobalSearch}
+          aria-label="Busca Global"
+        >
+          <FileSearch size={14} />
+        </button>
+      {/if}
       {#if onQuickOpen}
         <button
           class="header-action-btn search-quick-btn"
@@ -223,6 +240,11 @@
           <button class="action-btn" title="Novo Arquivo (.md)" on:click={onCreateFile}>
             <FilePlus size={14} />
           </button>
+          {#if onOpenTemplates}
+            <button class="action-btn" title="Novo a partir de Modelo (Template)" on:click={onOpenTemplates}>
+              <Sparkles size={13} />
+            </button>
+          {/if}
           <button class="action-btn" title="Nova Pasta" on:click={onCreateFolder}>
             <FolderPlus size={14} />
           </button>
@@ -302,6 +324,32 @@
             <span class="h-text">{h.text || 'Sem título'}</span>
           </div>
         {/each}
+      {/if}
+
+      <!-- Seção de Conexões Reversas / Backlinks (WIKI-04) -->
+      <div class="outline-header backlinks-section-title">
+        <Link2 size={12} />
+        <span>Backlinks ({backlinks.length})</span>
+      </div>
+      {#if backlinks.length === 0}
+        <div class="empty-state empty-backlinks">Nenhuma outra nota referencia este documento.</div>
+      {:else}
+        <div class="backlinks-list">
+          {#each backlinks as b}
+            <button class="backlink-card" on:click={() => onOpenFile(b.filePath, b.fileName)}>
+              <div class="backlink-card-header">
+                <FileText size={12} class="backlink-file-icon" />
+                <span class="backlink-file-name">{b.fileName}</span>
+                {#if b.count > 1}
+                  <span class="backlink-count-pill">{b.count}</span>
+                {/if}
+              </div>
+              {#if b.snippet}
+                <div class="backlink-snippet-text">{b.snippet}</div>
+              {/if}
+            </button>
+          {/each}
+        </div>
       {/if}
     </div>
   {/if}
@@ -619,6 +667,88 @@
   }
 
   .h-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .backlinks-section-title {
+    margin-top: 14px;
+    border-top: 1px solid var(--veu-border-color);
+    padding-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--veu-h2-color);
+  }
+
+  .empty-backlinks {
+    padding: 12px 14px;
+    font-size: 11px;
+    text-align: left;
+  }
+
+  .backlinks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 8px 12px 8px;
+  }
+
+  .backlink-card {
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: all 0.12s ease;
+  }
+
+  .backlink-card:hover {
+    background-color: var(--veu-active-item-bg);
+    border-color: rgba(203, 166, 247, 0.2);
+  }
+
+  .backlink-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  :global(.backlink-file-icon) {
+    color: var(--veu-h2-color);
+    flex-shrink: 0;
+  }
+
+  .backlink-file-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--veu-text-color);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .backlink-count-pill {
+    font-size: 9.5px;
+    font-weight: 700;
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h1-color);
+    padding: 1px 5px;
+    border-radius: 8px;
+  }
+
+  .backlink-snippet-text {
+    font-size: 10.5px;
+    color: var(--veu-text-color);
+    opacity: 0.65;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

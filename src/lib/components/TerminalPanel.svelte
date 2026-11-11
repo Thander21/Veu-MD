@@ -2,6 +2,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
+  import { WebglAddon } from '@xterm/addon-webgl';
   import '@xterm/xterm/css/xterm.css';
   import {
     Plus,
@@ -16,29 +17,30 @@
     Eraser,
     CornerDownLeft,
     FlaskConical,
-    BotMessageSquare
-  } from 'lucide-svelte';
-  import { invoke } from '@tauri-apps/api/core';
-  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-  import { subscribeTheme, getTheme } from '../theme/themeStore';
-  import type { ThemeConfig } from '../types';
-  import TerminalVeuPanel from './TerminalVeuPanel.svelte';
+    BotMessageSquare,
+  } from "lucide-svelte";
+  import { invoke } from "@tauri-apps/api/core";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+  import { subscribeTheme, getTheme } from "../theme/themeStore";
+  import type { ThemeConfig } from "../types";
+  import TerminalVeuPanel from "./TerminalVeuPanel.svelte";
   import {
     spawnTerminalIpc,
     writeTerminalIpc,
     resizeTerminalIpc,
-    killTerminalIpc
-  } from '../stores/terminalStore';
+    killTerminalIpc,
+  } from "../stores/terminalStore";
 
-  export let projectId: string = 'default';
+  export let projectId: string = "default";
   export let visible: boolean = false;
-  export let currentFolderPath: string = '';
+  export let currentFolderPath: string = "";
   export let hasActiveFile: boolean = true;
-  export let orientation: 'horizontal' | 'vertical' = 'horizontal';
+  export let orientation: "horizontal" | "vertical" = "horizontal";
   export let isMaximized: boolean = false;
   export let onClose: () => void;
   export let onInsertText: ((text: string) => void) | undefined = undefined;
-  export let onOpenAiAssistant: ((command?: string) => void) | undefined = undefined;
+  export let onOpenAiAssistant: ((command?: string) => void) | undefined =
+    undefined;
 
   interface TermTab {
     id: string;
@@ -47,6 +49,7 @@
     shell: string;
     termInstance?: Terminal;
     fitAddon?: FitAddon;
+    webglAddon?: WebglAddon;
     unlisten?: UnlistenFn;
   }
 
@@ -58,9 +61,10 @@
   let allTabs: TermTab[] = [];
   let projectActiveTermId: Record<string, string> = {};
 
-  $: effectiveProjectId = projectId || 'default';
+  $: effectiveProjectId = projectId || "default";
   $: currentTabs = allTabs.filter((t) => t.projectId === effectiveProjectId);
-  $: activeTermId = projectActiveTermId[effectiveProjectId] || (currentTabs[0]?.id || '');
+  $: activeTermId =
+    projectActiveTermId[effectiveProjectId] || currentTabs[0]?.id || "";
 
   let terminalContainers: Record<string, HTMLDivElement> = {};
   let terminalContentEl: HTMLDivElement | null = null;
@@ -77,13 +81,20 @@
   let copyTimeout: any = null;
   let insertTimeout: any = null;
 
-  export async function runCommandInTerminal(command: string, customTitle?: string) {
-    if (terminalEngine === 'veu' && veuRef && typeof veuRef.runCommandInNewTab === 'function') {
+  export async function runCommandInTerminal(
+    command: string,
+    customTitle?: string,
+  ) {
+    if (
+      terminalEngine === "veu" &&
+      veuRef &&
+      typeof veuRef.runCommandInNewTab === "function"
+    ) {
       await veuRef.runCommandInNewTab(command, customTitle);
     } else {
       let tab = getActiveTab();
       if (!tab) {
-        await createTerminalSession('powershell.exe', currentFolderPath);
+        await createTerminalSession("powershell.exe", currentFolderPath);
         tab = getActiveTab();
       }
       if (tab) {
@@ -92,10 +103,10 @@
     }
   }
 
-  function switchEngine(engine: 'xterm' | 'veu') {
+  function switchEngine(engine: "xterm" | "veu") {
     terminalEngine = engine;
-    localStorage.setItem('veu_terminal_engine', engine);
-    if (engine === 'xterm') {
+    localStorage.setItem("veu_terminal_engine", engine);
+    if (engine === "xterm") {
       setTimeout(() => fitAll(), 60);
     }
   }
@@ -106,7 +117,7 @@
 
   function getTerminalSelectionOrBuffer(tab?: TermTab): string {
     const t = tab || getActiveTab();
-    if (!t || !t.termInstance) return '';
+    if (!t || !t.termInstance) return "";
 
     if (t.termInstance.hasSelection()) {
       return t.termInstance.getSelection();
@@ -124,7 +135,7 @@
         }
       }
     }
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   async function handleCopySelection() {
@@ -157,7 +168,7 @@
     const tab = getActiveTab();
     if (!tab || !tab.termInstance) return;
     tab.termInstance.clear();
-    writeTerminalIpc(tab.id, '\x0c').catch(() => {});
+    writeTerminalIpc(tab.id, "\x0c").catch(() => {});
   }
 
   function handleSendToAi() {
@@ -176,17 +187,24 @@
       isMaximized = false;
     }
     prevHasActiveFile = hasActiveFile;
-    if (terminalEngine === 'xterm') {
+    if (terminalEngine === "xterm") {
       fitAll();
     }
   }
 
   function getXtermTheme(theme: ThemeConfig) {
     const isDark = theme.isDark;
-    const bg = theme.bgApp || (isDark ? '#131417' : '#ffffff');
-    const fg = theme.textColor || (isDark ? '#e2e8f0' : '#0f172a');
-    const accent = theme.link?.color || theme.h2?.color || (isDark ? '#38bdf8' : '#2563eb');
-    const selBg = isDark ? 'rgba(56, 189, 248, 0.28)' : 'rgba(37, 99, 235, 0.22)';
+    const bg = theme.bgApp || (isDark ? "#11111b" : "#ffffff");
+    const fg = theme.textColor || (isDark ? "#e2e8f0" : "#0f172a");
+    // Cursor sempre nítido, vibrante e com alto contraste contra o fundo
+    const accent =
+      theme.h1?.color ||
+      theme.link?.color ||
+      theme.h2?.color ||
+      (isDark ? "#cba6f7" : "#7c3aed");
+    const selBg = isDark
+      ? "rgba(203, 166, 247, 0.3)"
+      : "rgba(124, 58, 237, 0.25)";
 
     return {
       background: bg,
@@ -194,23 +212,23 @@
       cursor: accent,
       cursorAccent: bg,
       selectionBackground: selBg,
-      selectionForeground: isDark ? '#ffffff' : '#000000',
-      black: isDark ? '#1e293b' : '#0f172a',
-      red: isDark ? '#f87171' : '#dc2626',
-      green: isDark ? '#4ade80' : '#16a34a',
-      yellow: isDark ? '#facc15' : '#ca8a04',
-      blue: isDark ? '#60a5fa' : '#2563eb',
-      magenta: isDark ? '#c084fc' : '#9333ea',
-      cyan: isDark ? '#22d3ee' : '#0891b2',
-      white: isDark ? '#f8fafc' : '#f1f5f9',
-      brightBlack: isDark ? '#475569' : '#64748b',
-      brightRed: isDark ? '#fca5a5' : '#ef4444',
-      brightGreen: isDark ? '#86efac' : '#22c55e',
-      brightYellow: isDark ? '#fde047' : '#eab308',
-      brightBlue: isDark ? '#93c5fd' : '#3b82f6',
-      brightMagenta: isDark ? '#e9d5ff' : '#a855f7',
-      brightCyan: isDark ? '#67e8f9' : '#06b6d4',
-      brightWhite: isDark ? '#ffffff' : '#0f172a'
+      selectionForeground: isDark ? "#ffffff" : "#000000",
+      black: isDark ? "#1e293b" : "#0f172a",
+      red: isDark ? "#f87171" : "#dc2626",
+      green: isDark ? "#4ade80" : "#16a34a",
+      yellow: isDark ? "#facc15" : "#ca8a04",
+      blue: isDark ? "#60a5fa" : "#2563eb",
+      magenta: isDark ? "#c084fc" : "#9333ea",
+      cyan: isDark ? "#22d3ee" : "#0891b2",
+      white: isDark ? "#f8fafc" : "#f1f5f9",
+      brightBlack: isDark ? "#475569" : "#64748b",
+      brightRed: isDark ? "#fca5a5" : "#ef4444",
+      brightGreen: isDark ? "#86efac" : "#22c55e",
+      brightYellow: isDark ? "#fde047" : "#eab308",
+      brightBlue: isDark ? "#93c5fd" : "#3b82f6",
+      brightMagenta: isDark ? "#e9d5ff" : "#a855f7",
+      brightCyan: isDark ? "#67e8f9" : "#06b6d4",
+      brightWhite: isDark ? "#ffffff" : "#0f172a",
     };
   }
 
@@ -230,11 +248,19 @@
         currentTabs.forEach((t) => {
           if (t.fitAddon && t.termInstance) {
             const container = terminalContainers[t.id];
-            if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+            if (
+              container &&
+              container.clientWidth > 0 &&
+              container.clientHeight > 0
+            ) {
               try {
                 t.fitAddon.fit();
                 if (t.termInstance.cols > 0 && t.termInstance.rows > 0) {
-                  resizeTerminalIpc(t.id, t.termInstance.cols, t.termInstance.rows).catch(() => {});
+                  resizeTerminalIpc(
+                    t.id,
+                    t.termInstance.cols,
+                    t.termInstance.rows,
+                  ).catch(() => {});
                 }
               } catch {
                 // container em transição
@@ -242,19 +268,29 @@
             }
           }
         });
-        getActiveTab()?.termInstance?.focus();
+        const activeInstance = getActiveTab()?.termInstance;
+        if (activeInstance && visible) {
+          activeInstance.focus();
+        }
       }, 50);
     });
   }
 
-  export async function createTerminalSession(shell = 'powershell.exe', cwd = currentFolderPath) {
+  export async function createTerminalSession(
+    shell = "powershell.exe",
+    cwd = currentFolderPath,
+  ) {
     const pId = effectiveProjectId;
     const id = `term-${pId}-${Date.now()}`;
     const newTab: TermTab = {
       id,
       projectId: pId,
-      title: shell.includes('powershell') ? 'PowerShell' : shell.includes('cmd') ? 'CMD' : 'Bash',
-      shell
+      title: shell.includes("powershell")
+        ? "PowerShell"
+        : shell.includes("cmd")
+          ? "CMD"
+          : "Bash",
+      shell,
     };
 
     allTabs = [...allTabs, newTab];
@@ -263,11 +299,17 @@
 
     await tick();
     let container = terminalContainers[id];
-    if (!container) {
-      await new Promise((r) => setTimeout(r, 60));
+    let retries = 0;
+    while (!container && retries < 25) {
+      await new Promise((r) => setTimeout(r, 20));
       container = terminalContainers[id];
+      retries++;
     }
-    if (!container) return;
+    if (!container) {
+      // Remove a tab inacabada de allTabs para evitar aba zumbi bloqueando inicializações
+      allTabs = allTabs.filter((t) => t.id !== id);
+      return;
+    }
 
     const termTheme = getXtermTheme(currentThemeConfig || getTheme());
 
@@ -277,6 +319,9 @@
       lineHeight: 1.25,
       cursorBlink: true,
       cursorStyle: 'block',
+      cursorInactiveStyle: 'block',
+      cursorWidth: 2,
+      smoothScrollDuration: 100,
       theme: termTheme,
       allowProposedApi: true,
       rightClickSelectsWord: true,
@@ -290,6 +335,18 @@
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(container);
+
+    let webgl: WebglAddon | undefined;
+    try {
+      webgl = new WebglAddon();
+      webgl.onContextLoss(() => {
+        webgl?.dispose();
+      });
+      term.loadAddon(webgl);
+    } catch {
+      // Fallback automático para renderizador DOM se WebGL não for suportado no WebView2
+    }
+
     if (container.clientWidth > 0 && container.clientHeight > 0) {
       try {
         fit.fit();
@@ -298,13 +355,14 @@
 
     newTab.termInstance = term;
     newTab.fitAddon = fit;
+    newTab.webglAddon = webgl;
 
     term.focus();
-    container.addEventListener('click', () => {
+    container.addEventListener("click", () => {
       term.focus();
     });
 
-    container.addEventListener('contextmenu', async (ev) => {
+    container.addEventListener("contextmenu", async (ev) => {
       ev.preventDefault();
       if (term.hasSelection()) {
         const selectedText = term.getSelection();
@@ -329,13 +387,8 @@
     });
 
     try {
-      await spawnTerminalIpc(id, cwd || undefined, shell || undefined);
-
-      // Sincroniza imediatamente as dimensões com o ConPTY no backend
-      if (term.cols > 0 && term.rows > 0) {
-        resizeTerminalIpc(id, term.cols, term.rows).catch(() => {});
-      }
-
+      // 1. Registra o listener IPC ANTES de disparar spawn_terminal,
+      // garantindo que nenhum byte do banner ou prompt inicial seja perdido!
       newTab.unlisten = await listen(`term-output-${id}`, (event: any) => {
         term.write(event.payload);
       });
@@ -347,8 +400,24 @@
       term.onResize(({ cols, rows }) => {
         resizeTerminalIpc(id, cols, rows);
       });
+
+      // 2. Dispara o spawn do processo PTY no Rust
+      await spawnTerminalIpc(id, cwd || undefined, shell || undefined);
+
+      // 3. Sincroniza imediatamente as dimensões reais com o ConPTY no backend
+      if (term.cols > 0 && term.rows > 0) {
+        resizeTerminalIpc(id, term.cols, term.rows).catch(() => {});
+      }
+
+      // 4. Garante foco imediato e refresh de layout
+      setTimeout(() => {
+        fitAll();
+        term.focus();
+      }, 50);
     } catch (err) {
-      term.writeln(`\r\n\x1b[31mErro ao iniciar terminal nativo: ${err}\x1b[0m\r\n`);
+      term.writeln(
+        `\r\n\x1b[31mErro ao iniciar terminal nativo: ${err}\x1b[0m\r\n`,
+      );
     }
   }
 
@@ -356,6 +425,7 @@
     const tab = allTabs.find((t) => t.id === id);
     if (tab) {
       if (tab.unlisten) tab.unlisten();
+      if (tab.webglAddon) tab.webglAddon.dispose();
       if (tab.termInstance) tab.termInstance.dispose();
       killTerminalIpc(id).catch(() => {});
       delete terminalContainers[id];
@@ -363,12 +433,16 @@
 
     allTabs = allTabs.filter((t) => t.id !== id);
     if (activeTermId === id) {
-      const remaining = allTabs.filter((t) => t.projectId === effectiveProjectId);
-      projectActiveTermId[effectiveProjectId] = remaining[0]?.id || '';
+      const remaining = allTabs.filter(
+        (t) => t.projectId === effectiveProjectId,
+      );
+      projectActiveTermId[effectiveProjectId] = remaining[0]?.id || "";
       projectActiveTermId = { ...projectActiveTermId };
     }
 
-    const remainingCurrent = allTabs.filter((t) => t.projectId === effectiveProjectId);
+    const remainingCurrent = allTabs.filter(
+      (t) => t.projectId === effectiveProjectId,
+    );
     if (remainingCurrent.length === 0) {
       onClose();
     } else {
@@ -377,7 +451,7 @@
   }
 
   export function closeProjectTerminals(targetProjectId: string) {
-    if (veuRef && typeof veuRef.closeProjectTerminals === 'function') {
+    if (veuRef && typeof veuRef.closeProjectTerminals === "function") {
       try {
         veuRef.closeProjectTerminals(targetProjectId);
       } catch {}
@@ -385,6 +459,7 @@
     const toClose = allTabs.filter((t) => t.projectId === targetProjectId);
     toClose.forEach((t) => {
       if (t.unlisten) t.unlisten();
+      if (t.webglAddon) t.webglAddon.dispose();
       if (t.termInstance) t.termInstance.dispose();
       killTerminalIpc(t.id).catch(() => {});
       delete terminalContainers[t.id];
@@ -396,14 +471,14 @@
 
   function toggleMaximize() {
     isMaximized = !isMaximized;
-    if (terminalEngine === 'xterm') {
+    if (terminalEngine === "xterm") {
       fitAll();
     }
   }
 
   function toggleOrientation() {
-    orientation = orientation === 'horizontal' ? 'vertical' : 'horizontal';
-    if (terminalEngine === 'xterm') {
+    orientation = orientation === "horizontal" ? "vertical" : "horizontal";
+    if (terminalEngine === "xterm") {
       fitAll();
     }
   }
@@ -411,7 +486,7 @@
   function startResize(e: MouseEvent) {
     if (isMaximized) return;
     isResizing = true;
-    document.body.style.userSelect = 'none';
+    document.body.style.userSelect = "none";
     const startY = e.clientY;
     const startX = e.clientX;
     const startHeight = panelHeight;
@@ -419,51 +494,72 @@
 
     function onMouseMove(ev: MouseEvent) {
       if (!isResizing) return;
-      if (orientation === 'horizontal') {
+      if (orientation === "horizontal") {
         const delta = startY - ev.clientY;
-        panelHeight = Math.max(120, Math.min(window.innerHeight - 150, startHeight + delta));
+        panelHeight = Math.max(
+          120,
+          Math.min(window.innerHeight - 150, startHeight + delta),
+        );
       } else {
         const delta = startX - ev.clientX;
-        panelWidth = Math.max(220, Math.min(window.innerWidth - 260, startWidth + delta));
+        panelWidth = Math.max(
+          220,
+          Math.min(window.innerWidth - 260, startWidth + delta),
+        );
       }
       fitAll();
     }
 
     function onMouseUp() {
       isResizing = false;
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
       fitAll();
     }
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
   }
 
   const spawningProjects = new Set<string>();
 
   $: if (
     visible &&
-    terminalEngine === 'xterm' &&
+    terminalEngine === "xterm" &&
     currentTabs.length === 0 &&
-    currentFolderPath &&
     !spawningProjects.has(effectiveProjectId)
   ) {
     spawningProjects.add(effectiveProjectId);
-    createTerminalSession('powershell.exe', currentFolderPath).finally(() => {
+    createTerminalSession(
+      "powershell.exe",
+      currentFolderPath || undefined,
+    ).finally(() => {
       spawningProjects.delete(effectiveProjectId);
     });
   }
 
-  $: if (visible && terminalEngine === 'xterm' && activeTermId) {
+  let prevVisible = false;
+  $: if (visible && !prevVisible) {
+    prevVisible = true;
+    if (terminalEngine === "xterm") {
+      setTimeout(() => {
+        fitAll();
+        getActiveTab()?.termInstance?.focus();
+      }, 80);
+    }
+  } else if (!visible && prevVisible) {
+    prevVisible = false;
+  }
+
+  $: if (visible && terminalEngine === "xterm" && activeTermId) {
     fitAll();
   }
 
   let previousEffectiveProjectId = effectiveProjectId;
   $: if (effectiveProjectId !== previousEffectiveProjectId) {
     previousEffectiveProjectId = effectiveProjectId;
-    if (visible && terminalEngine === 'xterm') {
+    if (visible && terminalEngine === "xterm") {
       setTimeout(() => {
         fitAll();
       }, 60);
@@ -489,17 +585,17 @@
         if (terminalContentEl === node) {
           terminalContentEl = null;
         }
-      }
+      },
     };
   }
 
   onMount(() => {
-    const savedEngine = localStorage.getItem('veu_terminal_engine');
-    if (savedEngine === 'xterm' || savedEngine === 'veu') {
+    const savedEngine = localStorage.getItem("veu_terminal_engine");
+    if (savedEngine === "xterm" || savedEngine === "veu") {
       terminalEngine = savedEngine;
     } else {
-      terminalEngine = 'xterm';
-      localStorage.setItem('veu_terminal_engine', 'xterm');
+      terminalEngine = "xterm";
+      localStorage.setItem("veu_terminal_engine", "xterm");
     }
 
     unsubscribeTheme = subscribeTheme((theme) => {
@@ -512,6 +608,7 @@
     if (resizeObserver) resizeObserver.disconnect();
     allTabs.forEach((t) => {
       if (t.unlisten) t.unlisten();
+      if (t.webglAddon) t.webglAddon.dispose();
       if (t.termInstance) t.termInstance.dispose();
       killTerminalIpc(t.id).catch(() => {});
     });
@@ -552,11 +649,11 @@
     <div
       class="terminal-panel"
       class:maximized={isMaximized || !hasActiveFile}
-      class:orientation-horizontal={orientation === 'horizontal'}
-      class:orientation-vertical={orientation === 'vertical'}
-      style={(isMaximized || !hasActiveFile)
-        ? 'flex: 1; width: 100%; height: 100%;'
-        : orientation === 'horizontal'
+      class:orientation-horizontal={orientation === "horizontal"}
+      class:orientation-vertical={orientation === "vertical"}
+      style={isMaximized || !hasActiveFile
+        ? "flex: 1; width: 100%; height: 100%;"
+        : orientation === "horizontal"
           ? `height: ${panelHeight}px; width: 100%;`
           : `width: ${panelWidth}px; height: 100%;`}
     >
@@ -576,7 +673,7 @@
                 t.termInstance?.focus();
               }}
               on:keydown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   projectActiveTermId[effectiveProjectId] = t.id;
                   projectActiveTermId = { ...projectActiveTermId };
                   fitAll();
@@ -607,7 +704,10 @@
 
         <div class="term-actions">
           <!-- Engine Switcher para alternar entre xterm e VeuLab -->
-          <div class="engine-switch" title="Alternar mecanismo de renderização do terminal">
+          <div
+            class="engine-switch"
+            title="Alternar mecanismo de renderização do terminal"
+          >
             <button
               class="engine-btn"
               class:active={terminalEngine === 'xterm'}
@@ -633,7 +733,9 @@
           <button
             class="action-btn"
             class:feedback-active={copiedFeedback}
-            title={copiedFeedback ? 'Copiado para área de transferência!' : 'Copiar seleção ou texto do terminal'}
+            title={copiedFeedback
+              ? "Copiado para área de transferência!"
+              : "Copiar seleção ou texto do terminal"}
             on:click={handleCopySelection}
           >
             {#if copiedFeedback}
@@ -647,7 +749,9 @@
             <button
               class="action-btn"
               class:feedback-active={insertedFeedback}
-              title={insertedFeedback ? 'Inserido no documento!' : 'Inserir saída do terminal no cursor do editor'}
+              title={insertedFeedback
+                ? "Inserido no documento!"
+                : "Inserir saída do terminal no cursor do editor"}
               on:click={handleInsertToEditor}
             >
               {#if insertedFeedback}
@@ -681,10 +785,12 @@
           <!-- Alternar Orientação -->
           <button
             class="action-btn"
-            title={orientation === 'horizontal' ? 'Dividir na Vertical (Direita)' : 'Dividir na Horizontal (Abaixo)'}
+            title={orientation === "horizontal"
+              ? "Dividir na Vertical (Direita)"
+              : "Dividir na Horizontal (Abaixo)"}
             on:click={toggleOrientation}
           >
-            {#if orientation === 'horizontal'}
+            {#if orientation === "horizontal"}
               <Columns size={13} />
             {:else}
               <Rows size={13} />
@@ -694,7 +800,7 @@
           <!-- Maximizar / Restaurar -->
           <button
             class="action-btn"
-            title={isMaximized ? 'Restaurar Painel' : 'Maximizar Terminal'}
+            title={isMaximized ? "Restaurar Painel" : "Maximizar Terminal"}
             on:click={toggleMaximize}
           >
             {#if isMaximized}
@@ -716,11 +822,16 @@
       </div>
 
       <!-- Área de Visualização do xterm.js (Persistente em todos os projetos) -->
-      <div class="terminal-content" bind:this={terminalContentEl} use:attachResizeObserver>
+      <div
+        class="terminal-content"
+        bind:this={terminalContentEl}
+        use:attachResizeObserver
+      >
         {#each allTabs as t (t.id)}
           <div
             class="term-wrapper"
-            class:hidden={t.id !== activeTermId || t.projectId !== effectiveProjectId}
+            class:hidden={t.id !== activeTermId ||
+              t.projectId !== effectiveProjectId}
             bind:this={terminalContainers[t.id]}
           ></div>
         {/each}
@@ -829,7 +940,9 @@
     color: var(--veu-text-color);
     opacity: 0.7;
     cursor: pointer;
-    transition: background-color 0.15s, opacity 0.15s;
+    transition:
+      background-color 0.15s,
+      opacity 0.15s;
   }
 
   .term-tab:hover {
@@ -873,7 +986,9 @@
     border-radius: 3px;
     cursor: pointer;
     opacity: 0.7;
-    transition: opacity 0.15s, background-color 0.15s;
+    transition:
+      opacity 0.15s,
+      background-color 0.15s;
   }
 
   .add-term-btn:hover {
@@ -898,7 +1013,10 @@
     align-items: center;
     justify-content: center;
     opacity: 0.7;
-    transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+    transition:
+      opacity 0.15s,
+      background-color 0.15s,
+      color 0.15s;
   }
 
   .action-btn:hover {
@@ -982,5 +1100,17 @@
 
   .engine-btn.lab-btn.active {
     color: var(--veu-h1-color);
+  }
+
+  :global(.xterm) {
+    padding: 2px;
+  }
+
+  :global(.xterm .xterm-cursor-layer) {
+    z-index: 3 !important;
+  }
+
+  :global(.xterm .xterm-screen) {
+    cursor: text;
   }
 </style>

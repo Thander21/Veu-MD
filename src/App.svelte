@@ -2,6 +2,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { open } from '@tauri-apps/plugin-dialog';
+  import { Columns, Rows, X, Minimize2 } from 'lucide-svelte';
   import TopBar from './lib/components/TopBar.svelte';
   import Sidebar from './lib/components/Sidebar.svelte';
   import ProjectSidebar from './lib/components/ProjectSidebar.svelte';
@@ -15,8 +16,12 @@
   import StatusBar from './lib/components/StatusBar.svelte';
   import FindReplaceBar from './lib/components/FindReplaceBar.svelte';
   import QuickOpenModal from './lib/components/QuickOpenModal.svelte';
+  import GlobalSearchModal from './lib/components/GlobalSearchModal.svelte';
+  import TemplateModal from './lib/components/TemplateModal.svelte';
   import CloudSyncModal from './lib/components/CloudSyncModal.svelte';
   import { formatDocument } from './lib/utils/codeFormatter';
+  import type { DocumentTemplate } from './lib/utils/templateRegistry';
+  import { scanBacklinksForFile, type BacklinkItem } from './lib/utils/backlinkScanner';
   import { extractFrontmatter, attachFrontmatter } from './lib/utils/frontmatter';
   import { estimateTokens, collectTextFilePaths, buildContextPayload } from './lib/utils/aiContext';
   import { serializeDocToHtml, copyFormattedHtml, setActiveDocumentDir } from './lib/editor/proseMirrorSetup';
@@ -45,6 +50,8 @@
   let tabs: TabItem[] = [];
   let activeTabId: string | null = null;
   let headings: HeadingItem[] = [];
+  let activeBacklinks: BacklinkItem[] = [];
+  let backlinkScanTimer: any = null;
   let stats = { words: 0, chars: 0, tokens: 0, readTime: '1 min de leitura' };
   let statusNotification = '';
 
@@ -59,7 +66,27 @@
   let findReplaceShowReplace = false;
   let smartPasteSanitizeAi = true;
   let quickOpenVisible = false;
+  let globalSearchVisible = false;
+  let templateModalOpen = false;
   let cloudSyncModalOpen = false;
+
+  // Estados de Split View (Edição Lado a Lado)
+  let splitActive = false;
+  let splitOrientation: 'vertical' | 'horizontal' = 'vertical';
+  let secondaryTabId: string | null = null;
+  let splitRatio = 50;
+  let isResizingSplit = false;
+
+  // Estado do Modo Zen (Imersão Total / Foco Sem Distrações - ZEN-01..ZEN-04)
+  let zenMode = false;
+
+  function toggleZenMode() {
+    zenMode = !zenMode;
+    if (zenMode) {
+      statusNotification = 'Modo Zen ativado. Pressione Esc ou F11 para sair.';
+      setTimeout(() => (statusNotification = ''), 3000);
+    }
+  }
   let cloudSyncStatus: SyncStatus = 'disabled';
   let pendingSyncCount: number = 0;
   let unsubSync: (() => void) | null = null;
@@ -458,8 +485,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         aiAssistantOpen = !aiAssistantOpen;
         if (aiAssistantOpen) themeSettingsOpen = false;
       }
-      // Ctrl + F (Localizar)
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      // Ctrl + Shift + F (Busca Global no Workspace) vs Ctrl + F (Localizar no Documento)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        globalSearchVisible = !globalSearchVisible;
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         findReplaceOpen = true;
         findReplaceShowReplace = false;
@@ -479,6 +509,21 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         window.print();
+      }
+      // Ctrl + \ (Alternar Split View - Dividir Editor)
+      if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+        e.preventDefault();
+        toggleSplitView();
+      }
+      // F11 ou Ctrl + Shift + Enter (Modo Zen / Foco Sem Distrações - ZEN-01)
+      if (e.key === 'F11' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter')) {
+        e.preventDefault();
+        toggleZenMode();
+      }
+      // Escape para restaurar layout do Modo Zen (ZEN-04)
+      if (e.key === 'Escape' && zenMode) {
+        e.preventDefault();
+        zenMode = false;
       }
       // Ctrl + Alt + ] ou Ctrl + Alt + Seta Direita (Próximo Projeto)
       if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === ']' || e.key === 'ArrowRight')) {
@@ -503,6 +548,11 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   });
 
   $: activeTab = tabs.find((t) => t.id === activeTabId) || null;
+  $: secondaryTab = tabs.find((t) => t.id === secondaryTabId) || null;
+  $: if (splitActive && !secondaryTabId && tabs.length > 0) {
+    const candidate = tabs.find((t) => t.id !== activeTabId);
+    secondaryTabId = candidate ? candidate.id : (tabs[0]?.id || null);
+  }
 
   $: if (activeTab?.path) {
     const p = activeTab.path;
@@ -616,6 +666,12 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
   }
 
+  async function handleSelectSearchResult(filePath: string, fileName: string, line: number) {
+    await openFile(filePath, fileName);
+    statusNotification = `Arquivo aberto: ${fileName} (linha ${line})`;
+    setTimeout(() => (statusNotification = ''), 3500);
+  }
+
   async function createNewFile() {
     if (!currentFolderPath) {
       statusNotification = 'Selecione uma pasta para criar novos arquivos.';
@@ -641,6 +697,94 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     } catch (err) {
       alert(`Erro ao criar arquivo: ${err}`);
     }
+  }
+
+  async function handleCreateFromTemplate(template: DocumentTemplate, fileName: string, content: string) {
+    if (!currentFolderPath) {
+      statusNotification = 'Selecione uma pasta para criar novos documentos a partir de modelo.';
+      setTimeout(() => (statusNotification = ''), 4000);
+      return;
+    }
+
+    const separator = currentFolderPath.includes('/') ? '/' : '\\';
+    const fullPath = `${currentFolderPath}${separator}${fileName}`;
+
+    try {
+      await fsService.writeTextFile(fullPath, content);
+      await refreshFileTree();
+      await openFile(fullPath, fileName);
+      statusNotification = `Documento criado a partir do modelo "${template.name}".`;
+      setTimeout(() => (statusNotification = ''), 4000);
+    } catch (err) {
+      alert(`Erro ao criar documento a partir do modelo: ${err}`);
+    }
+  }
+
+  // Navegação e resolução de Wiki-Links com Ctrl+Clique (WIKI-02, WIKI-03)
+  async function handleOpenWikiLink(targetName: string) {
+    if (!currentFolderPath) return;
+
+    const cleanTarget = targetName.trim().replace(/\.md$/i, '');
+    const targetWithExt = `${cleanTarget}.md`.toLowerCase();
+
+    function findNodeInTree(nodes: FileNode[]): FileNode | null {
+      const queue = [...nodes];
+      while (queue.length > 0) {
+        const n = queue.shift()!;
+        if (!n.is_dir && (n.name.toLowerCase() === targetWithExt || n.name.toLowerCase() === cleanTarget.toLowerCase())) {
+          return n;
+        }
+        if (n.children && n.children.length > 0) {
+          queue.push(...n.children);
+        }
+      }
+      return null;
+    }
+
+    const foundNode = findNodeInTree(fileTree);
+    if (foundNode) {
+      await openFile(foundNode.path, foundNode.name);
+      statusNotification = `Navegado para "${foundNode.name}".`;
+      setTimeout(() => (statusNotification = ''), 3000);
+    } else {
+      const shouldCreate = confirm(`A nota "${cleanTarget}.md" não existe no projeto. Deseja criá-la agora?`);
+      if (!shouldCreate) return;
+
+      const sep = currentFolderPath.includes('/') ? '/' : '\\';
+      const newPath = `${currentFolderPath}${sep}${cleanTarget}.md`;
+      const initialContent = `# ${cleanTarget}\n\nNota criada automaticamente a partir de wiki-link.\n`;
+
+      try {
+        await fsService.writeTextFile(newPath, initialContent);
+        await refreshFileTree();
+        await openFile(newPath, `${cleanTarget}.md`);
+        statusNotification = `Nota "${cleanTarget}.md" criada e aberta.`;
+        setTimeout(() => (statusNotification = ''), 4000);
+      } catch (err) {
+        alert(`Erro ao criar nota vinculada: ${err}`);
+      }
+    }
+  }
+
+  function refreshBacklinksForCurrentTab() {
+    if (backlinkScanTimer) clearTimeout(backlinkScanTimer);
+    backlinkScanTimer = setTimeout(async () => {
+      if (!activeTab || !activeTab.path || !currentFolderPath) {
+        activeBacklinks = [];
+        return;
+      }
+      try {
+        activeBacklinks = await scanBacklinksForFile(activeTab.path, currentFolderPath);
+      } catch {
+        activeBacklinks = [];
+      }
+    }, 300);
+  }
+
+  $: if (activeTab?.path && currentFolderPath) {
+    refreshBacklinksForCurrentTab();
+  } else {
+    activeBacklinks = [];
   }
 
   async function createNewFolder() {
@@ -849,6 +993,78 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     }
   }
 
+  function handleSecondaryEditorContentChange(newMarkdown: string) {
+    if (!secondaryTab) return;
+    if (secondaryTab.content !== newMarkdown) {
+      secondaryTab.content = newMarkdown;
+
+      if (currentFolderPath) {
+        secondaryTab.isDirty = true;
+        tabs = [...tabs];
+
+        const tabId = secondaryTab.id;
+        if (autoSaveTimeouts.has(tabId)) {
+          clearTimeout(autoSaveTimeouts.get(tabId));
+        }
+        const timeout = setTimeout(() => {
+          autoSaveTimeouts.delete(tabId);
+          const t = tabs.find((x) => x.id === tabId);
+          if (t && t.isDirty) {
+            saveTab(t);
+          }
+        }, 1000);
+        autoSaveTimeouts.set(tabId, timeout);
+      } else {
+        tabs = [...tabs];
+      }
+    }
+  }
+
+  function toggleSplitView() {
+    splitActive = !splitActive;
+    if (splitActive) {
+      if (!secondaryTabId) {
+        const candidate = tabs.find((t) => t.id !== activeTabId);
+        secondaryTabId = candidate ? candidate.id : activeTabId;
+      }
+    }
+  }
+
+  function startResizeSplit(e: MouseEvent) {
+    isResizingSplit = true;
+    document.body.style.userSelect = 'none';
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startRatio = splitRatio;
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!isResizingSplit) return;
+      const editorPaneEl = document.querySelector('.editor-pane') as HTMLElement;
+      if (!editorPaneEl) return;
+      const rect = editorPaneEl.getBoundingClientRect();
+
+      if (splitOrientation === 'vertical') {
+        const deltaX = ev.clientX - startX;
+        const percentDelta = (deltaX / rect.width) * 100;
+        splitRatio = Math.max(20, Math.min(80, startRatio + percentDelta));
+      } else {
+        const deltaY = ev.clientY - startY;
+        const percentDelta = (deltaY / rect.height) * 100;
+        splitRatio = Math.max(20, Math.min(80, startRatio + percentDelta));
+      }
+    }
+
+    function onMouseUp() {
+      isResizingSplit = false;
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
   async function closeTab(tabId: string) {
     const tabToClose = tabs.find((t) => t.id === tabId);
     if (tabToClose) {
@@ -1013,7 +1229,20 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
   }
 </script>
 
-<div class="app-layout">
+<div class="app-layout" class:zen-mode-active={zenMode}>
+  {#if zenMode}
+    <!-- Pílula Flutuante Discreta do Modo Zen (ZEN-03, ZEN-04) -->
+    <div class="zen-floating-pill">
+      <span class="zen-status-indicator">Modo Zen</span>
+      <span class="zen-dot">·</span>
+      <span class="zen-word-count">{stats.words} palavras</span>
+      <button class="zen-exit-btn" on:click={() => (zenMode = false)} title="Sair do Modo Zen (Esc ou F11)">
+        <Minimize2 size={12} />
+        <span>Sair (Esc)</span>
+      </button>
+    </div>
+  {/if}
+
   <!-- Layout Principal: Barra de Projetos + Barra Lateral de Arquivos de Ponta a Ponta + Palco Central -->
   <div class="workspace">
     <!-- Barra Lateral de Projetos Ultra-Slim (Abas de Projeto & Recentes & Botão Fixo de Alternância) -->
@@ -1041,6 +1270,7 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         {fileTree}
         {currentFolderPath}
         {headings}
+        backlinks={activeBacklinks}
         {terminalOpen}
         onToggleTerminal={() => (terminalOpen = !terminalOpen)}
         onOpenFile={openFile}
@@ -1056,6 +1286,8 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         onCreateInFolder={handleCreateInFolder}
         onCopyContext={handleCopyContext}
         onQuickOpen={() => (quickOpenVisible = true)}
+        onGlobalSearch={() => (globalSearchVisible = true)}
+        onOpenTemplates={() => (templateModalOpen = true)}
       />
     {/if}
 
@@ -1078,6 +1310,10 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
           themeSettingsOpen = !themeSettingsOpen;
           if (themeSettingsOpen) aiAssistantOpen = false;
         }}
+        {splitActive}
+        onToggleSplit={toggleSplitView}
+        {zenMode}
+        onToggleZenMode={toggleZenMode}
       />
 
       <FindReplaceBar
@@ -1104,36 +1340,137 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
         <div
           class="editor-pane"
           class:hidden={terminalOpen && (terminalMaximized || !activeTab)}
+          class:split-active={splitActive}
+          class:split-vertical={splitOrientation === 'vertical'}
+          class:split-horizontal={splitOrientation === 'horizontal'}
         >
-          {#if activeTab}
-            {#if activeTab.isImage}
-              <ImageViewer
-                src={activeTab.content}
-                title={activeTab.title}
-                path={activeTab.path}
-              />
-            {:else}
-              {#if activeTab.isMarkdown && activeTab.frontmatter}
-                <FrontmatterBanner frontmatter={activeTab.frontmatter} />
-              {/if}
-              {#key activeTab.id}
-                <Editor
-                  bind:this={editorRef}
-                  content={activeTab.content}
-                  isMarkdown={activeTab.isMarkdown}
-                  onChange={handleEditorContentChange}
-                  onHeadingsChange={(h) => (headings = h)}
-                  onStatsChange={(s) => (stats = s)}
-                  onEditorReady={(view) => (activeEditorView = view)}
-                  onPasteImage={handlePasteImage}
-                  {smartPasteSanitizeAi}
+          <!-- Painel Primário -->
+          <div
+            class="pane-container primary-pane"
+            style={splitActive
+              ? (splitOrientation === 'vertical' ? `width: ${splitRatio}%;` : `height: ${splitRatio}%;`)
+              : 'width: 100%; height: 100%;'}
+          >
+            {#if activeTab}
+              {#if activeTab.isImage}
+                <ImageViewer
+                  src={activeTab.content}
+                  title={activeTab.title}
+                  path={activeTab.path}
                 />
-              {/key}
+              {:else}
+                {#if activeTab.isMarkdown && activeTab.frontmatter}
+                  <FrontmatterBanner frontmatter={activeTab.frontmatter} />
+                {/if}
+                {#key activeTab.id}
+                  <Editor
+                    bind:this={editorRef}
+                    content={activeTab.content}
+                    isMarkdown={activeTab.isMarkdown}
+                    onChange={handleEditorContentChange}
+                    onHeadingsChange={(h) => (headings = h)}
+                    onStatsChange={(s) => (stats = s)}
+                    onEditorReady={(view) => (activeEditorView = view)}
+                    onPasteImage={handlePasteImage}
+                    onOpenWikiLink={handleOpenWikiLink}
+                    {smartPasteSanitizeAi}
+                  />
+                {/key}
+              {/if}
+            {:else}
+              <div class="no-tabs-state">
+                <h2>Nenhum documento aberto</h2>
+                <p>Abra um arquivo na aba lateral ou crie um novo documento no topo.</p>
+              </div>
             {/if}
-          {:else}
-            <div class="no-tabs-state">
-              <h2>Nenhum documento aberto</h2>
-              <p>Abra um arquivo na aba lateral ou crie um novo documento no topo.</p>
+          </div>
+
+          {#if splitActive}
+            <!-- Alça Interativa de Separação / Redimensionamento -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <div
+              class="split-resizer"
+              class:resizer-vertical={splitOrientation === 'vertical'}
+              class:resizer-horizontal={splitOrientation === 'horizontal'}
+              role="separator"
+              aria-label="Redimensionar Painéis Divididos"
+              on:mousedown={startResizeSplit}
+            ></div>
+
+            <!-- Painel Secundário -->
+            <div
+              class="pane-container secondary-pane"
+              style={splitOrientation === 'vertical'
+                ? `width: ${100 - splitRatio}%;`
+                : `height: ${100 - splitRatio}%;`}
+            >
+              <!-- Barra de Cabeçalho do Painel Secundário -->
+              <div class="secondary-pane-header">
+                <div class="secondary-pane-title">
+                  <select
+                    class="secondary-tab-select"
+                    value={secondaryTabId}
+                    on:change={(e) => {
+                      secondaryTabId = (e.target as HTMLSelectElement).value;
+                    }}
+                  >
+                    {#each tabs as t (t.id)}
+                      <option value={t.id}>{t.title} {t.isDirty ? '●' : ''}</option>
+                    {/each}
+                  </select>
+                </div>
+                <div class="secondary-pane-actions">
+                  <button
+                    class="pane-action-btn"
+                    title={splitOrientation === 'vertical' ? 'Mudar para Divisão Horizontal' : 'Mudar para Divisão Vertical'}
+                    on:click={() => (splitOrientation = splitOrientation === 'vertical' ? 'horizontal' : 'vertical')}
+                  >
+                    {#if splitOrientation === 'vertical'}
+                      <Rows size={13} />
+                    {:else}
+                      <Columns size={13} />
+                    {/if}
+                  </button>
+                  <button
+                    class="pane-action-btn close-btn"
+                    title="Fechar Painel Dividido (Ctrl+\)"
+                    on:click={() => (splitActive = false)}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {#if secondaryTab}
+                {#if secondaryTab.isImage}
+                  <ImageViewer
+                    src={secondaryTab.content}
+                    title={secondaryTab.title}
+                    path={secondaryTab.path}
+                  />
+                {:else}
+                  {#if secondaryTab.isMarkdown && secondaryTab.frontmatter}
+                    <FrontmatterBanner frontmatter={secondaryTab.frontmatter} />
+                  {/if}
+                  {#key secondaryTab.id}
+                    <Editor
+                      content={secondaryTab.content}
+                      isMarkdown={secondaryTab.isMarkdown}
+                      onChange={handleSecondaryEditorContentChange}
+                      onHeadingsChange={() => {}}
+                      onStatsChange={() => {}}
+                      onEditorReady={() => {}}
+                      onPasteImage={handlePasteImage}
+                      onOpenWikiLink={handleOpenWikiLink}
+                      {smartPasteSanitizeAi}
+                    />
+                  {/key}
+                {/if}
+              {:else}
+                <div class="no-tabs-state">
+                  <p>Nenhum documento selecionado no painel secundário.</p>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
@@ -1199,6 +1536,22 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     onOpenFile={openFile}
     onClose={() => (quickOpenVisible = false)}
   />
+
+  <!-- Modal Flutuante de Busca Global no Workspace (Ctrl+Shift+F) -->
+  <GlobalSearchModal
+    visible={globalSearchVisible}
+    {currentFolderPath}
+    onSelectResult={handleSelectSearchResult}
+    onClose={() => (globalSearchVisible = false)}
+  />
+
+  <!-- Modal Flutuante de Modelos de Documentos (Templates) -->
+  <TemplateModal
+    visible={templateModalOpen}
+    {currentFolderPath}
+    onClose={() => (templateModalOpen = false)}
+    onCreate={handleCreateFromTemplate}
+  />
 </div>
 
 <style>
@@ -1262,6 +1615,111 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
     display: none !important;
   }
 
+  .editor-pane.split-active.split-vertical {
+    flex-direction: row;
+  }
+
+  .editor-pane.split-active.split-horizontal {
+    flex-direction: column;
+  }
+
+  .pane-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .split-resizer {
+    background-color: var(--veu-border-color);
+    transition: background-color 0.15s ease;
+    flex-shrink: 0;
+    z-index: 15;
+  }
+
+  .split-resizer:hover {
+    background-color: var(--veu-h1-color);
+  }
+
+  .split-resizer.resizer-vertical {
+    width: 4px;
+    height: 100%;
+    cursor: col-resize;
+  }
+
+  .split-resizer.resizer-horizontal {
+    height: 4px;
+    width: 100%;
+    cursor: row-resize;
+  }
+
+  .secondary-pane {
+    border-left: 1px solid var(--veu-border-color);
+    background-color: var(--veu-bg-app);
+  }
+
+  .editor-pane.split-horizontal .secondary-pane {
+    border-left: none;
+    border-top: 1px solid var(--veu-border-color);
+  }
+
+  .secondary-pane-header {
+    height: 32px;
+    background-color: var(--veu-bg-sidebar);
+    border-bottom: 1px solid var(--veu-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .secondary-tab-select {
+    background-color: var(--veu-bg-app);
+    color: var(--veu-text-color);
+    border: 1px solid var(--veu-border-color);
+    border-radius: 4px;
+    font-size: 11px;
+    padding: 2px 6px;
+    outline: none;
+    cursor: pointer;
+    max-width: 200px;
+  }
+
+  .secondary-pane-actions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .pane-action-btn {
+    background: transparent;
+    border: none;
+    color: var(--veu-text-color);
+    opacity: 0.65;
+    padding: 3px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .pane-action-btn:hover {
+    opacity: 1;
+    background-color: var(--veu-active-item-bg);
+    color: var(--veu-h1-color);
+  }
+
+  .pane-action-btn.close-btn:hover {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.12);
+  }
+
   .no-tabs-state {
     flex: 1;
     display: flex;
@@ -1281,6 +1739,94 @@ Experimente digitar \`#\` ou \`/\` no início de uma nova linha para abrir o men
 
   .no-tabs-state p {
     font-size: 0.88rem;
+  }
+
+  /* Estilos do Modo Zen / Foco Total Sem Distrações (ZEN-01..ZEN-04) */
+  .app-layout.zen-mode-active :global(.project-sidebar),
+  .app-layout.zen-mode-active :global(.sidebar),
+  .app-layout.zen-mode-active :global(.topbar),
+  .app-layout.zen-mode-active :global(.tabbar),
+  .app-layout.zen-mode-active :global(.status-bar),
+  .app-layout.zen-mode-active :global(.terminal-panel) {
+    display: none !important;
+  }
+
+  .app-layout.zen-mode-active .workspace {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .app-layout.zen-mode-active .center-stage {
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+  }
+
+  .app-layout.zen-mode-active :global(.editor-scroll-area) {
+    padding-top: 50px;
+  }
+
+  .zen-floating-pill {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(24, 24, 37, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--veu-border-color, #313244);
+    border-radius: 20px;
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    user-select: none;
+  }
+
+  .zen-floating-pill:hover {
+    opacity: 1;
+    transform: translateX(-50%) translateY(2px);
+  }
+
+  .zen-status-indicator {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--veu-h1-color, #cba6f7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .zen-dot {
+    color: var(--veu-text-secondary, #a6adc8);
+    font-size: 11px;
+  }
+
+  .zen-word-count {
+    font-size: 11.5px;
+    color: var(--veu-text-secondary, #a6adc8);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  .zen-exit-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    border-radius: 12px;
+    padding: 2px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--veu-text-color, #cdd6f4);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .zen-exit-btn:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
   }
 </style>
 

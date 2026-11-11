@@ -24,6 +24,7 @@ pub fn run() {
             rename_entry,
             delete_entry,
             save_image_asset,
+            search_in_files,
             spawn_terminal,
             write_terminal,
             resize_terminal,

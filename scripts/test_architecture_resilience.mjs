@@ -102,4 +102,19 @@ assert(
 );
 console.log('✓ PASSOU: Contenção de I/O e proteção contra deleção de raízes de disco (ARC-08)');
 
+// 6. Validação do xterm moderno com WebGL, cursor visível e tolerância de boot (ARC-09)
+assert(
+  termPanelContent.includes("import { WebglAddon } from '@xterm/addon-webgl';"),
+  'TerminalPanel deve importar e integrar o WebglAddon acelerado por GPU'
+);
+assert(
+  termPanelContent.includes("cursorInactiveStyle: 'block'"),
+  'TerminalPanel deve manter cursorInactiveStyle: block para que o cursor nunca desapareça ao perder o foco'
+);
+assert(
+  termPanelContent.indexOf('newTab.unlisten = await listen') < termPanelContent.indexOf('await spawnTerminalIpc'),
+  'TerminalPanel deve registrar o listener IPC antes de spawnTerminalIpc para nunca perder a saída inicial'
+);
+console.log('✓ PASSOU: Configuração moderna do xterm (WebGL, cursorInactiveStyle e ordem estrita de IPC) (ARC-09)');
+
 console.log('\n🎉 TODOS OS TESTES DE RESILIÊNCIA ARQUITETURAL PASSARAM COM SUCESSO!\n');

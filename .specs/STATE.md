@@ -226,26 +226,72 @@
 - **Date**: 2026-11-10
 - **Status**: active
 
+### AD-029
+- **Decision**: Resiliência e aceleração do motor xterm.js via WebglAddon, garantia de cursor persistente com `cursorInactiveStyle: 'block'` e eliminação de race conditions no cold start através de inversão de escuta IPC (`listen` antes de `spawn_terminal`) e retries adaptativos de montagem DOM.
+- **Reason**: Impede a perda do banner/prompt inicial do PowerShell durante o boot do PTY no Windows ConPTY, elimina o bug de cursor invisível quando o painel perde o foco e garante inicialização imediata ao reabrir o app com o terminal ativo, mesmo antes da resolução de caminhos de pasta.
+- **Trade-off**: Requer captura e descarte explícito do addon WebGL com fallback gracioso para DOM caso a GPU/WebView2 perca o contexto.
+- **Scope**: src/lib/components/TerminalPanel.svelte, src/types/ipc.ts, scripts/test_architecture_resilience.mjs.
+- **Date**: 2026-11-10
+- **Status**: active
+
+### AD-030
+- **Decision**: Busca textual global no workspace em Rust nativo (`search_in_files`) com exclusão automática de pastas de build/dependências, acionada via `Ctrl + Shift + F` com preview agrupado e navegação direta, acompanhada da expansão de avatares de projeto para as 4 primeiras letras (`ProjectSidebar.svelte`).
+- **Reason**: Resolve a limitação de busca restrita a arquivo único ou nomes de arquivos (`Ctrl+P`), permitindo localizar qualquer termo no acervo do workspace em < 100ms sem overhead de banco de dados FTS permanente, além de facilitar a identificação visual imediata de múltiplos projetos na barra lateral.
+- **Trade-off**: Varredura direta linha-a-linha no disco sem indexação permanente, otimizada para projetos de até dezenas de milhares de arquivos sem consumo de memória em repouso.
+- **Scope**: src-tauri/src/commands/fs_cmd.rs, src/lib/components/GlobalSearchModal.svelte, src/lib/components/ProjectSidebar.svelte, src/App.svelte, scripts/test_workspace_search.mjs.
+- **Date**: 2026-11-10
+- **Status**: active
+
+### AD-031
+- **Decision**: Particionamento do palco central em Split View (vertical/horizontal) com painel primário e secundário desacoplados, alça de redimensionamento (`.split-resizer`) com limites entre 20% e 80%, atalho `Ctrl + \`, botão de alternância na TopBar e auto-save assíncrono independente por aba (`handleSecondaryEditorContentChange`).
+- **Reason**: Viabiliza escrita comparativa, tradução simultânea e consulta de anotações técnicas sem exigir a alternância constante de abas e sem quebrar o isolamento de debounce de salvamento em disco.
+- **Trade-off**: Exige coordenação reativa da lista de abas para manter consistência caso o mesmo arquivo seja selecionado em ambos os painéis.
+- **Scope**: src/App.svelte, src/lib/components/TopBar.svelte, scripts/test_split_view.mjs.
+- **Date**: 2026-11-11
+- **Status**: active
+
+### AD-032
+- **Decision**: Catálogo embutido de templates (Ata de Reunião, Especificação Técnica/PRD, Diário de Bordo, Artigo de Blog) com suporte a templates personalizados na pasta `.templates/` do projeto, interpolação determinística de variáveis dinâmicas (`{{date}}`, `{{time}}`, `{{datetime}}`, `{{title}}`, `{{project}}`), modal flutuante acessível (`TemplateModal.svelte`) e acionamento integrado na barra do Explorer (`Sidebar.svelte`).
+- **Reason**: Elimina o atrito inicial de documentos em branco e a digitação repetitiva de estruturas de anotação, garantindo consistência editorial sem introduzir engines de template pesados ou dependências externas (zero-bloat).
+- **Trade-off**: Variáveis restritas a substituições diretas sem laços de repetição avançados, perfeitamente alinhadas com a proposta leve do Veu MD.
+- **Scope**: src/lib/utils/templateRegistry.ts, src/lib/components/TemplateModal.svelte, src/lib/components/Sidebar.svelte, src/App.svelte, scripts/test_templates.mjs.
+- **Date**: 2026-11-11
+- **Status**: active
+
+### AD-033
+- **Decision**: Marca rica `wiki_link` no ProseMirror com atributos `target` e `alias`, conversão instantânea sem colchetes brutos em digitação via `InputRule` e em notas existentes via `convertWikiLinksInDoc`, navegação direta com `Ctrl + Clique` no editor, criação sob demanda de notas não existentes e scanner nativo de Backlinks no painel de Sumário da barra lateral.
+- **Reason**: Habilita a construção de bases de conhecimento interconectadas (Zettelkasten / estilo Obsidian) com fidelidade canônica GFM de disco e sem violação do invariante WYSIWYG de zero poluição de formatação bruta.
+- **Trade-off**: O clique requer `Ctrl` para evitar que a navegação desvie o cursor durante a digitação contínua de texto.
+- **Scope**: src/lib/editor/proseMirrorSetup.ts, src/lib/components/Editor.svelte, src/lib/utils/backlinkScanner.ts, src/lib/components/Sidebar.svelte, src/App.svelte, scripts/test_wiki_links.mjs.
+- **Date**: 2026-11-11
+- **Status**: active
+
+### AD-034
+- **Decision**: Modo Zen / Foco Sem Distrações com ocultação integral não-destrutiva de barras (`.zen-mode-active` via CSS `display: none`), atalhos globais `F11` e `Ctrl + Shift + Enter`, botão dedicado na `TopBar` e pílula translúcida flutuante no topo com contagem em tempo real de palavras e saída instantânea via `Escape` ou clique.
+- **Reason**: Proporciona imersão total e conforto visual para escrita contínua e deep work, sem risco de fechamento acidental de terminais ou recarregamento de abas.
+- **Trade-off**: Esconde momentaneamente botões de formatação do topo, incentivando o uso de atalhos e do menu flutuante por seleção.
+- **Scope**: src/App.svelte, src/lib/components/TopBar.svelte, scripts/test_zen_mode.mjs.
+- **Date**: 2026-11-11
+- **Status**: active
+
 ---
 
 ## Handoff
 
-- **Feature**: zero-server-cloud-sync / .specs/features/zero-server-cloud-sync/
+- **Feature**: zen-mode-distraction-free / .specs/features/zen-mode-distraction-free/
 - **Phase / Task**: Phase 4: Verification / Complete & Verified (PASS)
 - **Completed**:
-  - AD-028
-  - spec.md com critérios EARS validados (SYNC-01..SYNC-04)
+  - AD-034
+  - spec.md com critérios EARS validados (ZEN-01..ZEN-04)
   - tasks.md validado com portões determinísticos (T01..T04 concluídos)
-  - T01: Cliente WebDAV, autenticação Basic e fila assíncrona tolerante a offline em TypeScript puro (`cloudSyncService.ts`)
-  - T02: Integração de enfileiramento em background não-bloqueante no saveTab e proteção de dirty tabs (`App.svelte`)
-  - T03: Modal de configurações WebDAV (`CloudSyncModal.svelte`) e indicador de estado de sync na StatusBar (`StatusBar.svelte`)
-  - T04: Suíte automatizada com 5 grupos de testes (`test_cloud_sync.mjs`) integrada ao executor global npm test
-  - proofs.md gerado com 5 pass, 0 fail no HEAD
-  - verification.md verificado e aprovado com validate_verification
-  - Rastreabilidade de requisitos SYNC-01..SYNC-04 atualizada e selada como passed
-  - Todas as 15 features formais do repositório concluídas e 100% verificadas
+  - T01: Estado reativo `zenMode` e classes CSS imersivas de ocultação total sem destruição DOM (`App.svelte`)
+  - T02: Botão com ícone Maximize2 na TopBar e atalhos globais `F11` e `Ctrl + Shift + Enter` (`TopBar.svelte`, `App.svelte`)
+  - T03: Pílula translúcida flutuante com contagem dinâmica de palavras e saída rápida via `Escape` (`App.svelte`)
+  - T04: Suíte automatizada de testes `scripts/test_zen_mode.mjs` integrada ao executor central `npm test` (16/16 suítes verdes)
+  - proofs.md gerado com todos os critérios comprovados
+  - verification.md verificado e aprovado
 - **In-progress**: none
-- **Next step**: Ciclo completo de especificações e backlog concluído. Sistema pronto para compilação final, release ou novas demandas do usuário.
+- **Next step**: Todas as 5 features recomendadas na ordem do usuário foram concluídas com sucesso.
 - **Blockers**: none
 - **Uncommitted files**: none
 - **Branch**: master

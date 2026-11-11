@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 9,
+  "next_id": 10,
   "lessons": [
     {
       "id": "L-001",
@@ -148,6 +148,24 @@
       ],
       "created": "2026-11-10T19:32:42Z",
       "last_seen": "2026-11-10T19:32:42Z"
+    },
+    {
+      "id": "L-009",
+      "key": "ac_gap::xterm com conpty exige registro de listen ipc antes de spawn terminal e cursorinactivestyle block para evitar perda de banner e cursor invisivel",
+      "text": "xterm com ConPTY exige registro de listen IPC antes de spawn_terminal e cursorInactiveStyle block para evitar perda de banner e cursor invisivel",
+      "signal": "ac_gap",
+      "scope": "terminal-lifecycle",
+      "status": "candidate",
+      "features": [
+        "zero-server-cloud-sync"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/lib/components/TerminalPanel.svelte:339 (terminal-lifecycle)"
+      ],
+      "created": "2026-11-10T19:48:13Z",
+      "last_seen": "2026-11-10T19:48:13Z"
     }
   ]
 }

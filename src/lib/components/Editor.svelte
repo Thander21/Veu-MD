@@ -19,6 +19,7 @@
   export let onStatsChange: (stats: { words: number; chars: number; tokens: number; readTime: string }) => void;
   export let onEditorReady: (view: EditorView) => void;
   export let onPasteImage: ((base64: string) => void) | undefined = undefined;
+  export let onOpenWikiLink: ((target: string) => void) | undefined = undefined;
   export let smartPasteSanitizeAi: boolean = true;
 
   let editorContainer: HTMLDivElement;
@@ -146,6 +147,23 @@
 
         return false;
       },
+      handleClick(view, pos, event) {
+        // Navegação de Wiki-Link com Ctrl + Clique (WIKI-02)
+        if (event.ctrlKey || event.metaKey) {
+          const target = event.target as HTMLElement | null;
+          const linkEl = target?.closest('a[data-wiki-link]') as HTMLElement | null;
+          if (linkEl) {
+            const wikiTarget = linkEl.getAttribute('data-wiki-target');
+            if (wikiTarget && onOpenWikiLink) {
+              event.preventDefault();
+              event.stopPropagation();
+              onOpenWikiLink(wikiTarget);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
       handleKeyDown(view, event) {
         // Detecta atalho de sugestão '#' ou '/' no início da linha
         if (event.key === '#' || event.key === '/') {
@@ -222,6 +240,24 @@
 
   .editor-mount {
     min-height: 500px;
+  }
+
+  :global(.veu-wiki-link) {
+    color: var(--veu-h2-color, #89b4fa) !important;
+    text-decoration: underline !important;
+    text-decoration-style: dashed !important;
+    text-decoration-color: rgba(137, 180, 250, 0.45) !important;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 1px 3px;
+    transition: all 0.15s ease;
+  }
+
+  :global(.veu-wiki-link:hover) {
+    color: var(--veu-h1-color, #cba6f7) !important;
+    text-decoration-style: solid !important;
+    background-color: rgba(203, 166, 247, 0.14);
   }
 </style>
 

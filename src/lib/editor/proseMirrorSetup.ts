@@ -18,9 +18,10 @@ import {
 import { EditorState, Plugin, PluginKey } from 'prosemirror-state';
 import { EditorView, Decoration, DecorationSet } from 'prosemirror-view';
 import { history, undo, redo } from 'prosemirror-history';
+import { Transform } from 'prosemirror-transform';
 import { keymap } from 'prosemirror-keymap';
 import { baseKeymap, toggleMark } from 'prosemirror-commands';
-import { inputRules, wrappingInputRule, textblockTypeInputRule } from 'prosemirror-inputrules';
+import { inputRules, wrappingInputRule, textblockTypeInputRule, InputRule } from 'prosemirror-inputrules';
 
 // 1. Estendendo o Schema com Tabelas, Listas e Marcas (Highlight, Strikethrough, Underline)
 const baseNodes = addListNodes(baseSchema.spec.nodes, 'paragraph block*', 'block');
@@ -46,6 +47,38 @@ export const veuSchema = new Schema({
     highlight: {
       parseDOM: [{ tag: 'mark' }],
       toDOM: () => ['mark', 0]
+    },
+    wiki_link: {
+      attrs: {
+        target: {},
+        alias: { default: null }
+      },
+      inclusive: false,
+      parseDOM: [
+        {
+          tag: 'a[data-wiki-link]',
+          getAttrs(dom: HTMLElement) {
+            return {
+              target: dom.getAttribute('data-wiki-target') || '',
+              alias: dom.getAttribute('data-wiki-alias') || null
+            };
+          }
+        }
+      ],
+      toDOM(node) {
+        return [
+          'a',
+          {
+            class: 'veu-wiki-link',
+            'data-wiki-link': 'true',
+            'data-wiki-target': node.attrs.target,
+            'data-wiki-alias': node.attrs.alias || '',
+            href: `#wiki:${encodeURIComponent(node.attrs.target)}`,
+            title: `Wiki-Link: [[${node.attrs.target}]] (Ctrl + Clique para abrir)`
+          },
+          0
+        ];
+      }
     }
   })
 });
@@ -117,7 +150,17 @@ export const veuMarkdownSerializer = new MarkdownSerializer(
     ...defaultMarkdownSerializer.marks,
     strikethrough: { open: '~~', close: '~~', mixable: true, expelEnclosingWhitespace: true },
     underline: { open: '<u>', close: '</u>', mixable: true, expelEnclosingWhitespace: true },
-    highlight: { open: '==', close: '==', mixable: true, expelEnclosingWhitespace: true }
+    highlight: { open: '==', close: '==', mixable: true, expelEnclosingWhitespace: true },
+    wiki_link: {
+      open(_state, mark) {
+        return mark.attrs.alias && mark.attrs.alias !== mark.attrs.target
+          ? `[[${mark.attrs.target}|`
+          : '[[';
+      },
+      close(_state, _mark) {
+        return ']]';
+      }
+    }
   }
 );
 
@@ -218,6 +261,25 @@ export function buildInputRules(schema: Schema) {
     rules.push(textblockTypeInputRule(/^```$/, schema.nodes.code_block));
   }
 
+  // Wiki-Link ao digitar "[[nota]]" ou "[[nota|alias]]" (WIKI-01)
+  if (schema.marks.wiki_link) {
+    const wikiRule = new InputRule(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/, (state, match, start, end) => {
+      const rawTarget = match[1]?.trim();
+      if (!rawTarget) return null;
+      const rawAlias = match[2]?.trim() || null;
+      const displayText = rawAlias || rawTarget;
+      const markType = schema.marks.wiki_link;
+      if (!markType) return null;
+
+      return state.tr.replaceWith(
+        start,
+        end,
+        schema.text(displayText, [markType.create({ target: rawTarget, alias: rawAlias })])
+      );
+    });
+    rules.push(wikiRule);
+  }
+
   return inputRules({ rules });
 }
 
@@ -286,6 +348,51 @@ export const taskListPlugin = new Plugin({
 // Exporta comandos de tabela para a barra superior e menus
 export { addRowAfter, addColumnAfter, deleteRow, deleteColumn, deleteTable, isInTable };
 
+// Converte strings [[alvo]] e [[alvo|alias]] em marcas wiki_link no documento inicial
+export function convertWikiLinksInDoc(initialDoc: ProseMirrorNode, schema: Schema): ProseMirrorNode {
+  const markType = schema.marks.wiki_link;
+  if (!markType) return initialDoc;
+
+  let tr = new Transform(initialDoc);
+  let hasReplacements = true;
+
+  while (hasReplacements) {
+    hasReplacements = false;
+    let foundMatch: { pos: number; end: number; target: string; alias: string | null; text: string } | null = null;
+
+    tr.doc.descendants((node, pos) => {
+      if (foundMatch) return false;
+      if (node.isText && node.text) {
+        if (node.marks.some((m) => m.type === markType)) return;
+        const match = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/.exec(node.text);
+        if (match) {
+          const rawTarget = match[1]?.trim();
+          const rawAlias = match[2]?.trim() || null;
+          const matchStart = pos + match.index;
+          const matchEnd = matchStart + match[0].length;
+          foundMatch = {
+            pos: matchStart,
+            end: matchEnd,
+            target: rawTarget,
+            alias: rawAlias,
+            text: rawAlias || rawTarget
+          };
+          return false;
+        }
+      }
+    });
+
+    if (foundMatch) {
+      hasReplacements = true;
+      const { pos, end, target, alias, text } = foundMatch;
+      const replacementNode = schema.text(text, [markType.create({ target, alias })]);
+      tr.replaceWith(pos, end, replacementNode);
+    }
+  }
+
+  return tr.doc;
+}
+
 // 7. Inicializador do Editor
 export function createEditorState(
   initialMarkdown: string,
@@ -294,6 +401,7 @@ export function createEditorState(
   let doc;
   try {
     doc = veuMarkdownParser.parse(initialMarkdown) || veuSchema.node('doc', null, [veuSchema.node('paragraph')]);
+    doc = convertWikiLinksInDoc(doc, veuSchema);
   } catch (e) {
     console.error('Erro ao converter markdown:', e);
     doc = veuSchema.node('doc', null, [veuSchema.node('paragraph')]);

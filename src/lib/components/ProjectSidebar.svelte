@@ -9,9 +9,9 @@
     Trash2,
     ExternalLink,
     PanelLeft,
-    BotMessageSquare
-  } from 'lucide-svelte';
-  import type { ProjectWorkspace, RecentProject } from '../types';
+    BotMessageSquare,
+  } from "lucide-svelte";
+  import type { ProjectWorkspace, RecentProject } from "../types";
 
   export let projects: ProjectWorkspace[] = [];
   export let activeProjectId: string | null = null;
@@ -30,15 +30,12 @@
   let recentMenuOpen = false;
 
   function getProjectInitials(name: string): string {
-    if (!name) return 'PR';
-    const clean = name.trim().replace(/^[^a-zA-Z0-9]+/, '');
-    const parts = clean.split(/[\s-_]+/);
-    if (parts.length >= 2 && parts[0] && parts[1]) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return clean.slice(0, 2).toUpperCase() || 'PR';
+    if (!name) return "PROJ";
+    const clean = name.trim().replace(/^[^a-zA-Z0-9]+/, "");
+    if (!clean) return "PROJ";
+    // Retorna as 4 primeiras letras para identificação imediata do projeto
+    return clean.slice(0, 4).toUpperCase();
   }
-
 
   function toggleRecentMenu() {
     recentMenuOpen = !recentMenuOpen;
@@ -54,20 +51,22 @@
   }
 
   function isProjectCurrentlyOpen(folderPath: string): boolean {
-    return projects.some((p) => p.folderPath.toLowerCase() === folderPath.toLowerCase());
+    return projects.some(
+      (p) => p.folderPath.toLowerCase() === folderPath.toLowerCase(),
+    );
   }
 
   function formatRelativeDate(timestamp: number): string {
-    if (!timestamp) return '';
+    if (!timestamp) return "";
     const diffMs = Date.now() - timestamp;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 2) return 'agora há pouco';
+    if (diffMins < 2) return "agora há pouco";
     if (diffMins < 60) return `há ${diffMins} min`;
     if (diffHours < 24) return `há ${diffHours}h`;
-    if (diffDays === 1) return 'ontem';
+    if (diffDays === 1) return "ontem";
     return `há ${diffDays} dias`;
   }
 </script>
@@ -78,7 +77,9 @@
     <button
       class="action-btn toggle-sidebar-btn"
       class:active={sidebarOpen}
-      title={sidebarOpen ? "Recolher Barra Lateral de Arquivos" : "Expandir Barra Lateral de Arquivos"}
+      title={sidebarOpen
+        ? "Recolher Barra Lateral de Arquivos"
+        : "Expandir Barra Lateral de Arquivos"}
       on:click={onToggleSidebar}
       aria-label="Alternar Barra Lateral"
     >
@@ -102,7 +103,7 @@
           on:contextmenu|preventDefault={() => onCloseProject(project.id)}
           aria-label="Alternar para o projeto {project.name}"
         >
-          <span class="avatar-badge">
+          <span class="avatar-badge" class:quad={initials.length > 2}>
             <span class="badge-text">{initials}</span>
           </span>
         </button>
@@ -155,15 +156,27 @@
       <!-- Menu Popover Flutuante de Projetos Recentes -->
       {#if recentMenuOpen}
         <!-- Backdrop para fechar ao clicar fora -->
-        <div class="popover-backdrop" on:click={closeRecentMenu} role="presentation"></div>
+        <div
+          class="popover-backdrop"
+          on:click={closeRecentMenu}
+          role="presentation"
+        ></div>
 
-        <div class="recent-popover" role="dialog" aria-label="Projetos Recentes">
+        <div
+          class="recent-popover"
+          role="dialog"
+          aria-label="Projetos Recentes"
+        >
           <div class="popover-header">
             <div class="header-title">
               <History size={15} />
               <span>Projetos Recentes</span>
             </div>
-            <button class="popover-close-btn" on:click={closeRecentMenu} title="Fechar">
+            <button
+              class="popover-close-btn"
+              on:click={closeRecentMenu}
+              title="Fechar"
+            >
               <X size={14} />
             </button>
           </div>
@@ -173,7 +186,8 @@
               <div class="empty-state">
                 <Folder size={24} opacity={0.4} />
                 <p>Nenhum projeto recente salvo.</p>
-                <span>Abra pastas de projetos para ter acesso rápido aqui.</span>
+                <span>Abra pastas de projetos para ter acesso rápido aqui.</span
+                >
               </div>
             {:else}
               {#each recentProjects as item (item.folderPath)}
@@ -196,7 +210,9 @@
                       </div>
                       <span class="recent-path">{item.folderPath}</span>
                       {#if item.lastOpenedAt}
-                        <span class="recent-time">{formatRelativeDate(item.lastOpenedAt)}</span>
+                        <span class="recent-time"
+                          >{formatRelativeDate(item.lastOpenedAt)}</span
+                        >
                       {/if}
                     </div>
                   </button>
@@ -204,7 +220,8 @@
                   <button
                     class="remove-recent-btn"
                     title="Fechar / Remover projeto do histórico"
-                    on:click|stopPropagation={() => onRemoveRecent(item.folderPath)}
+                    on:click|stopPropagation={() =>
+                      onRemoveRecent(item.folderPath)}
                   >
                     <X size={14} />
                   </button>
@@ -315,7 +332,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s ease, border-color 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      border-color 0.15s ease;
   }
 
   .project-avatar-btn:hover {
@@ -326,23 +345,37 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--veu-active-item-bg), var(--veu-bg-editor));
+    background: linear-gradient(
+      135deg,
+      var(--veu-active-item-bg),
+      var(--veu-bg-editor)
+    );
     border: 1px solid var(--veu-border-color);
     color: var(--veu-text-color);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.15s ease;
+    padding: 0 1px;
+    overflow: hidden;
+  }
+
+  .avatar-badge.quad {
+    font-size: 9.5px;
+    letter-spacing: -0.2px;
+    font-family: "JetBrains Mono", "Cascadia Code", monospace;
   }
 
   .project-tab-item.active .avatar-badge {
     border-color: var(--veu-h1-color);
     color: var(--veu-h1-color);
-    box-shadow: 0 0 0 1px var(--veu-h1-color), 0 2px 6px rgba(0, 0, 0, 0.3);
+    box-shadow:
+      0 0 0 1px var(--veu-h1-color),
+      0 2px 6px rgba(0, 0, 0, 0.3);
   }
 
   .project-tab-item:hover .avatar-badge {
@@ -596,7 +629,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.15s ease, color 0.15s ease;
+    transition:
+      opacity 0.15s ease,
+      color 0.15s ease;
   }
 
   .recent-item:hover .remove-recent-btn {

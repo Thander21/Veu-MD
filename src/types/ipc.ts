@@ -11,6 +11,16 @@ export interface FileNode {
   children?: FileNode[] | null;
 }
 
+export interface SearchMatch {
+  file_path: string;
+  relative_path: string;
+  file_name: string;
+  line_number: number;
+  line_text: string;
+  match_start: number;
+  match_end: number;
+}
+
 export interface IpcCommandMap {
   // --- File System Commands (fs_cmd.rs) ---
   read_dir_tree: {
@@ -44,6 +54,16 @@ export interface IpcCommandMap {
   save_image_asset: {
     args: { baseDir: string; filename: string; base64Data: string };
     return: string;
+  };
+  search_in_files: {
+    args: {
+      folderPath: string;
+      query: string;
+      matchCase?: boolean;
+      matchWholeWord?: boolean;
+      maxResults?: number;
+    };
+    return: SearchMatch[];
   };
 
   // --- Terminal PTY Commands (pty_cmd.rs) ---

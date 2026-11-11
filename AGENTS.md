@@ -19,6 +19,9 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
     - O parâmetro `convertEol: false` é **estritamente obrigatório** ao usar ConPTY (`portable-pty`). ConPTY já gerencia quebras CRLF; ativar `convertEol: true` corrompe o cálculo de coordenadas de cursor em CLIs como `agy` e `muse`.
     - Declarar `windowsPty: { backend: 'conpty', buildNumber: 22000 }`, `cursorBlink: true` e `cursorStyle: 'block'`.
     - **Sincronização Imediata de Dimensões**: Imediatamente após invocar `spawnTerminalIpc`, o frontend deve emitir `resizeTerminalIpc(id, term.cols, term.rows)`, impedindo que o ConPTY permaneça preso no grid fallback de 80×24.
+    - **Inversão de Escuta IPC para Evitar Perda de Cold Start**: O listener IPC `listen('term-output-${id}')` **DEVE** ser obrigatoriamente registrado no frontend *antes* de invocar `spawnTerminalIpc`, garantindo que os bytes iniciais do banner e do prompt do shell emitidos pelo ConPTY não sejam descartados em inicializações rápidas.
+    - **Visibilidade Contínua do Cursor xterm**: Declarar `cursorInactiveStyle: 'block'`, `cursorBlink: true`, `cursorStyle: 'block'` e a sobreposição CSS `:global(.xterm .xterm-cursor-layer) { z-index: 3 !important; }`, impedindo que o cursor se torne invisível quando o painel perde o foco para o editor de texto.
+    - **Resiliência WebGL e Fallback DOM**: Ao utilizar `@xterm/addon-webgl`, registrar listener de `onContextLoss` com descarte gracioso para fallback automático ao renderizador DOM, impedindo que quedas de contexto na GPU congelem o terminal.
   - **Cold Start Imediato**: A inicialização do shell e seu banner inicial nunca devem ser descartados quando a lista de blocos estiver vazia; ao abrir o painel, a sessão deve estar pronta e o prompt imediatamente focado.
   - O prompt de entrada é interativo e editável com seleção nativa por mouse, navegação por histórico com setas (`ArrowUp`/`ArrowDown`) e clique livre para mover o cursor, posicionado ao final da linha do tempo quando a sessão está ociosa.
   - Durante a execução de um comando, a interface exibe streaming contínuo da saída com status, botão **Parar (`Ctrl+C`)** e ação de escape para liberar o prompt caso o processo silencie sem retorno padronizado.
@@ -35,6 +38,8 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - **NUNCA** altere propriedades diretas de nós DOM capturados por `bind:this` (ex: `inputEl.style.height = ...`) dentro de blocos reativos `$:` ou `$effect`.
   - Isso dispara `mutate()` recursivamente a cada microtask no Svelte 5 e congela a thread da UI a 100% de CPU. Use sentinelas pontuais de transição de estado (`let prevVisible = false; $: if (visible && !prevVisible) ...`) desacopladas com `setTimeout(..., 60)` e estilize tamanhos padrão via CSS (`min-height`).
   - Tags `<svelte:window>` devem permanecer obrigatoriamente no nível superior do markup, nunca aninhadas em blocos condicionais como `{#if}`.
+  - **Evitar Closures em Buscas de Árvore (Type Narrowing)**: Em funções de busca recursiva de nós em `FileNode[]`, adote varredura iterativa com fila (`const queue = [...nodes]; while (queue.length > 0) ...`) com retorno tipado explícito (`FileNode | null`) em vez de mutar variáveis externas dentro de closures, prevenindo erros de type narrowing do compilador TypeScript (`Property does not exist on type 'never'`).
+  - **Ocultação Não-Destrutiva do Modo Zen**: A ativação do Modo Zen (`zenMode = true`) deve ocultar as barras de projetos, arquivos, abas, ferramentas e status estritamente via classe CSS `.zen-mode-active` (`display: none !important`), preservando todas as instâncias PTY e estados em memória sem desmontagem de nós DOM.
 - **Persistência e Continuidade do Terminal Multi-Projeto:**
   - **NUNCA** destrua o `<TerminalPanel>` usando blocos de re-renderização reativa como `{#key currentFolderPath}` ou `{#if visible}` ao recolher o painel.
   - **Containers DOM Montados Continuamente (`allTabs`)**: A renderização dos containers de terminal (`.term-wrapper`) **NUNCA** deve iterar apenas sobre o subconjunto do projeto ativo (`{#each currentTabs ...}`). Os wrappers de todos os projetos devem permanecer permanentemente montados no DOM (`{#each allTabs as t (t.id)}`), alternados exclusivamente via classe CSS `.hidden` (`display: none`). O desmonte de um nó DOM desconecta permanentemente a instância do `xterm`, tornando o terminal em branco e congelado ao alternar de volta ao projeto.
@@ -81,6 +86,7 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
   - O drawer de temas deve disponibilizar seleção via Dropdown; qualquer ajuste manual feito pelo usuário em cores, medidas ou fontes deve comutar automaticamente o seletor para **"Personalizado"** (`custom`).
 - **Ergonomia e Invariantes da Barra de Projetos:**
   - **NUNCA** sobreponha botões flutuantes de fechar (`X`) no topo dos avatares de projetos na barra de atividades, evitando cliques acidentais e poluição visual.
+  - Os avatares de projeto na barra de atividades devem exibir as **4 primeiras letras** em maiúsculas (`clean.slice(0, 4).toUpperCase()`) em fonte mono compacta (9.5px), facilitando a identificação imediata entre múltiplos projetos abertos com prefixos similares.
   - A ação de fechar projeto deve ter destaque visual em vermelho vivo (`#ef4444`), localizada após o nome da pasta no cabeçalho do Explorer ou acionada via clique com botão direito no avatar.
 - **Segregação Semântica da Barra Superior (TopBar) e Zero Duplicidades:**
   - As ações que operam diretamente sobre o documento em edição (_Salvar_, _Exportar PDF/Imprimir_, _Copiar HTML_) pertencem ao grupo de formatação do editor ProseMirror, posicionadas ao final após _Desfazer/Refazer_.
@@ -98,6 +104,9 @@ O **Veu MD** é um editor de Markdown e texto puro focado em alta velocidade, le
 - **Smart Paste de Marcas Inline**:
   - O interceptador `handleSmartPaste` deve detectar tanto blocos (`#`, `>`, `-`, `|`, ````) quanto marcações inline (`**`, `*`, `~~`, `` ` ``, `[texto](link)`).
   - Colagens que contenham essas marcas devem ser convertidas diretamente em nós e marks ricos do ProseMirror, impedindo terminantemente que asteriscos ou crases literais sejam inseridos na visualização WYSIWYG.
+- **Invariante de Wiki-Links sem Colchetes Brutos**:
+  - O padrão de notas vinculadas `[[nota]]` ou `[[nota|alias]]` deve ser convertido imediatamente na marca rica `wiki_link` em tempo de digitação via `InputRule` e durante o parse de arquivos carregados do disco via `convertWikiLinksInDoc`.
+  - Os colchetes literais `[[` e `]]` **NUNCA** devem permanecer visíveis no corpo do documento durante a edição WYSIWYG, exibindo texto formatado com estilização clicável (`Ctrl + Clique` para abrir ou criar a nota vinculada).
 - **Ergonomia e Acessibilidade em Diálogos e Modais Svelte:**
   - Componentes de modal contendo `role="dialog"` **DEVEM** declarar explicitamente `tabindex="-1"`.
   - O contêiner de backdrop com evento `on:click` deve incluir handler de teclado para escape (`on:keydown={(e) => e.key === 'Escape' && onClose()}`).

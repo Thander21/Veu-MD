@@ -62,6 +62,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: scripts/test_cloud_sync.mjs:1 (sdd/verification)
 - last seen: 2026-11-10T19:32:42Z
 
+### L-009 - xterm com ConPTY exige registro de listen IPC antes de spawn_terminal e cursorInactiveStyle block para evitar perda de banner e cursor invisivel
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `terminal-lifecycle` · harmful: 0
+- features: zero-server-cloud-sync
+- evidence: src/lib/components/TerminalPanel.svelte:339 (terminal-lifecycle)
+- last seen: 2026-11-10T19:48:13Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

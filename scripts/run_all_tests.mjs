@@ -17,7 +17,12 @@ const testSuites = [
   { name: 'Architecture Resilience & Lifecycle', script: 'scripts/test_architecture_resilience.mjs' },
   { name: 'YAML Frontmatter Handling', script: 'scripts/test_yaml_frontmatter.mjs' },
   { name: 'AI Context Dropper & Token Counter', script: 'scripts/test_ai_context_and_tokens.mjs' },
-  { name: 'Zero-Server Cloud Sync', script: 'scripts/test_cloud_sync.mjs' }
+  { name: 'Zero-Server Cloud Sync', script: 'scripts/test_cloud_sync.mjs' },
+  { name: 'Workspace Global Search', script: 'scripts/test_workspace_search.mjs' },
+  { name: 'Split View Editor', script: 'scripts/test_split_view.mjs' },
+  { name: 'Document Templates & Snippets', script: 'scripts/test_templates.mjs' },
+  { name: 'Wiki-Links & Backlinks', script: 'scripts/test_wiki_links.mjs' },
+  { name: 'Zen Mode / Distraction-Free', script: 'scripts/test_zen_mode.mjs' }
 ];
 
 console.log('🚀 Executando Suíte Completa de Testes Automatizados (Modo Fail-Fast)\n');

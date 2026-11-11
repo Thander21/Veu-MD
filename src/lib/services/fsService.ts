@@ -1,7 +1,23 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { FileNode } from '../types';
+import type { SearchMatch } from '../../types/ipc';
 
 export const fsService = {
+  async searchInFiles(
+    folderPath: string,
+    query: string,
+    matchCase = false,
+    matchWholeWord = false,
+    maxResults = 500
+  ): Promise<SearchMatch[]> {
+    return await invoke('search_in_files', {
+      folderPath,
+      query,
+      matchCase,
+      matchWholeWord,
+      maxResults
+    });
+  },
   async readDirTree(path: string): Promise<FileNode[]> {
     return await invoke('read_dir_tree', { path });
   },

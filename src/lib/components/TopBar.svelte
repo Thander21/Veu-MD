@@ -23,6 +23,9 @@
     Printer,
     Copy,
     Check,
+    Columns,
+    Maximize2,
+    Minimize2,
     BotMessageSquare
   } from 'lucide-svelte';
   import type { EditorView } from 'prosemirror-view';
@@ -49,6 +52,10 @@
   export let aiAssistantOpen: boolean = false;
   export let themeSettingsOpen: boolean = false;
   export let hasFolder: boolean = false;
+  export let splitActive: boolean = false;
+  export let onToggleSplit: (() => void) | undefined = undefined;
+  export let zenMode: boolean = false;
+  export let onToggleZenMode: (() => void) | undefined = undefined;
 
   let currentHeading = 'p';
   let copiedHtmlNotice = false;
@@ -329,6 +336,30 @@
 
   <!-- Grupo Direito: Temas & Chat IA -->
   <div class="group right-group">
+    {#if onToggleSplit}
+      <button
+        class="btn icon-btn"
+        class:active={splitActive}
+        title="Dividir Editor Lado a Lado (Ctrl+\)"
+        on:click={onToggleSplit}
+        aria-label="Dividir Editor"
+      >
+        <Columns size={16} />
+      </button>
+    {/if}
+
+    {#if onToggleZenMode}
+      <button
+        class="btn icon-btn"
+        class:active={zenMode}
+        title="Modo Zen / Foco Sem Distrações (F11 ou Ctrl+Shift+Enter)"
+        on:click={onToggleZenMode}
+        aria-label="Modo Zen"
+      >
+        <Maximize2 size={16} />
+      </button>
+    {/if}
+
     <button
       class="btn icon-btn"
       class:active={themeSettingsOpen}

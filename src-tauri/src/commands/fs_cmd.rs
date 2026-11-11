@@ -1,7 +1,19 @@
 use crate::state::FileNode;
 use crate::utils::base64::{decode_base64, encode_base64};
+use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SearchMatch {
+    pub file_path: String,
+    pub relative_path: String,
+    pub file_name: String,
+    pub line_number: usize,
+    pub line_text: String,
+    pub match_start: usize,
+    pub match_end: usize,
+}
 
 #[tauri::command]
 pub fn read_dir_tree(path: String) -> Result<Vec<FileNode>, String> {
@@ -191,6 +203,184 @@ pub fn save_image_asset(base_dir: String, filename: String, base64_data: String)
     Ok(format!("./assets/{}", safe_filename))
 }
 
+#[tauri::command]
+pub fn search_in_files(
+    folder_path: String,
+    query: String,
+    match_case: Option<bool>,
+    match_whole_word: Option<bool>,
+    max_results: Option<usize>,
+) -> Result<Vec<SearchMatch>, String> {
+    let trimmed_query = query.trim();
+    if trimmed_query.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let root = Path::new(&folder_path);
+    if !root.exists() {
+        return Err(format!("Diretório não encontrado: {}", folder_path));
+    }
+
+    let is_case_sensitive = match_case.unwrap_or(false);
+    let is_whole_word = match_whole_word.unwrap_or(false);
+    let limit = max_results.unwrap_or(500);
+
+    let mut results = Vec::new();
+    let mut files_to_scan = Vec::new();
+    collect_search_files(root, root, &mut files_to_scan)?;
+
+    for (file_path, relative_path, file_name) in files_to_scan {
+        if results.len() >= limit {
+            break;
+        }
+
+        let Ok(content) = fs::read_to_string(&file_path) else {
+            continue;
+        };
+
+        for (line_idx, line) in content.lines().enumerate() {
+            if results.len() >= limit {
+                break;
+            }
+
+            let line_for_search = if is_case_sensitive {
+                line.to_string()
+            } else {
+                line.to_lowercase()
+            };
+
+            let query_for_search = if is_case_sensitive {
+                trimmed_query.to_string()
+            } else {
+                trimmed_query.to_lowercase()
+            };
+
+            let mut start_pos = 0;
+            while let Some(found_idx) = line_for_search[start_pos..].find(&query_for_search) {
+                let actual_idx = start_pos + found_idx;
+                let match_end = actual_idx + query_for_search.len();
+
+                let is_valid = if is_whole_word {
+                    let before_ok = if actual_idx == 0 {
+                        true
+                    } else {
+                        let prev_char = line_for_search[..actual_idx].chars().last().unwrap_or(' ');
+                        !prev_char.is_alphanumeric() && prev_char != '_'
+                    };
+
+                    let after_ok = if match_end >= line_for_search.len() {
+                        true
+                    } else {
+                        let next_char = line_for_search[match_end..].chars().next().unwrap_or(' ');
+                        !next_char.is_alphanumeric() && next_char != '_'
+                    };
+
+                    before_ok && after_ok
+                } else {
+                    true
+                };
+
+                if is_valid {
+                    let display_line = if line.chars().count() > 400 {
+                        line.chars().take(400).collect::<String>()
+                    } else {
+                        line.to_string()
+                    };
+
+                    results.push(SearchMatch {
+                        file_path: file_path.to_string_lossy().to_string(),
+                        relative_path: relative_path.clone(),
+                        file_name: file_name.clone(),
+                        line_number: line_idx + 1,
+                        line_text: display_line,
+                        match_start: actual_idx,
+                        match_end,
+                    });
+
+                    if results.len() >= limit {
+                        break;
+                    }
+                }
+
+                start_pos = actual_idx + query_for_search.len().max(1);
+                if start_pos >= line_for_search.len() {
+                    break;
+                }
+            }
+        }
+    }
+
+    Ok(results)
+}
+
+fn collect_search_files(
+    root: &Path,
+    current_dir: &Path,
+    files: &mut Vec<(PathBuf, String, String)>,
+) -> Result<(), String> {
+    let Ok(read_dir) = fs::read_dir(current_dir) else {
+        return Ok(());
+    };
+
+    for entry in read_dir.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        if path.is_dir() {
+            if name == ".git"
+                || name == "node_modules"
+                || name == "target"
+                || name == "dist"
+                || name == ".tauri"
+                || name == ".specs"
+                || name == ".cache"
+                || name == "build"
+            {
+                continue;
+            }
+            let _ = collect_search_files(root, &path, files);
+        } else {
+            let ext = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let is_searchable = matches!(
+                ext.as_str(),
+                "md" | "markdown"
+                    | "txt"
+                    | "json"
+                    | "yaml"
+                    | "yml"
+                    | "toml"
+                    | "csv"
+                    | "xml"
+                    | "css"
+                    | "html"
+                    | "js"
+                    | "ts"
+                    | "svelte"
+            );
+
+            if is_searchable {
+                if let Ok(metadata) = entry.metadata() {
+                    if metadata.len() > 5 * 1024 * 1024 {
+                        continue;
+                    }
+                }
+                let relative_path = path
+                    .strip_prefix(root)
+                    .map(|p| p.to_string_lossy().replace('\\', "/"))
+                    .unwrap_or_else(|_| name.clone());
+
+                files.push((path, relative_path, name));
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -222,5 +412,13 @@ mod tests {
         let res = validate_safe_deletion_path("C:\\");
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("Não é permitido excluir a raiz"));
+    }
+
+    #[test]
+    fn test_search_empty_query() {
+        let temp = std::env::temp_dir();
+        let res = search_in_files(temp.to_string_lossy().to_string(), "   ".to_string(), None, None, None);
+        assert!(res.is_ok());
+        assert!(res.unwrap().is_empty());
     }
 }
